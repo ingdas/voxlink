@@ -105,8 +105,9 @@ function resize() {
   const w = innerWidth, h = innerHeight;
   camera.aspect = w / h;
   // keep a comfortable horizontal field of view in portrait
-  const vfov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(88) / 2) / camera.aspect));
-  camera.fov = camera.userData.baseFov = THREE.MathUtils.clamp(vfov, 62, 92);
+  const hfov = camera.userData.hfov || 88; // set by the field-of-view setting
+  const vfov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(hfov) / 2) / camera.aspect));
+  camera.fov = camera.userData.baseFov = THREE.MathUtils.clamp(vfov, 62 * hfov / 88, 92 * hfov / 88);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
   if (base === 'screen-map') buildMap();

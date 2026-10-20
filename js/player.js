@@ -13,6 +13,7 @@ export class Player {
     this.bob = 0; this.bobAmt = 0;
     this.land = 0;
     this.stepPhase = 0;
+    this.bobScale = 1; this.landScale = 1; // comfort settings (head bob / reduced motion)
     this.onStep = null; this.onLand = null; this.onJump = null;
     this._box = new THREE.Box3();
   }
@@ -143,9 +144,9 @@ export class Player {
   }
 
   applyCamera(camera) {
-    const bobY = Math.sin(this.stepPhase * 2) * 0.035 * this.bobAmt;
-    const bobX = Math.cos(this.stepPhase) * 0.025 * this.bobAmt;
-    camera.position.set(this.pos.x, this.pos.y + EYE + bobY - this.land, this.pos.z);
+    const bobY = Math.sin(this.stepPhase * 2) * 0.035 * this.bobAmt * this.bobScale;
+    const bobX = Math.cos(this.stepPhase) * 0.025 * this.bobAmt * this.bobScale;
+    camera.position.set(this.pos.x, this.pos.y + EYE + bobY - this.land * this.landScale, this.pos.z);
     camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
     camera.translateX(bobX);
   }

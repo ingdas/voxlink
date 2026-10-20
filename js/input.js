@@ -1,4 +1,9 @@
 // Unified keyboard / mouse (pointer lock) / touch input.
+// Rebindable keyboard actions (event.code). Arrows / Enter / Backspace stay as fixed secondary keys.
+export const DEFAULT_KEYS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', run: 'ShiftLeft', interact: 'KeyE', drop: 'KeyQ', hint: 'KeyH' };
+const ALT_KEYS = { forward: ['ArrowUp'], back: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], interact: ['Enter'], drop: ['Backspace'] };
+const sideless = c => c.replace(/^(Shift|Control|Alt|Meta)(Left|Right)$/, '$1');
+
 export class Input {
   constructor(canvas, touchLayer, { mobile }) {
     this.canvas = canvas;
@@ -15,15 +20,21 @@ export class Input {
     this.lookTouches = new Map();
     this.jumpHeld = false;
     this.onLockChange = null;
+    this.bindings = { ...DEFAULT_KEYS };
+    this.smoothing = 0; // 0 = raw mouse/touch look, 1 = heavily smoothed
+    this.pending = { x: 0, y: 0 };
+    this.lastPoll = 0;
+    // gamepad state, written each frame by features/access.js (lx/ly: look delta, consumed by poll)
+    this.pad = { x: 0, y: 0, sprint: false, jump: false, lx: 0, ly: 0 };
 
     addEventListener('keydown', e => {
       if (e.repeat) { if (this.enabled) e.preventDefault(); return; }
       this.keys.add(e.code);
       if (!this.enabled) return;
-      if (e.code === 'Space') { this.actions.push({ type: 'jump' }); e.preventDefault(); }
-      if (e.code === 'KeyE' || e.code === 'KeyF' || e.code === 'Enter') this.actions.push({ type: 'interact' });
-      if (e.code === 'KeyQ' || e.code === 'KeyG' || e.code === 'Backspace') this.actions.push({ type: 'drop' });
-      if (e.code === 'KeyH') this.actions.push({ type: 'hint' });
+      if (this.is(e.code, 'jump')) { this.actions.push({ type: 'jump' }); e.preventDefault(); }
+      if (this.is(e.code, 'interact')) this.actions.push({ type: 'interact' });
+      if (this.is(e.code, 'drop')) this.actions.push({ type: 'drop' });
+      if (this.is(e.code, 'hint')) this.actions.push({ type: 'hint' });
       if (e.code === 'KeyP') this.actions.push({ type: 'pause' });
       if (/^Digit[1-4]$/.test(e.code)) this.actions.push({ type: 'slot', k: +e.code.slice(5) - 1 });
       if (e.code === 'Tab') { this.actions.push({ type: 'cycle', d: e.shiftKey ? -1 : 1 }); e.preventDefault(); }
@@ -65,6 +76,12 @@ export class Input {
     this.stickEl = document.getElementById('stick');
     this.knobEl = document.getElementById('stick-knob');
   }
+
+  is(code, action) {
+    const b = this.bindings[action];
+    return (!!b && sideless(code) === sideless(b)) || !!ALT_KEYS[action]?.includes(code);
+  }
+  held(action) { for (const c of this.keys) if (this.is(c, action)) return true; return false; }
 
   requestLock() {
     if (this.mobile) return Promise.resolve();
@@ -142,12 +159,12 @@ export class Input {
   // Called once per frame: returns accumulated look delta and resolved move vector.
   poll() {
     let mx = 0, my = 0;
-    const k = this.keys;
-    if (k.has('KeyW') || k.has('ArrowUp')) my -= 1;
-    if (k.has('KeyS') || k.has('ArrowDown')) my += 1;
-    if (k.has('KeyA') || k.has('ArrowLeft')) mx -= 1;
-    if (k.has('KeyD') || k.has('ArrowRight')) mx += 1;
-    let sprint = k.has('ShiftLeft') || k.has('ShiftRight');
+    if (this.held('forward')) my -= 1;
+    if (this.held('back')) my += 1;
+    if (this.held('left')) mx -= 1;
+    if (this.held('right')) mx += 1;
+    let sprint = this.held('run') || this.pad.sprint;
+    mx += this.pad.x; my += this.pad.y;
     if (this.stick) {
       mx += this.stick.x; my += this.stick.y;
       if (Math.hypot(this.stick.x, this.stick.y) > 0.92) sprint = true;
@@ -155,9 +172,18 @@ export class Input {
     const len = Math.hypot(mx, my);
     if (len > 1) { mx /= len; my /= len; }
     this.move.x = mx; this.move.y = my; this.move.sprint = sprint;
-    const look = { x: this.look.x, y: this.look.y };
+    // optional exponential smoothing of mouse / touch look (gamepad look is already smooth)
+    const now = performance.now();
+    const dt = Math.min(0.1, (now - (this.lastPoll || now)) / 1000);
+    this.lastPoll = now;
+    const p = this.pending;
+    p.x += this.look.x; p.y += this.look.y;
     this.look.x = this.look.y = 0;
-    this.jumpHeld = k.has('Space') || this.jumpButtonHeld;
+    const f = this.smoothing > 0 ? 1 - Math.exp(-dt / (this.smoothing * 0.12)) : 1;
+    const look = { x: p.x * f + this.pad.lx, y: p.y * f + this.pad.ly };
+    p.x -= p.x * f; p.y -= p.y * f;
+    this.pad.lx = this.pad.ly = 0;
+    this.jumpHeld = this.held('jump') || this.jumpButtonHeld || this.pad.jump;
     return look;
   }
 
@@ -165,6 +191,7 @@ export class Input {
 
   reset() {
     this.actions = []; this.look.x = this.look.y = 0; this.keys.clear();
+    this.pending.x = this.pending.y = 0; this.pad.lx = this.pad.ly = 0;
     this.stick = null; this.lookTouches.clear(); this.stickEl?.classList.remove('on');
   }
 }
