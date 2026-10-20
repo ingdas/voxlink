@@ -219,6 +219,7 @@ export function init(ctx) {
       t('access.hint.jumpRun', { jump: k(L('jump')), run: k(L('run')) }),
       t('access.hint.slot', { a: k('1-4'), b: k(t('access.key.wheel')) }),
       t('access.hint.dropHint2', { a: k(t('access.key.rightClick')), b: k(L('drop')), hint: k(L('hint')) }),
+      `${k('R')} ${t('aria.magnet')} · ${k('F')} ${t('aria.express')}`,
     ];
     $('keys').innerHTML = lines.map(s => `<span>${s}</span>`).join('');
   }
