@@ -752,7 +752,9 @@ function frame(now) {
   audio.updateMusic();
   // nothing 3D is visible behind these screens
   if (app === 'paused' || app === 'loading' || app === 'menu') return;
-  // a feature can own the frame for its own app state (ctx.modes[app] replaces game.update; rendering still happens)
+  // a feature can own the frame for its own app state:
+  // ctx.views[app] replaces update + render (workshop), ctx.modes[app] replaces game.update only (garden)
+  if (ctx.views[app]) { ctx.views[app](dt); renderer.adapt(dt); return; }
   const mode = ctx.modes[app];
   if (mode) mode(dt); else game.update(dt);
   renderer.render(scene, camera);
@@ -771,6 +773,7 @@ const ctx = {
   hooks: { tick: [], complete: [], link: [], settings: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures
   modes: {}, // app state -> (dt) => void, per-frame update used instead of game.update while app is that state
+  views: {}, // app state -> (dt) => void; replaces game.update + scene render while app is in that state
 };
 
 // ---------- boot ----------

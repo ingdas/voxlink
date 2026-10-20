@@ -35,6 +35,7 @@ uniform float cameraFar;
 uniform vec3 ink;
 uniform float outline;
 uniform float vignette;
+uniform float transparentSky;
 varying vec2 vUv;
 
 float linDepth(vec2 uv) {
@@ -66,7 +67,7 @@ void main() {
   vec3 c = mix(col.rgb, ink, edge * outline * fade);
   vec2 q = vUv - 0.5;
   c *= 1.0 - vignette * dot(q, q) * 1.1;
-  gl_FragColor = vec4(c, sky ? edge * outline : 1.0);
+  gl_FragColor = vec4(c, (sky && transparentSky > 0.5) ? edge * outline : 1.0);
   #include <colorspace_fragment>
   gl_FragDepth = texture2D(tDepth, vUv).x;
 }`;
@@ -110,6 +111,7 @@ export class Renderer {
         ink: { value: new THREE.Color(0x2a1f3d) },
         outline: { value: 1 },
         vignette: { value: 0.35 },
+        transparentSky: { value: 0 },
       },
     });
     const quad = new THREE.Mesh(tri, this.composite);
@@ -153,6 +155,7 @@ export class Renderer {
     u.cameraNear.value = camera.near;
     u.cameraFar.value = camera.far;
     u.outline.value = this.outlines ? 1 : 0;
+    u.transparentSky.value = target ? 1 : 0;
     if (size) {
       this.colorRT.setSize(size, size); this.normalRT.setSize(size, size);
       u.resolution.value.set(size, size); u.thickness.value = 2;
