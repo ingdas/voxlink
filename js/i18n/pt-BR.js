@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Girar para a esquerda",
   "workshop.cam.right": "Girar para a direita",
   "workshop.cam.top": "Vista de cima",
+  "brief.parts": "{n} partes, cada uma em seu distrito com bandeira",
 };

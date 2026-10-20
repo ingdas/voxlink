@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Vrid åt vänster",
   "workshop.cam.right": "Vrid åt höger",
   "workshop.cam.top": "Vy ovanifrån",
+  "brief.parts": "{n} delar, var och en i sitt eget kvarter med flagga",
 };

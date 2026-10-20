@@ -549,3 +549,4 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 #btn-express.empty { filter: saturate(.2); opacity: .7; }
 body.museum #btn-express { display: none !important; }
 @media (max-width: 520px) { .hud-tools { gap: 6px; } .hud-tools .btn.icon { width: 42px; height: 42px; } }
+.goal.info { background: #f3ecff; } .goal.info svg { fill: none; }

@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Obróć w lewo",
   "workshop.cam.right": "Obróć w prawo",
   "workshop.cam.top": "Widok z góry",
+  "brief.parts": "Części: {n}, każda we własnej dzielnicy z flagą",
 };

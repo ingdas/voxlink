@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "หมุนไปทางซ้าย",
   "workshop.cam.right": "หมุนไปทางขวา",
   "workshop.cam.top": "มุมมองจากด้านบน",
+  "brief.parts": "{n} ส่วน แต่ละส่วนอยู่ในเขตที่มีธงของตัวเอง",
 };

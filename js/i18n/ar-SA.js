@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "تدوير لليسار",
   "workshop.cam.right": "تدوير لليمين",
   "workshop.cam.top": "منظر علوي",
+  "brief.parts": "عدد الأجزاء: {n}، لكل جزء حيّه وعلمه",
 };

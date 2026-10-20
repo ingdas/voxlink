@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Putar ke kiri",
   "workshop.cam.right": "Putar ke kanan",
   "workshop.cam.top": "Tampak atas",
+  "brief.parts": "{n} bagian, masing-masing di distrik berbenderanya",
 };

@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Naar links draaien",
   "workshop.cam.right": "Naar rechts draaien",
   "workshop.cam.top": "Bovenaanzicht",
+  "brief.parts": "{n} delen, elk in een eigen wijk met vlag",
 };

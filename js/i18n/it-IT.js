@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Ruota a sinistra",
   "workshop.cam.right": "Ruota a destra",
   "workshop.cam.top": "Vista dall'alto",
+  "brief.parts": "{n} parti, ognuna nel suo quartiere con bandiera",
 };

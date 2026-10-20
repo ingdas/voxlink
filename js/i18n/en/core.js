@@ -7,6 +7,7 @@ export default {
   "map.title": "World Map",
   "brief.start": "Start",
   "brief.boss": "Final figure",
+  "brief.parts": "{n} parts, each in its own flagged district",
   "talk.skip": "Skip",
   "talk.more": "Tap to continue",
   "settings.look": "Look speed",

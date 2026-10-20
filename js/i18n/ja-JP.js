@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "左に回す",
   "workshop.cam.right": "右に回す",
   "workshop.cam.top": "真上から見る",
+  "brief.parts": "パーツは{n}こ。それぞれ はたのあるエリアにあるよ",
 };

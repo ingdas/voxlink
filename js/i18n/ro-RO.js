@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Rotește la stânga",
   "workshop.cam.right": "Rotește la dreapta",
   "workshop.cam.top": "Vedere de sus",
+  "brief.parts": "{n} părți, fiecare în cartierul ei cu steag",
 };

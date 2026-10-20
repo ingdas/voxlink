@@ -445,5 +445,8 @@ function largestComponent(cells, id) {
   return best;
 }
 
+// Big figures are built in parts, each with its own district on the island.
+export const partsFor = n => (n > 44 ? Math.ceil(n / 34) : 1);
+
 // Target time for the clock star.
 export const parTime = level => Math.round((30 + expandLevel(level).cells.length * 7) / 15) * 15;

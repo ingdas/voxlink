@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Renderer } from './render.js';
-import { LEVELS, CHAPTERS, ENDING, expandLevel, parTime } from './levels.js';
+import { LEVELS, CHAPTERS, ENDING, expandLevel, parTime, partsFor } from './levels.js';
 import { THEMES } from './world.js';
 import { S, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, getAtlas } from './voxels.js';
 import { Game, PACK_SIZE } from './game.js';
@@ -595,7 +595,8 @@ function openBrief(i) {
   $('brief-stars').innerHTML = `
     <div class="goal ${s.done ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.done')}<em>${t('brief.blocks', { n })}</em></div>
     <div class="goal ${s.fast ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.fast', { t: fmt(parTime(l)) })}<em>${best ? t('brief.best', { t: fmt(best) }) : ''}</em></div>
-    <div class="goal ${s.clean ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.clean')}</div>`;
+    <div class="goal ${s.clean ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.clean')}</div>
+    ${partsFor(n) > 1 ? `<div class="goal info"><svg><use href="#i-map"/></svg>${t('brief.parts', { n: partsFor(n) })}</div>` : ''}`;
   $('brief-say').innerHTML = l.intro;
   const ses = save.session?.id === l.id ? save.session : null;
   $('btn-brief-go').innerHTML = ses

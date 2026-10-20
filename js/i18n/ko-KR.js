@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "왼쪽으로 돌리기",
   "workshop.cam.right": "오른쪽으로 돌리기",
   "workshop.cam.top": "위에서 보기",
+  "brief.parts": "{n}개 부분, 각자 깃발이 있는 구역에 있어요",
 };

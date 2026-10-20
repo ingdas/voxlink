@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LEVELS, CHAPTERS, expandLevel } from './levels.js';
+import { LEVELS, CHAPTERS, expandLevel, partsFor } from './levels.js';
 import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
 import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS } from './voxels.js';
 import { Player } from './player.js';
@@ -451,7 +451,7 @@ export class Game {
   // Big figures are built in parts (bottom first). A block's part is never earlier than its parent's.
   computeStages() {
     const n = this.cells.length;
-    this.stageCount = n > 44 ? Math.ceil(n / 34) : 1;
+    this.stageCount = partsFor(n);
     this.stageOf = new Array(n).fill(0);
     if (this.stageCount === 1) return;
     const byHeight = this.cells.map((c, i) => i).sort((a, b) => (this.cells[a].iy - this.cells[b].iy) || (Math.hypot(this.cells[a].x, this.cells[a].z) - Math.hypot(this.cells[b].x, this.cells[b].z)));

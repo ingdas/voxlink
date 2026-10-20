@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Περιστροφή αριστερά",
   "workshop.cam.right": "Περιστροφή δεξιά",
   "workshop.cam.top": "Κάτοψη",
+  "brief.parts": "Μέρη: {n}, το καθένα στη δική του γειτονιά με σημαία",
 };

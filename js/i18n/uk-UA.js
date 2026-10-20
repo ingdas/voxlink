@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Повернути ліворуч",
   "workshop.cam.right": "Повернути праворуч",
   "workshop.cam.top": "Вигляд згори",
+  "brief.parts": "Частин: {n}, у кожної свій район із прапорцем",
 };

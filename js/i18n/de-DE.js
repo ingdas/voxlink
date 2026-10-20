@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Nach links drehen",
   "workshop.cam.right": "Nach rechts drehen",
   "workshop.cam.top": "Draufsicht",
+  "brief.parts": "{n} Teile, jeder in seinem eigenen Bezirk mit Flagge",
 };

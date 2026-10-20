@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Tourner à gauche",
   "workshop.cam.right": "Tourner à droite",
   "workshop.cam.top": "Vue de dessus",
+  "brief.parts": "{n} parties, chacune dans son quartier à drapeau",
 };

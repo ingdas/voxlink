@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Forgatás balra",
   "workshop.cam.right": "Forgatás jobbra",
   "workshop.cam.top": "Felülnézet",
+  "brief.parts": "Részek: {n}, mindegyik saját zászlós negyedben",
 };

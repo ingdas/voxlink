@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Drej til venstre",
   "workshop.cam.right": "Drej til højre",
   "workshop.cam.top": "Set ovenfra",
+  "brief.parts": "{n} dele, hver i sit eget kvarter med flag",
 };

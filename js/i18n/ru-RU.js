@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Повернуть влево",
   "workshop.cam.right": "Повернуть вправо",
   "workshop.cam.top": "Вид сверху",
+  "brief.parts": "Частей: {n}, у каждой свой район с флагом",
 };

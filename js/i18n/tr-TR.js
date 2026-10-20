@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Sola döndür",
   "workshop.cam.right": "Sağa döndür",
   "workshop.cam.top": "Üstten görünüm",
+  "brief.parts": "Bölüm sayısı: {n}, her biri kendi bayraklı bölgesinde",
 };

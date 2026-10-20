@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Otočit doleva",
   "workshop.cam.right": "Otočit doprava",
   "workshop.cam.top": "Pohled shora",
+  "brief.parts": "Částí: {n}, každá ve vlastní čtvrti s vlajkou",
 };

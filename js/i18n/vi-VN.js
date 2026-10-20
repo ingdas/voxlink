@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Xoay trái",
   "workshop.cam.right": "Xoay phải",
   "workshop.cam.top": "Nhìn từ trên xuống",
+  "brief.parts": "{n} phần, mỗi phần ở một khu có cờ riêng",
 };

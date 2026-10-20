@@ -467,4 +467,5 @@ export default {
   "workshop.cam.left": "Käännä vasemmalle",
   "workshop.cam.right": "Käännä oikealle",
   "workshop.cam.top": "Näkymä ylhäältä",
+  "brief.parts": "Osia: {n}, jokaisella oma liputettu alue",
 };
