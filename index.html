@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a1f3d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Voxlink">
+<meta name="description" content="Link the numbered blocks and rebuild the figures of the Archipelago. A cozy first-person voxel puzzle.">
+<title>Voxlink</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preload" href="fonts/fredoka-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" class="fill"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 4v10M7.5 10l4.5 4.5 4.5-4.5M5 19h14"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5 5.5-2.5v13.5L15 20l-6-2.5-5.5 2.5zM9 4v13.5M15 6.5V20"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-retry" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4.5H9"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5M6.5 10v9h11v-9"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3.5 20 8v8l-8 4.5L4 16V8zM4 8l8 4.5L20 8M12 12.5v8"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 3 20 19l-8-4-8 4z" class="fill"/></symbol>
+  </defs>
+</svg>
+
+<canvas id="c"></canvas>
+<div id="touch"></div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="off">
+  <div class="hud-top">
+    <button class="btn icon" id="btn-pause" aria-label="Pause"><svg><use href="#i-pause"/></svg></button>
+    <div class="progress tag">
+      <div class="progress-row"><b id="lvl-name">Sprout</b><span id="count">1 / 6</span></div>
+      <div class="bar"><i id="bar-fill"></i></div>
+    </div>
+    <button class="btn icon sun" id="btn-hint" aria-label="Hint"><svg><use href="#i-bulb"/></svg><i class="cd" id="hint-cd"></i></button>
+  </div>
+  <div id="needs" class="needs"></div>
+  <div id="toast" class="tag toast"></div>
+  <div id="coach" class="coach"></div>
+  <div id="kubo-bark" class="kubo-bark"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p></p></div>
+
+  <div id="crosshair"><i></i></div>
+  <div id="tooltip" class="tooltip"></div>
+  <div id="edge-home" class="edge"><svg><use href="#i-arrow"/></svg></div>
+  <div id="edge-hint" class="edge hintc"><svg><use href="#i-arrow"/></svg></div>
+
+  <div class="pack-wrap">
+    <div class="pack-tip" id="pack-tip"></div>
+    <div class="pack" id="pack"></div>
+  </div>
+
+  <div id="keys" class="keys">
+    <span><kbd>WASD</kbd> move</span><span><kbd>Click</kbd> grab / link</span><span><kbd>Space</kbd> jump · <kbd>Shift</kbd> run</span><span><kbd>1-4</kbd> / <kbd>Wheel</kbd> pick slot</span><span><kbd>Right-click</kbd> drop · <kbd>H</kbd> hint</span>
+  </div>
+
+  <div class="touch-btns">
+    <button class="btn round coral" id="btn-drop" aria-label="Drop"><svg><use href="#i-drop"/></svg></button>
+    <button class="btn round sky big" id="btn-jump" aria-label="Jump"><svg><use href="#i-up"/></svg></button>
+  </div>
+  <div id="stick"><div id="stick-knob"></div></div>
+</div>
+
+<!-- ============ Screens ============ -->
+<div id="screen-loading" class="screen show">
+  <div class="logo small" id="logo-loading"></div>
+  <div class="loadbar"><i id="load-fill"></i></div>
+</div>
+
+<div id="screen-title" class="screen">
+  <div class="title-top">
+    <div class="logo" id="logo-title"></div>
+    <p class="tagline">Link the numbers. Rebuild the islands.</p>
+  </div>
+  <div class="title-bottom">
+    <button class="btn huge mint" id="btn-play"><svg><use href="#i-play"/></svg><span id="play-label">Play</span></button>
+    <div class="row">
+      <button class="btn" id="btn-map"><svg><use href="#i-map"/></svg>Map</button>
+      <button class="btn" id="btn-settings"><svg><use href="#i-gear"/></svg>Settings</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-map" class="screen map">
+  <div class="map-scroll" id="map-scroll"><div class="map-inner" id="map-inner"></div></div>
+  <div class="map-top">
+    <button class="btn icon" id="btn-map-back" aria-label="Back"><svg><use href="#i-home"/></svg></button>
+    <div class="tag map-title">World Map</div>
+    <div class="tag star-total"><svg><use href="#i-star"/></svg><span id="map-stars">0 / 48</span></div>
+  </div>
+</div>
+
+<div id="screen-brief" class="screen dim">
+  <div class="panel narrow brief">
+    <div class="brief-chapter" id="brief-chapter">Meadow Isles · 1</div>
+    <div class="brief-thumb" id="brief-thumb"><img id="brief-img" alt=""><span class="q">?</span></div>
+    <h2 class="center" id="brief-name">Mystery figure</h2>
+    <p class="brief-tag" id="brief-tag"></p>
+    <div class="brief-stars" id="brief-stars"></div>
+    <div class="say"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p id="brief-say"></p></div>
+    <div class="row">
+      <button class="btn icon" id="btn-brief-back" aria-label="Back"><svg><use href="#i-back"/></svg></button>
+      <button class="btn icon hidden" id="btn-brief-fresh" aria-label="Start over"><svg><use href="#i-retry"/></svg></button>
+      <button class="btn mint grow huge-ish" id="btn-brief-go"><svg><use href="#i-play"/></svg>Start</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-talk" class="screen talk">
+  <div class="talk-box" id="talk-box">
+    <div class="kubo big"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i><i class="cheek l"></i><i class="cheek r"></i></div>
+    <div class="talk-body">
+      <div class="talk-name">Kubo</div>
+      <p id="talk-text"></p>
+      <div class="talk-more" id="talk-more">Tap to continue <svg><use href="#i-next"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-settings" class="screen dim">
+  <div class="panel">
+    <div class="panel-head">
+      <button class="btn icon" data-back aria-label="Back"><svg><use href="#i-back"/></svg></button>
+      <h2>Settings</h2>
+      <span></span>
+    </div>
+    <div class="settings">
+      <label class="setting"><span>Look speed</span><input type="range" id="set-sens" min="0.3" max="2.5" step="0.05"></label>
+      <label class="setting"><span>Sound</span><input type="range" id="set-sfx" min="0" max="1" step="0.05"></label>
+      <label class="setting"><span>Music</span><input type="range" id="set-music" min="0" max="1" step="0.05"></label>
+      <div class="setting"><span>Invert look</span><button class="toggle" id="set-invert"><i></i></button></div>
+      <div class="setting"><span>Ink outlines</span><button class="toggle" id="set-outline"><i></i></button></div>
+      <div class="setting"><span>Fullscreen</span><button class="toggle" id="set-full"><i></i></button></div>
+      <div class="setting danger"><span>Reset progress</span><button class="btn small coral" id="set-reset">Reset</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-pause" class="screen dim">
+  <div class="panel narrow">
+    <h2 class="center">Paused</h2>
+    <div class="pause-figure tag" id="pause-info"></div>
+    <div class="stack">
+      <button class="btn huge mint" id="btn-resume"><svg><use href="#i-play"/></svg>Resume</button>
+      <button class="btn" id="btn-restart"><svg><use href="#i-retry"/></svg>Restart</button>
+      <button class="btn" id="btn-p-settings"><svg><use href="#i-gear"/></svg>Settings</button>
+      <button class="btn" id="btn-quit"><svg><use href="#i-map"/></svg>World map</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-complete" class="screen">
+  <div class="panel narrow complete">
+    <div class="ribbon">Figure complete!</div>
+    <div class="complete-thumb" id="complete-thumb"><img id="complete-img" alt=""></div>
+    <h2 class="center" id="complete-name">Rubber Duck</h2>
+    <div class="complete-stars" id="complete-stars"></div>
+    <div class="stats">
+      <div class="stat"><svg><use href="#i-clock"/></svg><b id="complete-time">0:00</b><small id="complete-par">par 1:00</small></div>
+      <div class="stat"><svg><use href="#i-bulb"/></svg><b id="complete-hints">0</b><small>hints</small></div>
+    </div>
+    <div class="newbest" id="complete-best">New best!</div>
+    <div class="say"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p id="complete-say"></p></div>
+    <div class="row">
+      <button class="btn icon" id="btn-c-map" aria-label="Map"><svg><use href="#i-map"/></svg></button>
+      <button class="btn icon" id="btn-c-retry" aria-label="Replay"><svg><use href="#i-retry"/></svg></button>
+      <button class="btn mint grow" id="btn-next"><span id="next-label">Continue</span><svg><use href="#i-next"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-ending" class="screen dim">
+  <div class="panel narrow ending">
+    <div class="logo small" id="logo-ending"></div>
+    <h2 class="center">The Archipelago is whole!</h2>
+    <div class="ending-grid" id="ending-grid"></div>
+    <p class="center ending-stars"><svg><use href="#i-star"/></svg> <b id="ending-stars">0</b> stars collected</p>
+    <p class="center small-print">Thanks for playing Voxlink.</p>
+    <button class="btn mint" id="btn-ending-map"><svg><use href="#i-map"/></svg>Back to the map</button>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
