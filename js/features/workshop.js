@@ -5,6 +5,7 @@ import { PALETTE, forgetLevel } from '../levels.js';
 import { S } from '../voxels.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from '../render.js';
 import { THEMES } from '../world.js';
+import { t } from '../i18n.js';
 
 const KEYS = Object.keys(PALETTE); // share-code colour index (append-only order)
 const UI_ORDER = 'roylgGcuUvVpbBtwisnk'.split('').filter(c => c in PALETTE);
@@ -12,11 +13,11 @@ const MIN = 6, MAX = 200, SLOTS = 12;
 const EXT = 7; // x, z in [-EXT, EXT]
 const HMAX = 16; // y in [0, HMAX)
 const THEME_IDS = ['meadow', 'frost', 'reef', 'starfall'];
-const THEME_NAMES = { meadow: 'Meadow', frost: 'Frost', reef: 'Reef', starfall: 'Starfall' };
-const FUN_NAMES = ['My Rocket', 'Tiny Castle', 'Robo Buddy', 'Happy Tree', 'Space Duck', 'Mega Mushroom', 'Snow Pal',
-  'Lucky Cat', 'Rainbow Tower', 'Little Dragon', 'Sea Buddy', 'Block Bot', 'Sunny Flower', 'Jelly Blob', 'Brave Knight', 'Comet Car'];
-const CHEERS = ['You built it <b>and</b> solved it!', 'What a creation! Want to build another?', 'Brilliant! Share it with a friend?', 'Ta-da! Your figure stands tall.'];
-const GIFT_CHEERS = ["You rebuilt your friend's figure!", 'Solved! Now build one to send back?', 'Ta-da! Your friend will be proud.'];
+const themeName = id => t(`workshop.theme.${id}`);
+const FUN_NAME_COUNT = 16; // workshop.name.0 … workshop.name.15
+const CHEER_COUNT = 4, GIFT_CHEER_COUNT = 3; // workshop.cheer.N / workshop.giftCheer.N
+const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+const plural = (key, n, vars) => t(`${key}.${n === 1 ? 'one' : 'other'}`, { n, ...vars });
 const INK = 0x2a1f3d;
 
 const ICONS = `
@@ -122,7 +123,7 @@ export function decodeFigure(code) {
     let bp = (pos + 7) >> 3;
     const nl = bytes[bp++];
     const name = cleanName(new TextDecoder().decode(new Uint8Array(bytes.slice(bp, bp + nl))));
-    return { voxels: cells, name: name || 'Mystery gift', theme };
+    return { voxels: cells, name: name || t('workshop.gift.defaultName'), theme };
   } catch { return null; }
 }
 
@@ -157,12 +158,12 @@ function thumbCells(voxels) {
   return voxels.map(v => ({ ix: v.x, iy: v.y - y0, iz: v.z, x: v.x - cx, y: v.y - y0, z: v.z - cz, color: PALETTE[v.c] ?? 0xffffff }));
 }
 const sigOf = voxels => voxels.map(v => `${v.x},${v.y},${v.z}${v.c}`).sort().join('|');
-const easeBack = t => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+const easeBack = x => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
 
-async function copyText(t) {
-  try { await navigator.clipboard.writeText(t); return true; } catch { /* fall through */ }
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
   const ta = document.createElement('textarea');
-  ta.value = t;
+  ta.value = text;
   ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
   document.body.appendChild(ta);
   ta.select();
@@ -181,21 +182,21 @@ export function init(ctx) {
 
   // ---------- DOM ----------
   document.querySelector('svg defs')?.insertAdjacentHTML('beforeend', ICONS);
-  const sw = c => `<button class="ws-sw" data-c="${c}" style="--c:${hex(PALETTE[c])}" aria-label="Colour ${c}"></button>`;
-  const tool = (t, icon, label) => `<button class="btn ws-tool" data-tool="${t}" aria-label="${label}"><svg><use href="#i-${icon}"/></svg><span>${label}</span></button>`;
+  const sw = c => `<button class="ws-sw" data-c="${c}" style="--c:${hex(PALETTE[c])}" aria-label="${attr(t('workshop.colour', { c }))}"></button>`;
+  const tool = (id, icon, label) => `<button class="btn ws-tool" data-tool="${id}" aria-label="${attr(label)}" title="${attr(label)}"><svg><use href="#i-${icon}"/></svg><span>${label}</span></button>`;
   document.body.insertAdjacentHTML('beforeend', `
 <div id="screen-ws" class="screen dim">
   <div class="panel ws-gallery">
     <div class="panel-head">
-      <button class="btn icon" id="ws-home" aria-label="Home"><svg><use href="#i-home"/></svg></button>
-      <h2>Workshop</h2>
+      <button class="btn icon" id="ws-home" aria-label="${attr(t('workshop.home'))}"><svg><use href="#i-home"/></svg></button>
+      <h2>${t('workshop.title')}</h2>
       <div class="tag ws-slots" id="ws-slots">0 / ${SLOTS}</div>
     </div>
-    <div class="say ws-intro" id="ws-intro"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p>Build your <b>own figure</b> block by block, then play it as a puzzle!</p></div>
+    <div class="say ws-intro" id="ws-intro"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p>${t('workshop.intro')}</p></div>
     <div class="ws-list" id="ws-list"></div>
     <div class="ws-import">
-      <input class="ws-input" id="ws-code" placeholder="Paste a friend's figure code" autocomplete="off" spellcheck="false">
-      <button class="btn sky" id="ws-import"><svg><use href="#i-drop"/></svg><span>Import</span></button>
+      <input class="ws-input" id="ws-code" placeholder="${attr(t('workshop.codePlaceholder'))}" autocomplete="off" spellcheck="false">
+      <button class="btn sky" id="ws-import"><svg><use href="#i-drop"/></svg><span>${t('workshop.import')}</span></button>
     </div>
   </div>
 </div>
@@ -203,19 +204,19 @@ export function init(ctx) {
 <div id="screen-ws-edit" class="screen ws-edit">
   <div class="ws-stage" id="ws-stage"></div>
   <div class="ws-top">
-    <button class="btn icon ws-back" id="ws-back" aria-label="Back"><svg><use href="#i-back"/></svg></button>
-    <input class="ws-name" id="ws-name" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Figure name">
+    <button class="btn icon ws-back" id="ws-back" aria-label="${attr(t('workshop.back'))}"><svg><use href="#i-back"/></svg></button>
+    <input class="ws-name" id="ws-name" maxlength="24" autocomplete="off" spellcheck="false" aria-label="${attr(t('workshop.figureName'))}">
     <div class="tag ws-count" id="ws-count"><svg><use href="#i-cube"/></svg><b>0</b><small>/ ${MAX}</small></div>
     <div class="ws-gap"></div>
-    <button class="btn icon ws-undo" id="ws-undo" aria-label="Undo"><svg><use href="#i-undo"/></svg></button>
-    <button class="btn icon ws-redo" id="ws-redo" aria-label="Redo"><svg><use href="#i-redo"/></svg></button>
-    <button class="btn mint ws-play" id="ws-play"><svg><use href="#i-play"/></svg>Play</button>
+    <button class="btn icon ws-undo" id="ws-undo" aria-label="${attr(t('workshop.undo'))}" title="${attr(t('workshop.undo'))}"><svg><use href="#i-undo"/></svg></button>
+    <button class="btn icon ws-redo" id="ws-redo" aria-label="${attr(t('workshop.redo'))}" title="${attr(t('workshop.redo'))}"><svg><use href="#i-redo"/></svg></button>
+    <button class="btn mint ws-play" id="ws-play"><svg><use href="#i-play"/></svg><span>${t('workshop.play')}</span></button>
   </div>
   <div class="tag ws-status" id="ws-status"></div>
   <div class="ws-tools">
-    ${tool('add', 'build', 'Build')}${tool('erase', 'eraser', 'Erase')}${tool('paint', 'brush', 'Paint').replace('<span>', '<i class="ws-dot"></i><span>')}
-    <button class="btn ws-tool" id="ws-mirror" aria-label="Mirror"><svg><use href="#i-mirror"/></svg><span>Mirror</span></button>
-    <button class="btn ws-tool" id="ws-clear" aria-label="Clear"><svg><use href="#i-trash"/></svg><span>Clear</span></button>
+    ${tool('add', 'build', t('workshop.tool.build'))}${tool('erase', 'eraser', t('workshop.tool.erase'))}${tool('paint', 'brush', t('workshop.tool.paint')).replace('<span>', '<i class="ws-dot"></i><span>')}
+    <button class="btn ws-tool" id="ws-mirror" aria-label="${attr(t('workshop.tool.mirror'))}" title="${attr(t('workshop.tool.mirror'))}"><svg><use href="#i-mirror"/></svg><span>${t('workshop.tool.mirror')}</span></button>
+    <button class="btn ws-tool" id="ws-clear" aria-label="${attr(t('workshop.tool.clear'))}" title="${attr(t('workshop.tool.clear'))}"><svg><use href="#i-trash"/></svg><span>${t('workshop.tool.clear')}</span></button>
   </div>
   <div class="ws-bottom"><div class="ws-palette" id="ws-palette">${UI_ORDER.map(sw).join('')}</div></div>
 </div>
@@ -225,14 +226,14 @@ export function init(ctx) {
     <div class="brief-thumb ws-sheet-thumb"><img id="ws-p-img" alt=""></div>
     <h2 class="center" id="ws-p-name"></h2>
     <p class="brief-tag" id="ws-p-tag"></p>
-    <div class="ws-label">Pick an island</div>
-    <div class="ws-themes" id="ws-themes">${THEME_IDS.map(t => {
-      const T = THEMES[t];
-      return `<button class="ws-theme" data-t="${t}" style="--a:${hex(T.skyTop)};--b:${hex(T.skyHorizon)};--g:${hex(T.grass)};--w:${hex(T.water)}"><i class="ws-check"><svg><use href="#i-check"/></svg></i><span>${THEME_NAMES[t]}</span></button>`;
+    <div class="ws-label">${t('workshop.pickIsland')}</div>
+    <div class="ws-themes" id="ws-themes">${THEME_IDS.map(id => {
+      const T = THEMES[id];
+      return `<button class="ws-theme" data-t="${id}" title="${attr(themeName(id))}" style="--a:${hex(T.skyTop)};--b:${hex(T.skyHorizon)};--g:${hex(T.grass)};--w:${hex(T.water)}"><i class="ws-check"><svg><use href="#i-check"/></svg></i><span>${themeName(id)}</span></button>`;
     }).join('')}</div>
     <div class="row">
-      <button class="btn icon" id="ws-p-back" aria-label="Back"><svg><use href="#i-back"/></svg></button>
-      <button class="btn mint grow huge-ish" id="ws-p-go"><svg><use href="#i-play"/></svg>Play!</button>
+      <button class="btn icon" id="ws-p-back" aria-label="${attr(t('workshop.back'))}"><svg><use href="#i-back"/></svg></button>
+      <button class="btn mint grow huge-ish" id="ws-p-go"><svg><use href="#i-play"/></svg><span>${t('workshop.playGo')}</span></button>
     </div>
   </div>
 </div>
@@ -241,41 +242,41 @@ export function init(ctx) {
   <div class="panel narrow ws-sheet">
     <div class="brief-thumb ws-sheet-thumb"><img id="ws-s-img" alt=""></div>
     <h2 class="center" id="ws-s-name"></h2>
-    <p class="brief-tag">Send this link to a friend so they can play your figure</p>
+    <p class="brief-tag">${t('workshop.shareTag')}</p>
     <input class="ws-input ws-link" id="ws-s-link" readonly>
     <div class="row">
-      <button class="btn icon" id="ws-s-back" aria-label="Back"><svg><use href="#i-back"/></svg></button>
-      <button class="btn" id="ws-s-code"><svg><use href="#i-copy"/></svg><span>Code</span></button>
-      <button class="btn mint grow" id="ws-s-copy"><svg><use href="#i-copy"/></svg><span>Copy link</span></button>
+      <button class="btn icon" id="ws-s-back" aria-label="${attr(t('workshop.back'))}"><svg><use href="#i-back"/></svg></button>
+      <button class="btn" id="ws-s-code"><svg><use href="#i-copy"/></svg><span>${t('workshop.code')}</span></button>
+      <button class="btn mint grow" id="ws-s-copy"><svg><use href="#i-copy"/></svg><span>${t('workshop.copyLink')}</span></button>
     </div>
   </div>
 </div>
 
 <div id="screen-ws-gift" class="screen dim">
   <div class="panel narrow ws-sheet">
-    <div class="brief-chapter ws-gift-tag"><svg><use href="#i-gift"/></svg> A figure for you!</div>
+    <div class="brief-chapter ws-gift-tag"><svg><use href="#i-gift"/></svg> ${t('workshop.gift.heading')}</div>
     <div class="brief-thumb ws-sheet-thumb"><img id="ws-g-img" alt=""></div>
     <h2 class="center" id="ws-g-name"></h2>
     <p class="brief-tag" id="ws-g-tag"></p>
-    <div class="say"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p>Someone built this <b>just for you</b>. Can you put it back together?</p></div>
+    <div class="say"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p>${t('workshop.gift.say')}</p></div>
     <div class="row">
-      <button class="btn icon" id="ws-g-no" aria-label="Not now"><svg><use href="#i-back"/></svg></button>
-      <button class="btn" id="ws-g-save"><svg><use href="#i-hammer"/></svg><span>Keep</span></button>
-      <button class="btn mint grow" id="ws-g-play"><svg><use href="#i-play"/></svg>Play</button>
+      <button class="btn icon" id="ws-g-no" aria-label="${attr(t('workshop.gift.notNow'))}"><svg><use href="#i-back"/></svg></button>
+      <button class="btn" id="ws-g-save"><svg><use href="#i-hammer"/></svg><span>${t('workshop.gift.keep')}</span></button>
+      <button class="btn mint grow" id="ws-g-play"><svg><use href="#i-play"/></svg><span>${t('workshop.play')}</span></button>
     </div>
   </div>
 </div>
 <div class="tag ws-toast" id="ws-toast"></div>`);
-  $('title-extra')?.insertAdjacentHTML('beforeend', '<button class="btn" id="btn-workshop"><svg><use href="#i-hammer"/></svg>Workshop</button>');
+  $('title-extra')?.insertAdjacentHTML('beforeend', `<button class="btn" id="btn-workshop"><svg><use href="#i-hammer"/></svg>${t('workshop.title')}</button>`);
   document.querySelectorAll('.ws-input, .ws-name').forEach(el => el.addEventListener('contextmenu', e => e.stopPropagation()));
 
   let toastT = 0;
   function wsToast(msg) {
-    const t = $('ws-toast');
-    t.innerHTML = msg;
-    t.classList.add('show');
+    const el = $('ws-toast');
+    el.innerHTML = msg;
+    el.classList.add('show');
     clearTimeout(toastT);
-    toastT = setTimeout(() => t.classList.remove('show'), 2400);
+    toastT = setTimeout(() => el.classList.remove('show'), 2400);
   }
   const shake = el => el.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 250 });
 
@@ -293,11 +294,12 @@ export function init(ctx) {
 
   const levelFor = entry => ({
     id: entry.id, name: entry.name, kind: 'custom', voxels: entry.voxels.map(v => ({ x: v.x, y: v.y, z: v.z, c: v.c })),
-    theme: entry.theme || 'meadow', tag: 'Your creation', intro: '', outro: '',
+    theme: entry.theme || 'meadow', tag: t('workshop.levelTag'), intro: '', outro: '',
   });
   function unusedName() {
     const used = new Set(list.map(e => e.name));
-    return FUN_NAMES.find(n => !used.has(n)) || `Figure ${list.length + 1}`;
+    for (let i = 0; i < FUN_NAME_COUNT; i++) { const n = t(`workshop.name.${i}`); if (!used.has(n)) return n; }
+    return t('workshop.name.fallback', { n: list.length + 1 });
   }
   function playable(voxels) {
     const vox = new Map(voxels.map(v => [keyOf(v.x, v.y, v.z), v.c]));
@@ -316,19 +318,19 @@ export function init(ctx) {
     $('ws-slots').textContent = `${list.length} / ${SLOTS}`;
     $('ws-intro').classList.toggle('hidden', list.length > 0);
     const full = list.length >= SLOTS;
-    let html = `<button class="card ws-card ws-new ${full ? 'full' : ''}" id="ws-new"><span class="ws-plus"><svg><use href="#i-plus"/></svg></span><span>${full ? 'Workshop full' : 'New figure'}</span></button>`;
+    let html = `<button class="card ws-card ws-new ${full ? 'full' : ''}" id="ws-new"><span class="ws-plus"><svg><use href="#i-plus"/></svg></span><span>${full ? t('workshop.full') : t('workshop.newFigure')}</span></button>`;
     for (const e of list) {
       const ok = playable(e.voxels || []);
       html += `<div class="card ws-card ${e.id === highlightId ? 'flash' : ''}" data-id="${e.id}">
-        <button class="ws-thumb" data-act="edit" aria-label="Edit"><img src="${thumbOf(e)}" alt=""></button>
+        <button class="ws-thumb" data-act="edit" aria-label="${attr(t('workshop.edit'))}"><img src="${thumbOf(e)}" alt=""></button>
         <div class="ws-info">
           <div class="ws-title">${escapeHtml(e.name)}</div>
-          <div class="ws-meta"><span><svg><use href="#i-cube"/></svg>${e.voxels.length}</span>${e.best ? `<span><svg><use href="#i-clock"/></svg>${fmt(e.best)}</span>` : ''}${ok ? '' : '<span class="ws-wip">Unfinished</span>'}</div>
+          <div class="ws-meta"><span><svg><use href="#i-cube"/></svg>${e.voxels.length}</span>${e.best ? `<span><svg><use href="#i-clock"/></svg>${fmt(e.best)}</span>` : ''}${ok ? '' : `<span class="ws-wip">${t('workshop.unfinished')}</span>`}</div>
           <div class="ws-acts">
-            <button class="btn mint grow" data-act="play" ${ok ? '' : 'disabled'}><svg><use href="#i-play"/></svg><span>Play</span></button>
-            <button class="btn sq" data-act="edit" aria-label="Edit"><svg><use href="#i-pencil"/></svg></button>
-            <button class="btn sq" data-act="share" aria-label="Share" ${ok ? '' : 'disabled'}><svg><use href="#i-share"/></svg></button>
-            <button class="btn sq coral" data-act="del" aria-label="Delete"><svg><use href="#i-trash"/></svg></button>
+            <button class="btn mint grow" data-act="play" ${ok ? '' : 'disabled'}><svg><use href="#i-play"/></svg><span>${t('workshop.play')}</span></button>
+            <button class="btn sq" data-act="edit" aria-label="${attr(t('workshop.edit'))}"><svg><use href="#i-pencil"/></svg></button>
+            <button class="btn sq" data-act="share" aria-label="${attr(t('workshop.share'))}" title="${attr(t('workshop.share'))}" ${ok ? '' : 'disabled'}><svg><use href="#i-share"/></svg></button>
+            <button class="btn sq coral" data-act="del" aria-label="${attr(t('workshop.delete'))}" title="${attr(t('workshop.delete'))}"><svg><use href="#i-trash"/></svg></button>
           </div>
         </div>
       </div>`;
@@ -340,7 +342,7 @@ export function init(ctx) {
 
   $('ws-list').addEventListener('click', e => {
     if (e.target.closest('#ws-new')) {
-      if (list.length >= SLOTS) { audio.wrong(); shake(e.target.closest('#ws-new')); wsToast('Your workshop is full. Delete a figure to make room!'); return; }
+      if (list.length >= SLOTS) { audio.wrong(); shake(e.target.closest('#ws-new')); wsToast(t('workshop.toast.fullDelete')); return; }
       openEditor(null);
       return;
     }
@@ -356,7 +358,7 @@ export function init(ctx) {
     else if (act === 'del') {
       if (!b.classList.contains('armed')) {
         b.classList.add('armed');
-        b.innerHTML = 'Sure?';
+        b.textContent = t('workshop.sure');
         setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.innerHTML = '<svg><use href="#i-trash"/></svg>'; } }, 2500);
         return;
       }
@@ -385,13 +387,13 @@ export function init(ctx) {
   $('ws-import').onclick = () => {
     const inp = $('ws-code');
     const fig = decodeFigure(inp.value);
-    if (!fig) { audio.wrong(); shake(inp); wsToast(inp.value.trim() ? "Hmm, that code doesn't look right" : 'Paste a figure code first'); return; }
+    if (!fig) { audio.wrong(); shake(inp); wsToast(inp.value.trim() ? t('workshop.toast.badCode') : t('workshop.toast.noCode')); return; }
     const r = addEntry(fig);
-    if (r.full) { audio.wrong(); wsToast('Your workshop is full. Delete a figure first!'); return; }
+    if (r.full) { audio.wrong(); wsToast(t('workshop.toast.fullImport')); return; }
     inp.value = '';
     inp.blur();
     audio.star(1);
-    wsToast(r.dup ? `You already have <b>${escapeHtml(r.entry.name)}</b>` : `Imported <b>${escapeHtml(r.entry.name)}</b>!`);
+    wsToast(t(r.dup ? 'workshop.toast.dup' : 'workshop.toast.imported', { name: escapeHtml(r.entry.name) }));
     renderGallery(r.entry.id);
   };
   $('ws-code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('ws-import').click(); } });
@@ -404,7 +406,7 @@ export function init(ctx) {
     sheetTheme = entry.theme || 'meadow';
     $('ws-p-img').src = thumbOf(entry);
     $('ws-p-name').textContent = entry.name;
-    $('ws-p-tag').textContent = `${entry.voxels.length} blocks${entry.best ? ` · best ${fmt(entry.best)}` : ''}`;
+    $('ws-p-tag').textContent = entry.best ? plural('workshop.blocksBest', entry.voxels.length, { time: fmt(entry.best) }) : plural('workshop.blocks', entry.voxels.length);
     renderThemes();
     ctx.pushOverlay('screen-ws-play');
   }
@@ -440,13 +442,14 @@ export function init(ctx) {
     if (save.session?.id === level.id) delete save.session;
     persist();
     const par = ctx.parTime(level);
+    const gifted = entry ? entry.gift : true;
     ctx.showComplete({
       name: level.name, img: entry ? thumbOf(entry) : ctx.renderThumb(ctx.expandLevel(level).cells),
       time: stats.time, par, hints: stats.hints,
       stars: [true, stats.time <= par, stats.hints === 0],
-      best: isBest && prev ? 'New best!' : '',
-      say: ((entry ? entry.gift : true) ? GIFT_CHEERS : CHEERS)[Math.floor(Math.random() * 3)],
-      nextLabel: 'Workshop', onNext: () => openGallery(entry?.id), onMap: () => ctx.enterTitle(),
+      best: isBest && prev ? t('workshop.newBest') : '',
+      say: t(`workshop.${gifted ? 'giftCheer' : 'cheer'}.${Math.floor(Math.random() * (gifted ? GIFT_CHEER_COUNT : CHEER_COUNT))}`),
+      nextLabel: t('workshop.title'), onNext: () => openGallery(entry?.id), onMap: () => ctx.enterTitle(),
       onRetry: () => { forgetLevel(level.id); ctx.startLevel(level); },
     });
   };
@@ -464,23 +467,23 @@ export function init(ctx) {
     $('ws-s-img').src = thumbOf(entry);
     $('ws-s-name').textContent = entry.name;
     $('ws-s-link').value = link;
-    $('ws-s-copy').querySelector('span').textContent = 'Copy link';
-    $('ws-s-code').querySelector('span').textContent = 'Code';
+    $('ws-s-copy').querySelector('span').textContent = t('workshop.copyLink');
+    $('ws-s-code').querySelector('span').textContent = t('workshop.code');
     ctx.pushOverlay('screen-ws-share');
   }
   $('ws-s-back').onclick = () => ctx.popOverlay('screen-ws-share');
   $('ws-s-link').addEventListener('focus', e => e.target.select());
-  const copyBtn = (id, what, label) => {
+  const copyBtn = (id, what, labelKey) => {
     $(id).onclick = async () => {
       if (!shareEntry) return;
       const ok = await copyText(shareLink(shareEntry)[what]);
-      $(id).querySelector('span').textContent = ok ? 'Copied!' : label;
-      if (ok) audio.star(0); else { $('ws-s-link').select(); wsToast('Copy failed. Select the link and copy it by hand'); }
-      setTimeout(() => { $(id).querySelector('span').textContent = label; }, 1800);
+      $(id).querySelector('span').textContent = ok ? t('workshop.copied') : t(labelKey);
+      if (ok) audio.star(0); else { $('ws-s-link').select(); wsToast(t('workshop.toast.copyFailed')); }
+      setTimeout(() => { $(id).querySelector('span').textContent = t(labelKey); }, 1800);
     };
   };
-  copyBtn('ws-s-copy', 'link', 'Copy link');
-  copyBtn('ws-s-code', 'code', 'Code');
+  copyBtn('ws-s-copy', 'link', 'workshop.copyLink');
+  copyBtn('ws-s-code', 'code', 'workshop.code');
 
   // ================================================================ ?fig= links
   let gift = null;
@@ -490,21 +493,21 @@ export function init(ctx) {
     const show = () => {
       if (ctx.base !== 'screen-title') { setTimeout(show, 200); return; }
       try { const u = new URL(location.href); u.searchParams.delete('fig'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch { /* ignore */ }
-      if (!gift || !playable(gift.voxels)) { wsToast("That figure link didn't work, sorry!"); return; }
+      if (!gift || !playable(gift.voxels)) { wsToast(t('workshop.gift.broken')); return; }
       $('ws-g-img').src = ctx.renderThumb(thumbCells(gift.voxels));
       $('ws-g-name').textContent = gift.name;
-      $('ws-g-tag').textContent = `${gift.voxels.length} blocks · ${THEME_NAMES[gift.theme] || 'Meadow'} island`;
+      $('ws-g-tag').textContent = plural('workshop.gift.tag', gift.voxels.length, { theme: themeName(THEME_IDS.includes(gift.theme) ? gift.theme : 'meadow') });
       ctx.pushOverlay('screen-ws-gift');
     };
     setTimeout(show, 300);
   }
   const keepGift = () => {
     const r = addEntry(gift);
-    if (r.full) { wsToast('Your workshop is full. Playing without saving'); return null; }
+    if (r.full) { wsToast(t('workshop.gift.fullPlay')); return null; }
     return r.entry;
   };
   $('ws-g-no').onclick = () => ctx.popOverlay('screen-ws-gift');
-  $('ws-g-save').onclick = () => { const e = keepGift(); if (e) { audio.star(1); openGallery(e.id); wsToast(`<b>${escapeHtml(e.name)}</b> is in your workshop`); } };
+  $('ws-g-save').onclick = () => { const e = keepGift(); if (e) { audio.star(1); openGallery(e.id); wsToast(t('workshop.gift.kept', { name: escapeHtml(e.name) })); } };
   $('ws-g-play').onclick = () => {
     const e = keepGift();
     if (e) { playEntry(e); return; }
@@ -553,10 +556,10 @@ export function init(ctx) {
     for (let i = 0; i <= n; i++) { g.beginPath(); g.moveTo(i * px, 0); g.lineTo(i * px, n * px); g.stroke(); g.beginPath(); g.moveTo(0, i * px); g.lineTo(n * px, i * px); g.stroke(); }
     g.fillStyle = 'rgba(182,147,245,.16)';
     g.fillRect(EXT * px, 0, px, n * px);
-    const t = new THREE.CanvasTexture(cv);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 4;
-    return t;
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    return tex;
   })();
   const plateSide = toon(0xe0a877), plateTop = toon(0xffffff, { map: gridTex });
   const plate = new THREE.Mesh(new THREE.BoxGeometry(P, 0.24, P), [plateSide, plateSide, plateTop, plateSide, plateSide, plateSide]);
@@ -580,9 +583,9 @@ export function init(ctx) {
     g.fillStyle = '#c2b7a9'; g.fillRect(0, 0, 64, 64);
     g.fillStyle = '#ffffff';
     g.beginPath(); g.roundRect(5, 5, 54, 54, 10); g.fill();
-    const t = new THREE.CanvasTexture(cv);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   })();
   const boxGeo = new THREE.BoxGeometry(S, S, S);
   const mats = {}, warnMats = {};
@@ -740,10 +743,10 @@ export function init(ctx) {
     refreshState();
   }
 
-  function setTool(t) {
-    toolMode = t;
-    document.querySelectorAll('.ws-tool[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
-    $('ws-stage').dataset.tool = t;
+  function setTool(mode) {
+    toolMode = mode;
+    document.querySelectorAll('.ws-tool[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === mode));
+    $('ws-stage').dataset.tool = mode;
     updateHover();
   }
   function renderPalette() {
@@ -773,15 +776,15 @@ export function init(ctx) {
   }
   function blocker() {
     const n = vox.size;
-    if (n < MIN) return n === 0 ? `${mobile ? 'Tap' : 'Click'} the plate to place a block · drag to turn` : `Add <b>${MIN - n}</b> more block${MIN - n > 1 ? 's' : ''} to play`;
-    if (comp.count > 1) { const loose = n - comp.main.size; return `<b>${loose}</b> block${loose > 1 ? 's are' : ' is'} floating. Connect ${loose > 1 ? 'them' : 'it'} or erase ${loose > 1 ? 'them' : 'it'}`; }
+    if (n < MIN) return n === 0 ? t(mobile ? 'workshop.status.startTap' : 'workshop.status.startClick') : plural('workshop.status.addMore', MIN - n);
+    if (comp.count > 1) return plural('workshop.status.floating', n - comp.main.size);
     return '';
   }
   function showStatus(msg, kind) {
     const el = $('ws-status');
     const b = blocker();
     if (!msg) {
-      msg = b || (vox.size >= MAX ? `That's the limit: <b>${MAX}</b> blocks!` : 'Looking great! Press <b>Play</b> when ready');
+      msg = b || (vox.size >= MAX ? t('workshop.status.limit', { max: MAX }) : t('workshop.status.ready'));
       kind = b ? (comp.count > 1 ? 'warn' : '') : 'ok';
     }
     el.innerHTML = msg;
@@ -814,9 +817,9 @@ export function init(ctx) {
     const before = snap();
     if (toolMode === 'add') {
       const cells = withMirror(p.place).filter(([x, y, z]) => inRange(x, y, z) && !vox.has(keyOf(x, y, z)));
-      if (!inRange(...p.place)) { audio.wrong(); flash(p.place[1] >= HMAX ? "That's as tall as it gets!" : "That's the edge of the plate"); return; }
+      if (!inRange(...p.place)) { audio.wrong(); flash(t(p.place[1] >= HMAX ? 'workshop.status.tooTall' : 'workshop.status.edge')); return; }
       if (!cells.length) return;
-      if (vox.size + cells.length > MAX) { audio.wrong(); flash(`That's the limit: <b>${MAX}</b> blocks!`); return; }
+      if (vox.size + cells.length > MAX) { audio.wrong(); flash(t('workshop.status.limit', { max: MAX })); return; }
       for (const [x, y, z] of cells) vox.set(keyOf(x, y, z), color);
       audio.tone({ f: 330 + p.place[1] * 28, f2: 520 + p.place[1] * 30, type: 'triangle', dur: 0.09, vol: 0.14 });
     } else if (p.hit) {
@@ -949,7 +952,7 @@ export function init(ctx) {
     mirror = !mirror;
     $('ws-mirror').classList.toggle('on', mirror);
     mirrorPlane.visible = mirror;
-    flash(mirror ? 'Mirror on: both sides build together' : 'Mirror off', 'ok');
+    flash(t(mirror ? 'workshop.status.mirrorOn' : 'workshop.status.mirrorOff'), 'ok');
     updateHover();
   };
   let clearArmed = 0;
@@ -959,19 +962,19 @@ export function init(ctx) {
     if (performance.now() > clearArmed) {
       clearArmed = performance.now() + 2500;
       b.classList.add('armed');
-      b.querySelector('span').textContent = 'Sure?';
-      flash('Tap <b>Clear</b> again to remove every block');
-      setTimeout(() => { b.classList.remove('armed'); b.querySelector('span').textContent = 'Clear'; }, 2500);
+      b.querySelector('span').textContent = t('workshop.sure');
+      flash(t('workshop.status.clearConfirm'));
+      setTimeout(() => { b.classList.remove('armed'); b.querySelector('span').textContent = t('workshop.tool.clear'); }, 2500);
       return;
     }
     clearArmed = 0;
     b.classList.remove('armed');
-    b.querySelector('span').textContent = 'Clear';
+    b.querySelector('span').textContent = t('workshop.tool.clear');
     const before = snap();
     vox.clear();
     commit(before);
     audio.drop();
-    flash('All clear! (Undo brings it back)', 'ok');
+    flash(t('workshop.status.cleared'), 'ok');
   };
   const undo = () => { if (!undoStack.length) return; redoStack.push(snap()); restore(undoStack.pop()); markDirty(); audio.click(); updateHover(); };
   const redo = () => { if (!redoStack.length) return; undoStack.push(snap()); restore(redoStack.pop()); markDirty(); audio.click(); updateHover(); };

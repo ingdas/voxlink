@@ -4,6 +4,7 @@ import { buildWorld, PEDESTAL_TOP } from './world.js';
 import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, cubeRotations } from './voxels.js';
 import { Player } from './player.js';
 import { LAYER_OVERLAY } from './render.js';
+import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
 export const PACK_SIZE = 4;
@@ -218,8 +219,8 @@ export class Game {
     [0, 1, 2].forEach(k => setTimeout(() => this.audio.star(k), 150 + k * 160));
     this.events.stage?.(this.stage, this.stageCount);
     this.events.kubo?.(this.stage === this.stageCount - 1
-      ? `Part ${this.stage} done! Here comes the last part — watch the sky!`
-      : `Part ${this.stage} of ${this.stageCount} done! More blocks are falling from the sky!`);
+      ? t('kubo.partLast', { k: this.stage })
+      : t('kubo.part', { k: this.stage, n: this.stageCount }));
     this.emitProgress();
   }
 
@@ -339,10 +340,10 @@ export class Game {
       this.player.resolvePenetration(this.colliders);
       const n = this.voxels.length, left = n - this.placedCount;
       const frac = this.placedCount / n;
-      for (const [m, line] of [[0.25, "Ooh, it's taking shape!"], [0.5, 'Halfway there! I can almost tell what it is…'], [0.75, 'Three quarters done — you\'re a natural!']]) {
+      for (const [m, line] of [[0.25, t('kubo.q1')], [0.5, t('kubo.q2')], [0.75, t('kubo.q3')]]) {
         if (n >= 16 && frac >= m && !this.barked.has(m)) { this.barked.add(m); this.events.kubo?.(line); }
       }
-      if (n >= 16 && left === 3 && !this.barked.has('last')) { this.barked.add('last'); this.events.kubo?.('Just three more blocks!'); }
+      if (n >= 16 && left === 3 && !this.barked.has('last')) { this.barked.add('last'); this.events.kubo?.(t('kubo.last3')); }
       this.fx.burst(v.target, v.cell.color, 24, 4);
       this.audio.link(this.placedCount / this.voxels.length);
       this.events.vibrate?.(18);
@@ -422,7 +423,7 @@ export class Game {
     if (this.mode !== 'play') return;
     const h = this.rayFrom(x, y);
     if (!h) return;
-    if (h.far) { this.events.toast?.('Too far away — get closer'); this.audio.wrong(); return; }
+    if (h.far) { this.events.toast?.(t('toast.far')); this.audio.wrong(); return; }
     if (h.kind === 'loose') return this.grab(h.i);
     if (h.kind === 'socket') {
       if (this.pack.includes(h.child)) return this.launch(h.child);
@@ -430,8 +431,8 @@ export class Game {
       this.audio.wrong();
       this.shakeSocket(h.child);
       this.events.vibrate?.([10, 40, 10]);
-      if (!this.pack.length) this.events.toast?.(`Find the block with a ${num} on it`);
-      else this.events.toast?.(`None of your blocks has a ${num}`);
+      if (!this.pack.length) this.events.toast?.(t('toast.findNum', { n: num }));
+      else this.events.toast?.(t('toast.noneHas', { n: num }));
     }
   }
 
@@ -446,7 +447,7 @@ export class Game {
       old.rest.quat.copy(v.rest.quat);
       this.startAnim(old, 'dropping', old.rest.pos, old.rest.quat, 0.35);
       this.pack.splice(this.active, 1);
-      this.events.toast?.('Backpack full — swapped blocks');
+      this.events.toast?.(t('toast.swapped'));
     }
     this.pack.push(i);
     this.active = this.pack.length - 1;
@@ -459,7 +460,7 @@ export class Game {
     if (this.tutorial === 1 || this.tutorial === 2) this.tutorial = this.sockets.has(i) ? 3 : 2;
     if (this.pack.length === 2 && !this.packTipShown && this.levelIndex >= 0 && this.levelIndex <= 4) {
       this.packTipShown = true;
-      this.events.toast?.(`You can carry up to ${PACK_SIZE} blocks at once`);
+      this.events.toast?.(t('toast.carry', { n: PACK_SIZE }));
     }
     this.emitPack();
   }
@@ -517,11 +518,11 @@ export class Game {
       const s = this.sockets.get(fitInPack);
       s.shake = 0.8;
       this.fx.pointBeam(s.sprite);
-      this.events.toast?.(`You're carrying block ${s.num} — its bubble is lit up`);
+      this.events.toast?.(t('toast.carrying', { n: s.num }));
       this.audio.hint();
       return;
     }
-    if (this.hintCooldown > 0) { this.events.toast?.('Hint is recharging…'); return; }
+    if (this.hintCooldown > 0) { this.events.toast?.(t('toast.recharging')); return; }
     const fits = this.voxels.filter(v => v.state === 'loose' && this.sockets.has(v.i));
     if (!fits.length) return;
     this.hintCooldown = 8;
@@ -532,7 +533,7 @@ export class Game {
     const v = fits[0];
     v.hop = 4;
     this.fx.pointBeam(v.mesh);
-    this.events.toast?.(`Follow the light to block ${v.num}`);
+    this.events.toast?.(t('toast.follow', { n: v.num }));
   }
 
   complete() {

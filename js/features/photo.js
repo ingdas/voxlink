@@ -1,11 +1,13 @@
 // Photo mode: hides the UI, lets you orbit (or freezes) the view, frames it and snaps a PNG with a Voxlink watermark.
 // Available from the in-level pause screen, the results panel, the C key while playing, and Kubo's Garden (ctx.photo.open).
 import { PEDESTAL_TOP } from '../world.js';
+import { t } from '../i18n.js';
 
 const INK = '#2a1f3d', PAPER = '#fff4e0';
 const LOGO_COLORS = ['#ffc93c', '#ff6b6b', '#3ddc97', '#4cc9f0', '#b693f5', '#ffc93c', '#ff6b6b'];
 const LOGO_ROT = [-6, 4, -3, 5, -4, 3, -5];
 const BAND = 14, BAND_R = 14; // frame band width / inner corner radius in CSS px (mirrored in features.css)
+const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
 
 let ctx, THREE, $, el;
 let state = null; // the open session
@@ -19,12 +21,12 @@ export function init(c) {
 
   // results panel: camera button next to Continue
   const next = $('btn-next');
-  const cb = button('btn icon', '<svg><use href="#i-camera"/></svg>', 'btn-c-photo', 'Photo');
+  const cb = button('btn icon', '<svg><use href="#i-camera"/></svg>', 'btn-c-photo', t('photo.photo'));
   next.parentNode.insertBefore(cb, next);
   cb.onclick = () => openFromComplete();
 
   // in-level pause screen
-  const pb = button('btn', '<svg><use href="#i-camera"/></svg>Photo', 'btn-p-photo');
+  const pb = button('btn', `<svg><use href="#i-camera"/></svg>${t('photo.photo')}`, 'btn-p-photo');
   $('btn-resume').after(pb);
   pb.onclick = () => openFromPause();
 
@@ -56,12 +58,12 @@ function buildDom() {
     <div class="photo-frame"></div>
     <div class="photo-hint tag" id="photo-hint"></div>
     <div class="photo-mark"><div class="photo-logo" id="photo-logo">${tiles}</div><div class="photo-name" id="photo-name"></div></div>
-    <button class="photo-preview" id="photo-preview" aria-label="Share photo"><img alt=""><span>Snapped!</span></button>
+    <button class="photo-preview" id="photo-preview" aria-label="${t('photo.sharePhoto')}"><img alt=""><span>${t('photo.snapped')}</span></button>
     <div class="photo-note" id="photo-note"></div>
     <div class="photo-ctl">
-      <div class="pc"><button class="btn icon" id="photo-close" aria-label="Close"><svg><use href="#i-back"/></svg></button><span>Close</span></div>
-      <div class="pc"><button class="btn round big sun" id="photo-snap" aria-label="Snap"><svg><use href="#i-camera"/></svg></button><span>Snap</span></div>
-      <div class="pc"><button class="btn icon" id="photo-share" aria-label="Share"><svg><use href="#i-share"/></svg></button><span>Share</span></div>
+      <div class="pc"><button class="btn icon" id="photo-close" aria-label="${t('photo.close')}"><svg><use href="#i-back"/></svg></button><span>${t('photo.close')}</span></div>
+      <div class="pc"><button class="btn round big sun" id="photo-snap" aria-label="${t('photo.snap')}"><svg><use href="#i-camera"/></svg></button><span>${t('photo.snap')}</span></div>
+      <div class="pc"><button class="btn icon" id="photo-share" aria-label="${t('photo.share')}"><svg><use href="#i-share"/></svg></button><span>${t('photo.share')}</span></div>
     </div>
     <div class="photo-flash" id="photo-flash"></div>`;
   document.body.appendChild(el);
@@ -99,8 +101,9 @@ function open(o) {
     applyOrbit(1);
   }
   $('photo-name').textContent = o.name || 'Voxlink';
+  document.fonts?.load(`700 40px ${FONTS}`, $('photo-name').textContent).catch(() => {}); // ready for the PNG's name tag
   const hint = $('photo-hint');
-  hint.textContent = o.orbit ? (ctx.mobile ? 'Drag to orbit · pinch to zoom' : 'Drag to orbit · scroll to zoom') : 'View frozen · line up your shot';
+  hint.textContent = t(o.orbit ? (ctx.mobile ? 'photo.hint.orbitTouch' : 'photo.hint.orbitMouse') : 'photo.hint.frozen');
   hint.classList.remove('gone');
   clearTimeout(hint._t);
   hint._t = setTimeout(() => hint.classList.add('gone'), 3200);
@@ -293,7 +296,7 @@ function decorate(g, W, H) {
     g.lineWidth = 2.5 * u; g.strokeStyle = INK;
     g.beginPath(); rr(g, -w / 2 + 1.25 * u, -h / 2 + 1.25 * u, w - 2.5 * u, h - 2.5 * u, 4 * u); g.stroke();
     g.fillStyle = INK;
-    g.font = `700 ${h * 0.62}px Fredoka, "Arial Rounded MT Bold", sans-serif`;
+    g.font = `700 ${h * 0.62}px ${FONTS}`;
     g.fillText(s.textContent, 0, h * 0.04);
     g.restore();
   });
@@ -309,8 +312,10 @@ function decorate(g, W, H) {
     g.lineWidth = 2.5 * u; g.strokeStyle = INK;
     g.beginPath(); rr(g, x + 1.25 * u, y + 1.25 * u, w - 2.5 * u, h - 2.5 * u, h / 2 - 1.25 * u); g.stroke();
     g.fillStyle = INK;
-    const fs = parseFloat(getComputedStyle(n).fontSize) * u;
-    g.font = `700 ${fs}px Fredoka, "Arial Rounded MT Bold", sans-serif`;
+    let fs = parseFloat(getComputedStyle(n).fontSize) * u;
+    g.font = `700 ${fs}px ${FONTS}`;
+    const room = w - 2 * parseFloat(getComputedStyle(n).paddingLeft) * u, tw = g.measureText(n.textContent).width;
+    if (tw > room && room > 0) { fs *= room / tw; g.font = `700 ${fs}px ${FONTS}`; } // keep long names inside the tag
     g.fillText(n.textContent, x + w / 2, y + h / 2 + fs * 0.04);
   }
 }
@@ -368,8 +373,8 @@ async function share() {
   const file = new File([blob], `voxlink-${name || 'photo'}.png`, { type: 'image/png' });
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'Voxlink', text: `${state?.name || 'My island'} · rebuilt in Voxlink` });
-      note('Shared!');
+      await navigator.share({ files: [file], title: 'Voxlink', text: t('photo.shareText', { name: state?.name || t('photo.myIsland') }) });
+      note(t('photo.shared'));
       return;
     } catch (e) {
       if (e?.name === 'AbortError') return;
@@ -382,5 +387,5 @@ async function share() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
-  note('Photo saved!');
+  note(t('photo.saved'));
 }

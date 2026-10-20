@@ -1,0 +1,96 @@
+// English strings for js/features/access.js (comfort, accessibility & controls).
+export default {
+  // actions (key rebinding list + gamepad legend)
+  'access.act.forward': 'Move forward',
+  'access.act.back': 'Move back',
+  'access.act.left': 'Strafe left',
+  'access.act.right': 'Strafe right',
+  'access.act.jump': 'Jump',
+  'access.act.run': 'Run',
+  'access.act.interact': 'Grab / link',
+  'access.act.drop': 'Drop',
+  'access.act.hint': 'Hint',
+  'access.act.move': 'Move',
+  'access.act.look': 'Look',
+  'access.act.slot': 'Backpack slot',
+  'access.act.pause': 'Pause / resume',
+  'access.act.menuFocus': 'Menu focus',
+
+  // key names (letters, digits and symbols stay as-is)
+  'access.key.space': 'Space',
+  'access.key.shift': 'Shift',
+  'access.key.ctrl': 'Ctrl',
+  'access.key.alt': 'Alt',
+  'access.key.caps': 'Caps',
+  'access.key.ins': 'Ins',
+  'access.key.del': 'Del',
+  'access.key.home': 'Home',
+  'access.key.end': 'End',
+  'access.key.pgUp': 'PgUp',
+  'access.key.pgDn': 'PgDn',
+  'access.key.menu': 'Menu',
+  'access.key.tab': 'Tab',
+  'access.key.enter': 'Enter',
+  'access.key.backspace': 'Backspace',
+  'access.key.numpad': 'Num {k}',
+  'access.key.click': 'Click',
+  'access.key.rightClick': 'Right-click',
+  'access.key.wheel': 'Wheel',
+  'access.key.lStick': 'L-stick',
+  'access.key.rStick': 'R-stick',
+
+  // gamepad legend
+  'access.pad.leftStick': 'Left stick',
+  'access.pad.rightStick': 'Right stick',
+  'access.pad.start': 'Start',
+  'access.pad.dpad': 'D-pad',
+  'access.pad.note.run': 'L3 click to run',
+  'access.pad.note.select': 'Menus: select',
+  'access.pad.note.back': 'Menus: back',
+
+  // settings rows
+  'access.set.smooth': 'Look smoothing',
+  'access.set.section': 'Comfort & accessibility',
+  'access.set.fov': 'Field of view',
+  'access.set.bob': 'Head bob',
+  'access.set.motion': 'Reduced motion',
+  'access.set.ui': 'UI size',
+  'access.set.contrast': 'High contrast',
+  'access.set.controls': 'Controls',
+  'access.set.keyboard': 'Keyboard',
+  'access.set.edit': 'Edit',
+  'access.set.gamepad': 'Gamepad',
+  'access.set.padNotFound': 'not found',
+  'access.set.padConnected': 'connected',
+  'access.set.layout': 'Layout',
+  'access.set.done': 'Done',
+  'access.val.off': 'off',
+  'access.val.percent': '{n}%',
+  'access.val.degrees': '{n}°',
+
+  // key rebinding panel
+  'access.keys.press': 'Press a key…',
+  'access.keys.foot': 'Arrows, Enter & Backspace always work · Esc cancels',
+  'access.keys.defaults': 'Defaults',
+
+  // toasts
+  'access.toast.reset': 'Keys reset to defaults',
+  'access.toast.reserved': '{key} is reserved, pick another key',
+  'access.toast.swapped': 'Swapped with {action}',
+  'access.toast.padOn': 'Gamepad connected',
+  'access.toast.padOff': 'Gamepad disconnected',
+
+  // HUD key hints ({...} are <kbd> key caps)
+  'access.hint.move': '{move} move',
+  'access.hint.moveLook': '{move} move · {look} look',
+  'access.hint.grab': '{a} / {b} grab / link',
+  'access.hint.jumpRun': '{jump} jump · {run} run',
+  'access.hint.slot': '{a} / {b} pick slot',
+  'access.hint.dropHint': '{drop} drop · {hint} hint',
+  'access.hint.dropHint2': '{a} / {b} drop · {hint} hint',
+
+  // words swapped into the first tutorial line (must match how that line is translated)
+  'access.coach.mouse': 'mouse',
+  'access.coach.leftStick': 'Left stick',
+  'access.coach.rightStick': 'right stick',
+};

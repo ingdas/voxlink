@@ -2,28 +2,35 @@
 // high contrast settings, rebindable keys and standard-mapping gamepad support (game + menus).
 import { THEMES } from '../world.js';
 import { DEFAULT_KEYS } from '../input.js';
+import { t } from '../i18n.js';
 
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DEFAULTS = { fov: 88, smooth: 0, bob: true, reduceMotion: prefersReduced, uiScale: 1, contrast: false };
-const ACTIONS = [
-  ['forward', 'Move forward'], ['back', 'Move back'], ['left', 'Strafe left'], ['right', 'Strafe right'],
-  ['jump', 'Jump'], ['run', 'Run'], ['interact', 'Grab / link'], ['drop', 'Drop'], ['hint', 'Hint'],
-];
+// rebindable actions; labels are i18n keys access.act.<action>
+const ACTIONS = ['forward', 'back', 'left', 'right', 'jump', 'run', 'interact', 'drop', 'hint'];
+const actLabel = a => t(`access.act.${a}`);
 // fixed keys that can't be rebound (menus, slots, pause and the secondary movement keys)
 const RESERVED = new Set(['Escape', 'Tab', 'KeyP', 'Enter', 'NumpadEnter', 'Backspace', 'Digit1', 'Digit2', 'Digit3', 'Digit4',
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'MetaLeft', 'MetaRight', 'F5', 'F11', 'F12']);
-const KEY_NAMES = {
-  Space: 'Space', ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'Alt',
-  CapsLock: 'Caps', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';',
-  Quote: "'", Comma: ',', Period: '.', Slash: '/', IntlBackslash: '<', Insert: 'Ins', Delete: 'Del', Home: 'Home', End: 'End',
-  PageUp: 'PgUp', PageDown: 'PgDn', ContextMenu: 'Menu',
+// named keys → i18n key access.key.<word>; symbol keys are shown as-is
+const KEY_WORDS = {
+  Space: 'space', ShiftLeft: 'shift', ShiftRight: 'shift', ControlLeft: 'ctrl', ControlRight: 'ctrl', AltLeft: 'alt', AltRight: 'alt',
+  CapsLock: 'caps', Insert: 'ins', Delete: 'del', Home: 'home', End: 'end', PageUp: 'pgUp', PageDown: 'pgDn', ContextMenu: 'menu',
+  Tab: 'tab', Enter: 'enter', Backspace: 'backspace',
 };
+const KEY_SYMBOLS = {
+  Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';',
+  Quote: "'", Comma: ',', Period: '.', Slash: '/', IntlBackslash: '<',
+};
+const keyName = code => (KEY_WORDS[code] ? t(`access.key.${KEY_WORDS[code]}`) : KEY_SYMBOLS[code]);
 // snow ground a touch darker / blue-grey so white blocks pop in high contrast
 const FROST_HC = { grass: 0xc9d5e8, cap: 0xdae3f0, tuft: 0xa9bad4 };
-const PAD_LEGEND = [
-  ['Left stick', 'Move', 'L3 click to run'], ['Right stick', 'Look', ''], ['A', 'Jump', 'Menus: select'],
-  ['X / RT', 'Grab / link', ''], ['B / LT', 'Drop', 'Menus: back'], ['Y', 'Hint', ''], ['LB / RB', 'Backpack slot', ''],
-  ['Start', 'Pause / resume', ''], ['D-pad', 'Menu focus', ''],
+// [button, action, note] — looked up when the legend is built
+const PAD_LEGEND = () => [
+  [t('access.pad.leftStick'), actLabel('move'), t('access.pad.note.run')], [t('access.pad.rightStick'), actLabel('look'), ''],
+  ['A', actLabel('jump'), t('access.pad.note.select')], ['X / RT', actLabel('interact'), ''],
+  ['B / LT', actLabel('drop'), t('access.pad.note.back')], ['Y', actLabel('hint'), ''], ['LB / RB', actLabel('slot'), ''],
+  [t('access.pad.start'), actLabel('pause'), ''], [t('access.pad.dpad'), actLabel('menuFocus'), ''],
 ];
 const PRIMARY = '#btn-play, #btn-brief-go, #btn-next, #btn-resume, #btn-ending-map';
 const FOCUSABLE = '.btn, .toggle, .node, input[type=range], .kbtn';
@@ -60,8 +67,11 @@ export function init(ctx) {
   navigator.keyboard?.getLayoutMap?.().then(m => { layout = m; renderKeys(); renderKeysHint(); }).catch(() => {});
   const keyLabel = code => {
     const ch = layout?.get?.(code);
-    if (ch && ch.trim() && !KEY_NAMES[code]) return ch.toUpperCase();
-    return KEY_NAMES[code] || code.replace(/^Key|^Digit/, '').replace(/^Numpad/, 'Num ');
+    const named = keyName(code);
+    if (ch && ch.trim() && !named) return ch.toUpperCase();
+    if (named) return named;
+    if (code.startsWith('Numpad')) return t('access.key.numpad', { k: keyName(code.slice(6)) || code.slice(6) });
+    return code.replace(/^Key|^Digit/, '');
   };
   const L = a => keyLabel(keys[a]);
   const moveLabel = () => {
@@ -72,22 +82,22 @@ export function init(ctx) {
   // ---------- settings rows ----------
   const list = document.querySelector('#screen-settings .settings');
   const range = (id, label, min, max, step) =>
-    `<label class="setting acc-range"><span>${label} <em class="acc-val" id="${id}-val"></em></span><input type="range" id="${id}" min="${min}" max="${max}" step="${step}"></label>`;
-  const toggle = (id, label, extra = '') => `<div class="setting ${extra}" id="${id}-row"><span>${label}</span><button class="toggle" id="${id}" aria-label="${label}"><i></i></button></div>`;
-  list.querySelector('#set-sens').closest('.setting').insertAdjacentHTML('afterend', range('acc-smooth', 'Look smoothing', 0, 1, 0.05));
+    `<label class="setting acc-range"><span>${esc(label)} <em class="acc-val" id="${id}-val"></em></span><input type="range" id="${id}" min="${min}" max="${max}" step="${step}"></label>`;
+  const toggle = (id, label, extra = '') => `<div class="setting ${extra}" id="${id}-row"><span>${esc(label)}</span><button class="toggle" id="${id}" aria-label="${esc(label)}"><i></i></button></div>`;
+  list.querySelector('#set-sens').closest('.setting').insertAdjacentHTML('afterend', range('acc-smooth', t('access.set.smooth'), 0, 1, 0.05));
   list.querySelector('.setting.danger').insertAdjacentHTML('beforebegin', `
-    <div class="acc-sec">Comfort &amp; accessibility</div>
-    ${range('acc-fov', 'Field of view', 70, 110, 1)}
-    ${toggle('acc-bob', 'Head bob')}
-    ${toggle('acc-motion', 'Reduced motion')}
-    ${range('acc-ui', 'UI size', 0.8, 1.3, 0.05)}
-    ${toggle('acc-contrast', 'High contrast')}
-    <div class="acc-sec acc-desk" id="acc-controls-sec">Controls</div>
-    <div class="setting acc-desk"><span>Keyboard</span><button class="btn small" id="acc-keys-btn" aria-expanded="false">Edit</button></div>
+    <div class="acc-sec">${esc(t('access.set.section'))}</div>
+    ${range('acc-fov', t('access.set.fov'), 70, 110, 1)}
+    ${toggle('acc-bob', t('access.set.bob'))}
+    ${toggle('acc-motion', t('access.set.motion'))}
+    ${range('acc-ui', t('access.set.ui'), 0.8, 1.3, 0.05)}
+    ${toggle('acc-contrast', t('access.set.contrast'))}
+    <div class="acc-sec acc-desk" id="acc-controls-sec">${esc(t('access.set.controls'))}</div>
+    <div class="setting acc-desk"><span>${esc(t('access.set.keyboard'))}</span><button class="btn small" id="acc-keys-btn" aria-expanded="false">${esc(t('access.set.edit'))}</button></div>
     <div class="acc-keys hidden" id="acc-keys"></div>
-    <div class="setting acc-desk acc-pad-row" id="acc-pad-row"><span>Gamepad <em class="acc-val" id="acc-pad-status">not found</em></span><button class="btn small" id="acc-pad-btn" aria-expanded="false">Layout</button></div>
-    <div class="acc-keys acc-legend hidden" id="acc-pad-legend">${PAD_LEGEND.map(([b, a, n]) =>
-      `<div class="acc-key"><span>${a}${n ? `<small>${n}</small>` : ''}</span><kbd>${b}</kbd></div>`).join('')}</div>
+    <div class="setting acc-desk acc-pad-row" id="acc-pad-row"><span>${esc(t('access.set.gamepad'))} <em class="acc-val" id="acc-pad-status">${esc(t('access.set.padNotFound'))}</em></span><button class="btn small" id="acc-pad-btn" aria-expanded="false">${esc(t('access.set.layout'))}</button></div>
+    <div class="acc-keys acc-legend hidden" id="acc-pad-legend">${PAD_LEGEND().map(([b, a, n]) =>
+      `<div class="acc-key"><span>${esc(a)}${n ? `<small>${esc(n)}</small>` : ''}</span><kbd>${esc(b)}</kbd></div>`).join('')}</div>
     <div class="acc-sec acc-sec-end"></div>`);
 
   const bindRange = (id, key, fmtVal, apply) => {
@@ -101,9 +111,10 @@ export function init(ctx) {
     el.classList.toggle('on', !!st[key]);
     el.onclick = () => { st[key] = !st[key]; el.classList.toggle('on', st[key]); apply(); persist(); };
   };
-  bindRange('acc-smooth', 'smooth', v => (v ? `${Math.round(v * 100)}%` : 'off'), applySmooth);
-  bindRange('acc-fov', 'fov', v => `${v}°`, applyFov);
-  bindRange('acc-ui', 'uiScale', v => `${Math.round(v * 100)}%`, applyUi);
+  const pct = v => t('access.val.percent', { n: Math.round(v * 100) });
+  bindRange('acc-smooth', 'smooth', v => (v ? pct(v) : t('access.val.off')), applySmooth);
+  bindRange('acc-fov', 'fov', v => t('access.val.degrees', { n: v }), applyFov);
+  bindRange('acc-ui', 'uiScale', pct, applyUi);
   bindToggle('acc-bob', 'bob', applyMotion);
   bindToggle('acc-motion', 'reduceMotion', applyMotion);
   bindToggle('acc-contrast', 'contrast', applyContrast);
@@ -112,7 +123,7 @@ export function init(ctx) {
     const b = $(btnId), p = $(panelId);
     b.onclick = () => {
       const open = p.classList.toggle('hidden') === false;
-      b.textContent = open ? 'Done' : b.dataset.label;
+      b.textContent = open ? t('access.set.done') : b.dataset.label;
       b.setAttribute('aria-expanded', open);
       if (!open) cancelCapture();
       if (open) requestAnimationFrame(() => p.scrollIntoView({ block: 'nearest', behavior: st.reduceMotion ? 'auto' : 'smooth' }));
@@ -156,9 +167,9 @@ export function init(ctx) {
   // ---------- key remapping ----------
   let capturing = null;
   function renderKeys() {
-    $('acc-keys').innerHTML = ACTIONS.map(([a, label]) =>
-      `<div class="acc-key"><span>${label}</span><button class="kbtn ${capturing === a ? 'wait' : ''}" data-act="${a}">${capturing === a ? 'Press a key…' : esc(L(a))}</button></div>`).join('') +
-      `<div class="acc-keys-foot"><small>Arrows, Enter &amp; Backspace always work · Esc cancels</small><button class="btn small" id="acc-keys-reset">Defaults</button></div>`;
+    $('acc-keys').innerHTML = ACTIONS.map(a =>
+      `<div class="acc-key"><span>${esc(actLabel(a))}</span><button class="kbtn ${capturing === a ? 'wait' : ''}" data-act="${a}">${esc(capturing === a ? t('access.keys.press') : L(a))}</button></div>`).join('') +
+      `<div class="acc-keys-foot"><small>${esc(t('access.keys.foot'))}</small><button class="btn small" id="acc-keys-reset">${esc(t('access.keys.defaults'))}</button></div>`;
   }
   function cancelCapture() { if (capturing) { capturing = null; renderKeys(); } }
   $('acc-keys').addEventListener('click', e => {
@@ -168,7 +179,7 @@ export function init(ctx) {
       Object.assign(keys, DEFAULT_KEYS);
       capturing = null;
       persist(); renderKeys(); renderKeysHint();
-      notify('Keys reset to defaults');
+      notify(t('access.toast.reset'));
     }
   });
   let swallowUp = null;
@@ -179,14 +190,14 @@ export function init(ctx) {
     if (e.repeat) return;
     swallowUp = e.code;
     if (e.code === 'Escape') return cancelCapture();
-    if (RESERVED.has(e.code)) { notify(`${keyLabel(e.code)} is reserved, pick another key`); return; }
+    if (RESERVED.has(e.code)) { notify(t('access.toast.reserved', { key: keyLabel(e.code) })); return; }
     const act = capturing;
     const other = Object.keys(keys).find(a => a !== act && sideless(keys[a]) === sideless(e.code));
     if (other) keys[other] = keys[act]; // swap so no action is left unbound
     keys[act] = e.code;
     capturing = null;
     persist(); renderKeys(); renderKeysHint();
-    if (other) notify(`Swapped with ${ACTIONS.find(x => x[0] === other)[1]}`);
+    if (other) notify(t('access.toast.swapped', { action: actLabel(other) }));
   }, true);
   addEventListener('keyup', e => { if (swallowUp === e.code) { swallowUp = null; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
   // leaving the settings screen cancels a pending capture
@@ -195,19 +206,25 @@ export function init(ctx) {
 
   function renderKeysHint() {
     const k = s => `<kbd>${esc(s)}</kbd>`;
-    $('keys').innerHTML = padMode
-      ? `<span>${k('L-stick')} move · ${k('R-stick')} look</span><span>${k('X')} / ${k('RT')} grab / link</span><span>${k('A')} jump · ${k('L3')} run</span><span>${k('LB')} / ${k('RB')} pick slot</span><span>${k('B')} drop · ${k('Y')} hint</span>`
-      : `<span>${k(moveLabel())} move</span><span>${k('Click')} / ${k(L('interact'))} grab / link</span><span>${k(L('jump'))} jump · ${k(L('run'))} run</span><span>${k('1-4')} / ${k('Wheel')} pick slot</span><span>${k('Right-click')} / ${k(L('drop'))} drop · ${k(L('hint'))} hint</span>`;
+    const lines = padMode ? [
+      t('access.hint.moveLook', { move: k(t('access.key.lStick')), look: k(t('access.key.rStick')) }),
+      t('access.hint.grab', { a: k('X'), b: k('RT') }),
+      t('access.hint.jumpRun', { jump: k('A'), run: k('L3') }),
+      t('access.hint.slot', { a: k('LB'), b: k('RB') }),
+      t('access.hint.dropHint', { drop: k('B'), hint: k('Y') }),
+    ] : [
+      t('access.hint.move', { move: k(moveLabel()) }),
+      t('access.hint.grab', { a: k(t('access.key.click')), b: k(L('interact')) }),
+      t('access.hint.jumpRun', { jump: k(L('jump')), run: k(L('run')) }),
+      t('access.hint.slot', { a: k('1-4'), b: k(t('access.key.wheel')) }),
+      t('access.hint.dropHint2', { a: k(t('access.key.rightClick')), b: k(L('drop')), hint: k(L('hint')) }),
+    ];
+    $('keys').innerHTML = lines.map(s => `<span>${s}</span>`).join('');
   }
-  // the first tutorial line names the keys; keep it in sync with bindings / gamepad
-  ctx.hooks.tick.push(() => {
-    const c = $('coach');
-    if (!c.classList.contains('show') || !c.innerHTML.includes('<b>WASD</b>')) return;
-    const m = moveLabel();
-    if (m === 'WASD' && !padMode) return;
-    c.innerHTML = c.innerHTML.replace('<b>WASD</b>', padMode ? '<b>Left stick</b>' : `<b>${esc(m)}</b>`)
-      .replace('<b>mouse</b>', padMode ? '<b>right stick</b>' : '<b>mouse</b>');
-  });
+  // the first tutorial line names the keys; main.js asks us for the current labels
+  ctx.coachLabels = () => (padMode
+    ? { move: t('access.coach.leftStick'), look: t('access.coach.rightStick') }
+    : { move: moveLabel(), look: t('access.coach.mouse') });
 
   // ---------- gamepad ----------
   let padMode = false;
@@ -230,14 +247,14 @@ export function init(ctx) {
   };
   const refreshPadStatus = () => {
     const gp = getPad();
-    $('acc-pad-status').textContent = gp ? 'connected' : 'not found';
+    $('acc-pad-status').textContent = t(gp ? 'access.set.padConnected' : 'access.set.padNotFound');
     $('acc-pad-row').classList.toggle('on', !!gp);
     $('acc-controls-sec').classList.toggle('on', !!gp);
   };
-  addEventListener('gamepadconnected', () => { notify('Gamepad connected'); refreshPadStatus(); });
+  addEventListener('gamepadconnected', () => { notify(t('access.toast.padOn')); refreshPadStatus(); });
   addEventListener('gamepaddisconnected', () => {
     refreshPadStatus();
-    if (!getPad()) { notify('Gamepad disconnected'); setPadMode(false); }
+    if (!getPad()) { notify(t('access.toast.padOff')); setPadMode(false); }
   });
 
   const pad = input.pad;

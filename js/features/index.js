@@ -4,5 +4,6 @@ import * as daily from './daily.js';
 import * as photo from './photo.js';
 import * as museum from './museum.js';
 import * as workshop from './workshop.js';
+import * as lang from './lang.js';
 
-export default [access, daily, photo, museum, workshop];
+export default [access, daily, photo, museum, workshop, lang];

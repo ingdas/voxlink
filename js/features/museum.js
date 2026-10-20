@@ -4,8 +4,12 @@ import { buildWorld, THEMES, PEDESTAL_TOP } from '../world.js';
 import { Player } from '../player.js';
 import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, mulberry32 } from '../voxels.js';
 import { toon, LAYER_OVERLAY } from '../render.js';
+import { t } from '../i18n.js';
 
-const NAME = "Kubo's Garden";
+const gardenName = () => t('museum.name');
+const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
+// .one / .other key for n (English uses the same text for both)
+const plural = (key, n) => `${key}.${n === 1 ? 'one' : 'other'}`;
 const K = 0.65; // figures stand at two-thirds size so all 16 fit around the plaza
 const RING = 16; // pedestal ring radius
 const ISLAND_R = 32;
@@ -44,10 +48,10 @@ function buildDom() {
   const tb = document.createElement('button');
   tb.className = 'btn';
   tb.id = 'btn-garden';
-  tb.innerHTML = '<svg><use href="#i-garden"/></svg>Garden<span class="garden-count" id="garden-count"></span>';
+  tb.innerHTML = `<svg><use href="#i-garden"/></svg>${t('museum.garden')}<span class="garden-count" id="garden-count"></span>`;
   tb.onclick = () => enter('title');
   $('title-extra').appendChild(tb);
-  const refresh = () => { $('garden-count').textContent = `${doneCount()}/${ctx.LEVELS.length}`; };
+  const refresh = () => { $('garden-count').textContent = t('museum.count', { n: doneCount(), total: ctx.LEVELS.length }); };
   refresh();
   new MutationObserver(refresh).observe($('screen-title'), { attributes: true, attributeFilter: ['class'] });
 
@@ -58,7 +62,7 @@ function buildDom() {
   const mb = document.createElement('button');
   mb.className = 'btn icon';
   mb.id = 'btn-map-garden';
-  mb.setAttribute('aria-label', NAME);
+  mb.setAttribute('aria-label', gardenName());
   mb.innerHTML = '<svg><use href="#i-garden"/></svg>';
   mb.onclick = () => enter('map');
   top.insertBefore(right, stars);
@@ -68,7 +72,7 @@ function buildDom() {
   const cam = document.createElement('button');
   cam.className = 'btn icon garden-only';
   cam.id = 'btn-garden-photo';
-  cam.setAttribute('aria-label', 'Photo');
+  cam.setAttribute('aria-label', t('museum.photo'));
   cam.innerHTML = '<svg><use href="#i-camera"/></svg>';
   cam.onclick = () => { if (G && ctx.app === 'museum') openPhoto(false); };
   document.querySelector('#hud .hud-top').appendChild(cam);
@@ -81,7 +85,7 @@ function buildDom() {
   const hint = document.createElement('div');
   hint.className = 'garden-keys garden-only';
   hint.id = 'garden-keys';
-  hint.innerHTML = '<span><kbd>WASD</kbd> walk · <kbd>Shift</kbd> run</span><span><kbd>Space</kbd> jump · <kbd>C</kbd> photo</span><span><kbd>Esc</kbd> menu</span>';
+  hint.innerHTML = ['museum.keys.walk', 'museum.keys.jump', 'museum.keys.menu'].map(k => `<span>${t(k)}</span>`).join('');
   $('hud').appendChild(hint);
 
   // pause screen for the garden
@@ -90,13 +94,13 @@ function buildDom() {
   ps.className = 'screen dim';
   ps.innerHTML = `
     <div class="panel narrow">
-      <h2 class="center">${NAME}</h2>
+      <h2 class="center">${gardenName()}</h2>
       <div class="pause-figure tag" id="garden-pause-info"></div>
       <div class="stack">
-        <button class="btn huge mint" id="btn-garden-resume"><svg><use href="#i-play"/></svg>Resume</button>
-        <button class="btn" id="btn-garden-p-photo"><svg><use href="#i-camera"/></svg>Photo</button>
-        <button class="btn" id="btn-garden-settings"><svg><use href="#i-gear"/></svg>Settings</button>
-        <button class="btn" id="btn-garden-leave"><svg><use href="#i-home"/></svg>Leave garden</button>
+        <button class="btn huge mint" id="btn-garden-resume"><svg><use href="#i-play"/></svg>${t('museum.pause.resume')}</button>
+        <button class="btn" id="btn-garden-p-photo"><svg><use href="#i-camera"/></svg>${t('museum.pause.photo')}</button>
+        <button class="btn" id="btn-garden-settings"><svg><use href="#i-gear"/></svg>${t('museum.pause.settings')}</button>
+        <button class="btn" id="btn-garden-leave"><svg><use href="#i-home"/></svg>${t('museum.pause.leave')}</button>
       </div>
     </div>`;
   document.body.appendChild(ps);
@@ -127,8 +131,8 @@ function enter(origin = 'title') {
   $('coach').classList.remove('show');
   $('toast').classList.remove('show');
   const n = doneCount(), total = ctx.LEVELS.length;
-  $('lvl-name').textContent = NAME;
-  $('count').textContent = `${n} / ${total}`;
+  $('lvl-name').textContent = gardenName();
+  $('count').textContent = t('museum.hudCount', { n, total });
   $('bar-fill').style.width = `${(n / total) * 100}%`;
   $('garden-keys').classList.remove('fade');
   $('hud').classList.remove('off');
@@ -139,12 +143,10 @@ function enter(origin = 'title') {
   if (first) {
     ctx.save.seen.garden = true;
     ctx.persist();
-    const tap = ctx.mobile ? 'tap the <b>camera</b>' : 'press <b>C</b>';
     ctx.talk([
-      `Welcome to <b>${NAME}</b>! Every figure you rebuild comes home to stand here.`,
-      n ? `<b>${n} of ${total}</b> are back already. The dark ones are still waiting for you out on the islands.`
-        : "It's a little empty right now… but every pedestal is waiting for its figure!",
-      `Walk up to a figure to see your best time and stars. Want a souvenir? Just ${tap} to take a photo!`,
+      t('museum.talk.welcome', { name: gardenName() }),
+      n ? t(plural('museum.talk.some', n), { n, total }) : t('museum.talk.empty'),
+      t(ctx.mobile ? 'museum.talk.photo.touch' : 'museum.talk.photo.keys'),
     ], () => {
       if (!G) return;
       G.talkDone = true;
@@ -152,9 +154,9 @@ function enter(origin = 'title') {
     });
   } else {
     G.talkDone = true;
-    G.greet = n === total ? 'Every single figure is home. This is the finest garden in the Archipelago!'
-      : n === 0 ? 'Welcome back! Rebuild figures out on the islands and they will stand right here.'
-        : `${n} of ${total} figures restored. They look so happy here!`;
+    G.greet = n === total ? t('museum.greet.all')
+      : n === 0 ? t('museum.greet.none')
+        : t(plural('museum.greet.some', n), { n, total });
     if (!ctx.mobile) input.requestLock(); // still inside the click that brought us here
   }
 }
@@ -185,7 +187,7 @@ function pauseGarden() {
   ctx.input.reset();
   ctx.input.exitLock();
   const n = doneCount();
-  $('garden-pause-info').innerHTML = `<svg><use href="#i-garden"/></svg>${n} / ${ctx.LEVELS.length} restored`;
+  $('garden-pause-info').innerHTML = `<svg><use href="#i-garden"/></svg>${t(plural('museum.restored', n), { n, total: ctx.LEVELS.length })}`;
   $('garden-card').classList.remove('show');
   ctx.setBase('screen-garden-pause');
 }
@@ -206,7 +208,7 @@ function openPhoto(fromPause) {
   ctx.input.enabled = false;
   $('garden-card').classList.remove('show');
   ctx.photo.open({
-    name: done ? near.level.name : NAME,
+    name: done ? near.level.name : gardenName(),
     orbit: near ? {
       center: near.center.clone(), minDist: Math.max(2.2, near.r * 1.5, near.figH + 0.8), maxDist: 26,
       dist0: near.figH * 1.3 + near.r * 1.2 + 1.2, pitch0: 0.28,
@@ -477,21 +479,22 @@ class Garden {
 function cardHtml(it) {
   if (it.kind === 'kubo') {
     return `<div class="gc-thumb kubo-thumb"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div></div>
-      <div class="gc-body"><small>The last Keeper</small><b>Kubo</b><div class="gc-row"><span class="gc-act">${ctx.mobile ? 'Tap' : 'Click'} to chat</span></div></div>`;
+      <div class="gc-body"><small>${t('museum.card.keeper')}</small><b>${t('museum.card.kubo')}</b><div class="gc-row"><span class="gc-act">${t(ctx.mobile ? 'museum.card.chat.touch' : 'museum.card.chat.mouse')}</span></div></div>`;
   }
   const l = it.level, ch = ctx.CHAPTERS[l.chapter];
   const s = ctx.save.stars[l.id] || {};
   const thumb = ctx.thumbs[l.index] || '';
+  const where = t('museum.card.figureIndex', { chapter: ch.name, n: l.indexInChapter + 1 });
   if (!it.done) {
     const locked = l.index >= ctx.save.unlocked;
     return `<div class="gc-thumb mystery"><img src="${thumb}" alt=""><span class="q">?</span></div>
-      <div class="gc-body"><small>${ch.name} · ${l.indexInChapter + 1}</small><b>Mystery figure</b>
-      <div class="gc-row"><span class="gc-act">${locked ? '<svg><use href="#i-lock"/></svg>Not found yet' : `Hint: “${l.tag}”`}</span></div></div>`;
+      <div class="gc-body"><small>${where}</small><b>${t('museum.card.mystery')}</b>
+      <div class="gc-row"><span class="gc-act">${locked ? `<svg><use href="#i-lock"/></svg>${t('museum.card.notFound')}` : t('museum.card.hint', { tag: l.tag })}</span></div></div>`;
   }
   const stars = [s.done, s.fast, s.clean].map(on => `<svg class="${on ? 'on' : ''}"><use href="#i-star"/></svg>`).join('');
   const best = ctx.save.best[l.id];
   return `<div class="gc-thumb"><img src="${thumb}" alt=""></div>
-    <div class="gc-body"><small>${ch.name} · ${l.indexInChapter + 1}</small><b>${l.name}</b>
+    <div class="gc-body"><small>${where}</small><b>${l.name}</b>
     <div class="gc-row"><span class="gc-stars">${stars}</span>${best ? `<span class="gc-time"><svg><use href="#i-clock"/></svg>${ctx.fmt(best)}</span>` : ''}</div></div>`;
 }
 
@@ -499,12 +502,12 @@ function kuboLine() {
   const n = doneCount(), total = ctx.LEVELS.length;
   const next = ctx.LEVELS.find(l => l.index < ctx.save.unlocked && !ctx.save.stars[l.id]?.done);
   const pool = [
-    `${n} of ${total} figures are home. I polish them every morning!`,
-    'The pedestals hum a little when a figure comes home. Can you hear it?',
-    'Take a photo! The figures love to pose.',
+    t(plural('museum.line.home', n), { n, total }),
+    t('museum.line.hum'),
+    t('museum.line.photo'),
   ];
-  if (next) pool.push(`Psst… out there a figure is waiting. Kubo's hint: “${next.tag}”.`);
-  if (n === total) pool.push('Every figure is home! Now… how about collecting all the stars?');
+  if (next) pool.push(t('museum.line.hint', { tag: next.tag }));
+  if (n === total) pool.push(t('museum.line.allStars'));
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -553,39 +556,59 @@ function badgeTexture(txt) {
   g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
   g.fillStyle = INK;
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = '700 70px Fredoka, sans-serif';
+  g.font = `700 70px ${FONTS}`;
   g.fillText(txt, 64, 66);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
+// Text drawn at `size` px, shrunk until it fits in `maxW`.
+function fitText(g, text, x, y, size, maxW, weight = 700) {
+  let fs = size;
+  g.font = `${weight} ${fs}px ${FONTS}`;
+  const w = g.measureText(text).width;
+  if (w > maxW) { fs = Math.max(10, Math.floor(size * maxW / w)); g.font = `${weight} ${fs}px ${FONTS}`; }
+  g.fillText(text, x, y, maxW);
+}
+
 function signTexture(num, name, done, total, T) {
-  const W = 512, H = 192;
+  const W = 512, H = 192, MAX_W = W - 56;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   const hex = c => `#${c.toString(16).padStart(6, '0')}`;
-  g.fillStyle = '#fff4e0';
-  g.fillRect(0, 0, W, H);
-  g.lineWidth = 10; g.strokeStyle = INK;
-  g.strokeRect(5, 5, W - 10, H - 10);
-  g.fillStyle = hex(T.pedestal[2]);
-  g.fillRect(10, 10, W - 20, 18);
-  g.fillStyle = INK;
-  g.fillRect(10, 28, W - 20, 5);
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillStyle = '#5b4f73';
-  g.font = '700 26px Fredoka, sans-serif';
-  g.fillText(`CHAPTER ${num}`, W / 2, 60);
-  g.fillStyle = INK;
-  g.font = '700 58px Fredoka, sans-serif';
-  g.fillText(name, W / 2, 110);
-  g.font = '600 28px Fredoka, sans-serif';
-  g.fillStyle = done === total ? '#1f9e66' : '#5b4f73';
-  g.fillText(`${done} / ${total} restored`, W / 2, 160);
+  const head = t('museum.sign.chapter', { n: num });
+  const foot = t(plural('museum.restored', done), { n: done, total });
+  const paint = () => {
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = '#fff4e0';
+    g.fillRect(0, 0, W, H);
+    g.lineWidth = 10; g.strokeStyle = INK;
+    g.strokeRect(5, 5, W - 10, H - 10);
+    g.fillStyle = hex(T.pedestal[2]);
+    g.fillRect(10, 10, W - 20, 18);
+    g.fillStyle = INK;
+    g.fillRect(10, 28, W - 20, 5);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.direction = document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr';
+    g.fillStyle = '#5b4f73';
+    fitText(g, head, W / 2, 60, 26, MAX_W);
+    g.fillStyle = INK;
+    fitText(g, name, W / 2, 110, 58, MAX_W);
+    g.fillStyle = done === total ? '#1f9e66' : '#5b4f73';
+    fitText(g, foot, W / 2, 160, 28, MAX_W, 600);
+  };
+  paint();
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
+  // the texture is built synchronously: repaint once the (possibly non-Latin) glyphs have loaded
+  if (document.fonts?.load) {
+    Promise.all([
+      document.fonts.load(`700 40px ${FONTS}`, head + name),
+      document.fonts.load(`600 28px ${FONTS}`, foot),
+    ]).then(() => { paint(); tex.needsUpdate = true; }).catch(() => {});
+  }
   return tex;
 }

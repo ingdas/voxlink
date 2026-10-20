@@ -8,6 +8,8 @@ import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { FX } from './fx.js';
 import FEATURES from './features/index.js';
+import { t, setLocale, detectLocale, applyDom, listJoin } from './i18n.js';
+import { localizeContent } from './i18n-content.js';
 
 const $ = id => document.getElementById(id);
 const mobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0;
@@ -80,9 +82,9 @@ const game = new Game({
   renderer, scene, camera, audio, input, fx,
   events: {
     progress: (n, total, level) => {
-      $('lvl-name').textContent = level.kind || isDone(level.id) ? level.name : 'Mystery figure';
+      $('lvl-name').textContent = level.kind || isDone(level.id) ? level.name : t('hud.mystery');
       $('count').textContent = `${n} / ${total}`;
-      $('stage').textContent = game.stageCount > 1 ? `Part ${game.stage + 1}/${game.stageCount}` : '';
+      $('stage').textContent = game.stageCount > 1 ? t('hud.part', { k: game.stage + 1, n: game.stageCount }) : '';
       $('bar-fill').style.width = `${(n / total) * 100}%`;
       renderNeeds();
     },
@@ -130,7 +132,7 @@ function renderNeeds() {
   const max = innerWidth < 520 ? 5 : 9;
   // ready bubbles first so they are never hidden behind "+n"
   const sorted = [...nums.filter(n => ready.has(n)), ...nums.filter(n => !ready.has(n))];
-  let html = nums.length ? '<span class="lbl">Bubbles</span>' : '';
+  let html = nums.length ? `<span class="lbl">${t('hud.bubbles')}</span>` : '';
   sorted.slice(0, max).forEach(n => { html += chip(n, `${ready.has(n) ? 'ready' : ''} ${prev.has(n) ? '' : 'new'}`); });
   if (nums.length > max) html += `<span class="chip more">+${nums.length - max}</span>`;
   $('needs').innerHTML = html;
@@ -150,8 +152,8 @@ function renderPack(info) {
   $('btn-drop').classList.toggle('show', info.slots.length > 0);
   const fits = info.slots.filter(s => s.fits).map(s => s.link);
   const tip = $('pack-tip');
-  if (fits.length) tip.innerHTML = `${mobile ? 'Tap' : 'Click'} bubble${fits.length > 1 ? 's' : ''} <b>${fits.join(', ')}</b> to link`;
-  else if (info.slots.length) tip.textContent = 'No open bubble for these yet';
+  if (fits.length) tip.innerHTML = t(`pack.link.${mobile ? 'tap' : 'click'}.${fits.length > 1 ? 'other' : 'one'}`, { list: `<b>${listJoin(fits)}</b>` });
+  else if (info.slots.length) tip.textContent = t('pack.none');
   tip.classList.toggle('on', info.slots.length > 0);
   renderNeeds();
 }
@@ -170,11 +172,11 @@ function renderFocus(info) {
   if (info.kind === 'loose') {
     ch.className = info.far ? 'far' : 'grab';
     nums = info.numbers.map(n => chip(n, n === info.fit ? 'ready' : '')).join('');
-    label = info.far ? 'Get closer' : info.full ? 'Click to swap' : 'Click to grab';
-  } else if (info.far) { ch.className = 'far'; label = 'Get closer'; }
-  else if (info.ok) { ch.className = 'link'; label = 'Click to link!'; }
-  else if (info.holding) { ch.className = 'bad'; label = `Needs block ${info.num}`; }
-  else label = `Find block ${info.num}`;
+    label = info.far ? t('tip.closer') : info.full ? t('tip.swap') : t('tip.grab');
+  } else if (info.far) { ch.className = 'far'; label = t('tip.closer'); }
+  else if (info.ok) { ch.className = 'link'; label = t('tip.link'); }
+  else if (info.holding) { ch.className = 'bad'; label = t('tip.needs', { n: info.num }); }
+  else label = t('tip.find', { n: info.num });
   tip.innerHTML = `${nums ? `<div class="tip-nums">${nums}</div>` : ''}<div class="tip-label">${label}</div>`;
   tip.classList.add('show');
 }
@@ -202,10 +204,10 @@ function toast(msg) {
 }
 
 const COACH = {
-  1: () => mobile ? 'Drag your <b>left thumb</b> to walk, <b>right thumb</b> to look around' : '<b>WASD</b> to walk, <b>mouse</b> to look around',
-  2: () => `See the <b>bubble</b> on the pedestal? Find the loose block with the <b>same number</b> and ${mobile ? 'tap' : 'click'} it`,
-  3: () => `Now ${mobile ? 'tap' : 'aim at'} the <b>green bubble</b>${mobile ? '' : ' and click'} to link it!`,
-  4: () => 'Nice! Keep linking numbers until the <b>figure</b> is complete',
+  1: () => (mobile ? t('coach.1.touch') : t('coach.1.desk', { move: 'WASD', look: t('coach.mouse'), ...ctx.coachLabels?.() })),
+  2: () => t(mobile ? 'coach.2.touch' : 'coach.2.desk'),
+  3: () => t(mobile ? 'coach.3.touch' : 'coach.3.desk'),
+  4: () => t('coach.4'),
 };
 let coachStep = -1, coachTimer = 0;
 const edgeV = new THREE.Vector3();
@@ -237,6 +239,7 @@ function tickHud(g) {
     else el.classList.remove('show');
   }
   if (coachStep === 4) { coachTimer += g.lastDt; if (coachTimer > 4.5) g.tutorial = 5; }
+  if (coachStep === 1) { const html = COACH[1](); if ($('coach').innerHTML !== html) $('coach').innerHTML = html; }
   $('hint-cd').style.setProperty('--p', `${g.hintCooldown > 0 ? (g.hintCooldown / 8) * 100 : 0}%`);
   if (!mobile && g.elapsed > 16) $('keys').classList.add('fade');
   const far = g.player.pos.length() > 7;
@@ -269,7 +272,7 @@ function enterTitle() {
   $('hud').classList.add('off');
   const idx = nextLevelIndex();
   if (game.levelIndex !== idx || game.mode !== 'showcase') showcase(idx);
-  $('play-label').textContent = save.session ? 'Resume' : save.seen.prologue ? 'Continue' : 'Play';
+  $('play-label').textContent = t(save.session ? 'title.resume' : save.seen.prologue ? 'title.continue' : 'title.play');
   setBase('screen-title');
 }
 
@@ -413,9 +416,9 @@ function onComplete(stats) {
   const finale = idx === LEVELS.length - 1 && firstClear;
   setTimeout(() => showComplete({
     name: lvl.name, img: thumbs[idx], reveal: firstClear, time: stats.time, par, hints: stats.hints,
-    stars: [run.done, run.fast, run.clean], best: isBest && !firstClear ? 'New best!' : '', say: lvl.outro,
+    stars: [run.done, run.fast, run.clean], best: isBest && !firstClear ? t('complete.newBest') : '', say: lvl.outro,
     splits: stats.splits, prevSplits,
-    nextLabel: finale ? 'Epilogue' : 'Continue', onNext: finale ? showEnding : openMap, onMap: openMap,
+    nextLabel: t(finale ? 'complete.epilogue' : 'complete.continue'), onNext: finale ? showEnding : openMap, onMap: openMap,
     onRetry: () => { pendingUnlock = null; startLevel(lvl); },
   }), 2600);
 }
@@ -437,7 +440,7 @@ function showComplete(o) {
   $('lvl-name').textContent = o.name;
   $('complete-name').textContent = o.name;
   $('complete-time').textContent = fmt(o.time);
-  $('complete-par').textContent = o.par ? `par ${fmt(o.par)}` : (o.parText || 'time');
+  $('complete-par').textContent = o.par ? t('complete.par', { t: fmt(o.par) }) : (o.parText || t('complete.time'));
   $('complete-hints').textContent = o.hints;
   $('complete-img').src = o.img || '';
   $('complete-thumb').classList.toggle('reveal', !!o.reveal);
@@ -449,7 +452,7 @@ function showComplete(o) {
   $('complete-stars').innerHTML = st.map(() => '<svg><use href="#i-star"/></svg>').join('');
   const svgs = $('complete-stars').children;
   st.forEach((on, k) => { if (on) setTimeout(() => { svgs[k].classList.add('on'); audio.star(k); }, 500 + k * 280); });
-  $('next-label').textContent = o.nextLabel || 'Continue';
+  $('next-label').textContent = o.nextLabel || t('complete.continue');
   $('complete-splits').innerHTML = o.splits ? splitsHtml(o.splits, o.prevSplits) : '';
   completeActions = o;
   setBase('screen-complete');
@@ -477,8 +480,8 @@ function buildMap() {
     html += `<div class="map-chapter" style="position:absolute;left:0;right:0;top:${top - (c === CHAPTERS.length - 1 ? TOP_PAD : 0)}px;height:${SECTION_H + (c === CHAPTERS.length - 1 ? TOP_PAD : 0) + (c === 0 ? BOT_PAD : 0)}px;
       background:linear-gradient(to top, ${hex(T.water)}, ${hex(T.skyHorizon)} 55%, ${hex(T.skyTop)});${locked ? 'filter:saturate(.35) brightness(.85);' : ''}">
       <div class="waves"></div></div>`;
-    html += `<div class="chapter-head ${locked ? 'locked' : ''}" style="top:${top + 22}px"><small>Chapter ${c + 1}</small><b>${ch.name}</b>
-      <span>${locked ? '<svg><use href="#i-lock"/></svg> Locked' : `<svg><use href="#i-star"/></svg> ${st} / ${ch.levels.length * 3} · ${ch.blurb}`}</span></div>`;
+    html += `<div class="chapter-head ${locked ? 'locked' : ''}" style="top:${top + 22}px"><small>${t('map.chapter', { n: c + 1 })}</small><b>${ch.name}</b>
+      <span>${locked ? `<svg><use href="#i-lock"/></svg> ${t('map.locked')}` : `<svg><use href="#i-star"/></svg> ${st} / ${ch.levels.length * 3} · ${ch.blurb}`}</span></div>`;
     ch.levels.forEach((l, k) => {
       const x = cx + xs[k] * colW * (c % 2 ? -1 : 1);
       const y = top + SECTION_H - 120 - k * 158;
@@ -572,19 +575,19 @@ function openBrief(i) {
   $('brief-chapter').textContent = `${ch.name} · ${l.indexInChapter + 1}`;
   $('brief-img').src = thumbs[i] || '';
   $('brief-thumb').classList.toggle('mystery', !solved);
-  $('brief-name').textContent = solved ? l.name : 'Mystery figure';
-  $('brief-tag').textContent = solved ? l.tag : `Hint: “${l.tag}”`;
+  $('brief-name').textContent = solved ? l.name : t('hud.mystery');
+  $('brief-tag').textContent = solved ? l.tag : t('brief.hint', { tag: l.tag });
   const n = expandLevel(l).cells.length;
   const best = save.best[l.id];
   $('brief-stars').innerHTML = `
-    <div class="goal ${s.done ? 'on' : ''}"><svg><use href="#i-star"/></svg>Rebuild the figure<em>${n} blocks</em></div>
-    <div class="goal ${s.fast ? 'on' : ''}"><svg><use href="#i-star"/></svg>Finish under ${fmt(parTime(l))}<em>${best ? `best ${fmt(best)}` : ''}</em></div>
-    <div class="goal ${s.clean ? 'on' : ''}"><svg><use href="#i-star"/></svg>Use no hints</div>`;
+    <div class="goal ${s.done ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.done')}<em>${t('brief.blocks', { n })}</em></div>
+    <div class="goal ${s.fast ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.fast', { t: fmt(parTime(l)) })}<em>${best ? t('brief.best', { t: fmt(best) }) : ''}</em></div>
+    <div class="goal ${s.clean ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.clean')}</div>`;
   $('brief-say').innerHTML = l.intro;
   const ses = save.session?.id === l.id ? save.session : null;
   $('btn-brief-go').innerHTML = ses
-    ? `<svg><use href="#i-play"/></svg>Resume ${ses.done}/${ses.n}`
-    : '<svg><use href="#i-play"/></svg>Start';
+    ? `<svg><use href="#i-play"/></svg>${t('brief.resume', { k: ses.done, n: ses.n })}`
+    : `<svg><use href="#i-play"/></svg>${t('brief.start')}`;
   $('btn-brief-fresh').classList.toggle('hidden', !ses);
   pushOverlay('screen-brief');
 }
@@ -593,7 +596,7 @@ function openBrief(i) {
 function showEnding() {
   talk(ENDING, () => {
     $('ending-grid').innerHTML = thumbs.map((t, i) => `<img src="${t}" style="animation-delay:${i * 0.06}s" alt="">`).join('');
-    $('ending-stars').textContent = totalStars();
+    $('ending-stars').innerHTML = t('ending.stars', { n: totalStars() });
     setBase('screen-ending');
   });
 }
@@ -673,10 +676,10 @@ function bindSettings() {
   toggle('set-full', 'full', v => goFullscreen(v));
   let armed = false;
   $('set-reset').onclick = () => {
-    if (!armed) { armed = true; $('set-reset').textContent = 'Sure?'; setTimeout(() => { armed = false; $('set-reset').textContent = 'Reset'; }, 2500); return; }
+    if (!armed) { armed = true; $('set-reset').textContent = t('settings.sure'); setTimeout(() => { armed = false; $('set-reset').textContent = t('settings.resetBtn'); }, 2500); return; }
     Object.assign(save, { unlocked: 1, best: {}, stars: {}, seen: {} });
     persist();
-    $('set-reset').textContent = 'Done';
+    $('set-reset').textContent = t('settings.done');
     if (app === 'paused') return;
     enterTitle();
   };
@@ -786,6 +789,10 @@ async function boot() {
       new Promise(r => setTimeout(r, 2500)),
     ]);
   } catch { /* fallback fonts */ }
+  // language first: everything built below (thumb labels, features, menus) reads translated strings
+  await setLocale(await detectLocale(save.settings.lang));
+  localizeContent();
+  try { await document.fonts.ready; } catch { /* ignore */ }
   fill.style.width = '40%';
   await new Promise(r => setTimeout(r, 30));
   getAtlas(renderer.gl);

@@ -2,6 +2,7 @@
 // with local best times, splits and a streak.
 import { figureOf } from '../levels.js';
 import { hashId } from '../game.js';
+import { t, fmtDate } from '../i18n.js';
 
 const THEME_IDS = ['meadow', 'frost', 'reef', 'starfall'];
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -14,7 +15,7 @@ function dailyLevel(ctx, key) {
   const known = !!ctx.save.stars[base.id]?.done;
   return {
     level: {
-      id: `daily-${key}`, kind: 'daily', name: known ? `Daily · ${base.name}` : 'Daily figure', realName: `Daily · ${base.name}`, baseId: base.id, tag: base.tag,
+      id: `daily-${key}`, kind: 'daily', name: known ? t('daily.named', { name: base.name }) : t('daily.figure'), realName: t('daily.named', { name: base.name }), shortName: base.name, baseId: base.id, tag: base.tag,
       figure: figureOf(base.id), theme: THEME_IDS[Math.floor(seed / 7) % THEME_IDS.length],
       chapter: base.chapter, indexInChapter: 2, intro: '', outro: '',
     },
@@ -38,18 +39,18 @@ export function init(ctx) {
   document.body.insertAdjacentHTML('beforeend', `
   <div id="screen-daily" class="screen dim">
     <div class="panel narrow daily">
-      <div class="brief-chapter">Daily figure</div>
+      <div class="brief-chapter">${t('daily.figure')}</div>
       <h2 class="center" id="daily-date"></h2>
       <div class="brief-thumb"><img id="daily-img" alt=""></div>
       <p class="brief-tag" id="daily-sub"></p>
       <div class="daily-stats">
-        <div class="stat"><svg><use href="#i-clock"/></svg><b id="daily-best">–</b><small>today's best</small></div>
-        <div class="stat"><svg><use href="#i-star"/></svg><b id="daily-streak">0</b><small>day streak</small></div>
+        <div class="stat"><svg><use href="#i-clock"/></svg><b id="daily-best">–</b><small>${t('daily.todayBest')}</small></div>
+        <div class="stat"><svg><use href="#i-star"/></svg><b id="daily-streak">0</b><small>${t('daily.streak')}</small></div>
       </div>
       <div class="daily-hist" id="daily-hist"></div>
       <div class="row">
-        <button class="btn icon" data-back aria-label="Back"><svg><use href="#i-back"/></svg></button>
-        <button class="btn mint grow huge-ish" id="btn-daily-go"><svg><use href="#i-play"/></svg>Play today's</button>
+        <button class="btn icon" data-back aria-label="${t('aria.back')}"><svg><use href="#i-back"/></svg></button>
+        <button class="btn mint grow huge-ish" id="btn-daily-go"><svg><use href="#i-play"/></svg>${t('daily.play')}</button>
       </div>
     </div>
   </div>`);
@@ -62,7 +63,7 @@ export function init(ctx) {
   const refreshButton = () => {
     const done = !!save.daily[dayKey()];
     const n = streak();
-    btn.innerHTML = `<svg><use href="#i-cal"/></svg>Daily${n ? ` <span class="streak">${n}</span>` : ''}${done ? '' : '<i class="dot"></i>'}`;
+    btn.innerHTML = `<svg><use href="#i-cal"/></svg>${t('daily.btn')}${n ? ` <span class="streak">${n}</span>` : ''}${done ? '' : '<i class="dot"></i>'}`;
   };
   refreshButton();
 
@@ -70,10 +71,10 @@ export function init(ctx) {
     const key = dayKey();
     const { level } = dailyLevel(ctx, key);
     const done = !!save.stars[level.baseId]?.done;
-    $('daily-date').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    $('daily-date').textContent = fmtDate(new Date(), { weekday: 'long', month: 'short', day: 'numeric' });
     $('daily-img').src = ctx.thumbs[ctx.LEVELS.findIndex(l => l.id === level.baseId)] || '';
     $('daily-img').parentElement.classList.toggle('mystery', !done);
-    $('daily-sub').textContent = `${done ? level.realName.replace('Daily · ', '') : 'A mystery figure'} on a ${level.theme === 'starfall' ? 'twilight' : level.theme} island. Same blocks and numbers for everyone today.`;
+    $('daily-sub').textContent = t(`daily.sub.${level.theme}`, { name: done ? level.shortName : t('daily.mystery') });
     const rec = save.daily[key];
     $('daily-best').textContent = rec ? fmt(rec.best) : '–';
     $('daily-streak').textContent = streak();
@@ -81,8 +82,8 @@ export function init(ctx) {
     const max = Math.max(1, ...days.map(k => save.daily[k].best));
     $('daily-hist').innerHTML = days.length
       ? days.map(k => `<div title="${k}"><i style="height:${Math.max(8, (save.daily[k].best / max) * 100)}%"></i><small>${k.slice(8)}</small></div>`).join('')
-      : '<p>Your last 7 dailies show up here.</p>';
-    $('btn-daily-go').innerHTML = `<svg><use href="#i-play"/></svg>${rec ? 'Beat your time' : "Play today's"}`;
+      : `<p>${t('daily.history')}</p>`;
+    $('btn-daily-go').innerHTML = `<svg><use href="#i-play"/></svg>${t(rec ? 'daily.beat' : 'daily.play')}`;
     ctx.pushOverlay('screen-daily');
   };
   btn.onclick = open;
@@ -106,10 +107,10 @@ export function init(ctx) {
     refreshButton();
     const idx = ctx.LEVELS.findIndex(l => l.id === lvl.baseId);
     ctx.showComplete({
-      name: lvl.realName, img: ctx.thumbs[idx], reveal: lvl.name !== lvl.realName, time: stats.time, parText: 'daily', hints: stats.hints,
-      best: isBest && rec ? 'New daily best!' : '', splits: stats.splits, prevSplits,
-      say: `${s.count > 1 ? `${s.count} days in a row! ` : ''}Come back tomorrow for a new figure.`,
-      nextLabel: 'Done', onNext: ctx.enterTitle, onMap: ctx.openMap, onRetry: play,
+      name: lvl.realName, img: ctx.thumbs[idx], reveal: lvl.name !== lvl.realName, time: stats.time, parText: t('daily.par'), hints: stats.hints,
+      best: isBest && rec ? t('daily.newBest') : '', splits: stats.splits, prevSplits,
+      say: s.count > 1 ? t('daily.sayStreak', { n: s.count }) : t('daily.say'),
+      nextLabel: t('settings.done'), onNext: ctx.enterTitle, onMap: ctx.openMap, onRetry: play,
     });
   };
 }
