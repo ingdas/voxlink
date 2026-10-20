@@ -8,6 +8,8 @@ import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
 export const PACK_SIZE = 4;
+const _e = new THREE.Euler();
+const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
 export const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
@@ -324,12 +326,64 @@ export class Game {
     const off = this.chunkShape(ch).mid.multiplyScalar(S).applyQuaternion(ch.restQuat);
     ch.restPos.set(pos.x - off.x, pos.y, pos.z - off.z);
     this.layoutChunk(ch);
+    this.liftChunk(ch);
     [...ch.members].forEach((m, j) => {
       const w = this.voxels[m];
       this.startAnim(w, 'dropping', w.rest.pos, w.rest.quat, dur);
       w.anim.quiet = j > 0;
     });
   }
+  // ---------- stacking ----------
+  // Highest loose block whose footprint overlaps (x, z); returns { v, top } or null.
+  stackBelow(x, z, ignore = new Set(), belowY = Infinity) {
+    let best = null;
+    for (const w of this.voxels) {
+      if (ignore.has(w.i) || !(w.state === 'loose' || w.state === 'dropping')) continue;
+      const r = w.rest.pos;
+      if (Math.abs(r.x - x) > S * 0.85 || Math.abs(r.z - z) > S * 0.85 || r.y > belowY) continue;
+      const top = r.y + S / 2;
+      if (!best || top > best.top) best = { v: w, top };
+    }
+    return best;
+  }
+  // Resting height for a block at (x, z) at or below height y: ground, plateau or another loose block.
+  restHeight(x, z, y, ignore) {
+    const ground = this.world.heightAt(x, z, y + 0.05);
+    const below = this.stackBelow(x, z, ignore, y - 0.05);
+    return Math.max(ground, below ? below.top : 0);
+  }
+  // Raise a chunk so none of its blocks sink into blocks lying underneath.
+  liftChunk(ch) {
+    const ids = new Set(ch.members);
+    let lift = 0;
+    for (const m of ch.members) {
+      const r = this.voxels[m].rest.pos;
+      const below = this.stackBelow(r.x, r.z, ids, r.y + S * 0.4);
+      if (below) lift = Math.max(lift, below.top - (r.y - S / 2));
+    }
+    if (lift > 0.001) { ch.restPos.y += lift; this.layoutChunk(ch); }
+  }
+  // After a block leaves the ground, let whatever rested on it fall down.
+  settle() {
+    const loose = this.voxels.filter(w => w.state === 'loose').sort((a, b) => a.rest.pos.y - b.rest.pos.y);
+    const done = new Set();
+    for (const w of loose) {
+      if (done.has(w.i)) continue;
+      const group = w.chunk !== undefined && this.chunks ? [...this.chunks.get(w.chunk).members].map(m => this.voxels[m]) : [w];
+      group.forEach(g => done.add(g.i));
+      const ids = new Set(group.map(g => g.i));
+      let fall = Infinity;
+      for (const g of group) {
+        const r = g.rest.pos;
+        fall = Math.min(fall, (r.y - S / 2) - this.restHeight(r.x, r.z, r.y - S / 2, ids));
+      }
+      if (!(fall > 0.02) || !isFinite(fall)) continue;
+      if (w.chunk !== undefined && this.chunks) { const ch = this.chunks.get(w.chunk); ch.restPos.y -= fall; this.layoutChunk(ch); }
+      else w.rest.pos.y -= fall;
+      for (const g of group) { this.startAnim(g, 'dropping', g.rest.pos, g.rest.quat, 0.25 + fall * 0.1); g.anim.quiet = g !== group[0]; }
+    }
+  }
+
   // link the block/chunk in pack slot k onto loose block b (and its chunk) right where b lies
   attach(k, b) {
     const rep = this.pack[k], A = this.membersOf(rep), bv = this.voxels[b];
@@ -346,6 +400,7 @@ export class Game {
     this.pack.splice(k, 1);
     this.active = Math.max(0, Math.min(this.active > k ? this.active - 1 : this.active, this.pack.length - 1));
     const shift = this.layoutChunk(ch);
+    this.liftChunk(ch);
     A.forEach((m, j) => {
       const w = this.voxels[m];
       this.startAnim(w, 'dropping', w.rest.pos, w.rest.quat, 0.32);
@@ -689,6 +744,7 @@ export class Game {
       this.packTipShown = true;
       this.events.toast?.(t('toast.carry', { n: PACK_SIZE }));
     }
+    this.settle();
     this.emitPack();
   }
 
@@ -715,8 +771,16 @@ export class Game {
     const y = this.world.heightAt(x, z, p.pos.y + 0.6);
     if (v.chunk !== undefined) this.restChunk(this.chunks.get(v.chunk), new THREE.Vector3(x, y + S / 2, z), 0.4);
     else {
-      v.rest.pos.set(x, y + S / 2, z);
-      v.rest.quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6).multiply(cubeRotations()[Math.floor(Math.random() * 24)]);
+      const turn = cubeRotations()[Math.floor(Math.random() * 24)];
+      // landing on another loose block: stack neatly on top of it instead of overlapping
+      const below = this.stackBelow(x, z, new Set([v.i]));
+      if (below && below.top > y) {
+        v.rest.pos.set(below.v.rest.pos.x, below.top + S / 2, below.v.rest.pos.z);
+        v.rest.quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yawOf(below.v.rest.quat)).multiply(turn);
+      } else {
+        v.rest.pos.set(x, y + S / 2, z);
+        v.rest.quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6).multiply(turn);
+      }
       this.startAnim(v, 'dropping', v.rest.pos, v.rest.quat, 0.4);
     }
     this.pack.splice(this.active, 1);
