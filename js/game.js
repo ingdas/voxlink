@@ -91,9 +91,21 @@ export class Game {
   constructor({ renderer, scene, camera, audio, input, fx, events }) {
     Object.assign(this, { renderer, scene, camera, audio, input, fx, events });
     this.player = new Player();
-    this.player.onStep = () => this.audio.step();
+    this.player.onStep = (hs, surf) => {
+      this.audio.step(surf?.sound);
+      if (surf?.splash) {
+        const p = this.player.pos;
+        this.fx.burst(new THREE.Vector3(p.x, p.y + 0.12, p.z), 0xe6fbff, 5, 1.6);
+      }
+    };
     this.player.onLand = v => this.audio.land(v);
     this.player.onJump = () => this.audio.jump();
+    this.player.onPad = () => {
+      this.audio.boing();
+      const p = this.player.pos;
+      this.fx.burst(new THREE.Vector3(p.x, p.y + 0.15, p.z), 0xff9eef, 14, 3);
+    };
+    this.player.onRescue = () => this.audio.whoosh(1);
     this.raycaster = new THREE.Raycaster();
     this.raycaster.layers.enableAll();
     this.pickGroup = new THREE.Group();
@@ -148,7 +160,8 @@ export class Game {
     });
     this.scene.add(this.world.group);
     this.world.onFlash = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.thunder(); };
-    this.audio.surface = { frost: 'snow', reef: 'sand' }[themeId] || 'grass';
+    this.world.onGust = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.whoosh(); };
+    this.audio.setWorld?.(themeId);
     this.scene.fog.color.setHex(this.world.theme.skyHorizon);
     this.scene.fog.density = this.world.theme.fogDensity;
     this.scene.add(this.ghost);
@@ -490,7 +503,7 @@ export class Game {
         const th = this.districtAngle(d) + (k ? (Math.random() - 0.5) * 0.6 : 0);
         const r = r0 + (w.R - 1 - r0) * (0.45 + (k ? (Math.random() - 0.5) * 0.3 : 0));
         const x = Math.cos(th) * r, z = Math.sin(th) * r;
-        if (w.isFreeGround(x, z, 0.4)) pos = new THREE.Vector3(x, w.heightAt(x, z), z);
+        if (w.isFreeGround(x, z, 0.4)) pos = new THREE.Vector3(x, w.groundY ? w.groundY(x, z) : w.heightAt(x, z), z);
       }
       if (!pos) continue;
       const flag = new THREE.Group();
@@ -621,18 +634,23 @@ export class Game {
       let pos = null;
       const d = this.stageOf[v.i];
       const tops = districtTops[d];
-      for (let tries = 0; tries < 260 && !pos; tries++) {
-        if (k < nTop && tops.length && tries < 120) {
+      // a high spot first if this block should be up top (falls back to the ground when the tops are full)
+      const free = (x, z, y) => [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3], [0, 0]].every(([dx, dz]) => w.heightAt(x + dx, z + dz) <= y + 0.01);
+      for (let tries = 0; tries < 400 && !pos; tries++) {
+        if (k < nTop && tops.length && tries < 150) {
           const t = tops[Math.floor(rng() * tops.length)];
           const x = THREE.MathUtils.lerp(t.box.min.x + 0.45, t.box.max.x - 0.45, rng());
           const z = THREE.MathUtils.lerp(t.box.min.z + 0.45, t.box.max.z - 0.45, rng());
-          if (w.heightAt(x, z) <= t.y + 0.01 && ok(x, z, t.y)) pos = new THREE.Vector3(x, t.y, z);
+          if (free(x, z, t.y) && ok(x, z, t.y)) pos = new THREE.Vector3(x, t.y, z);
         } else {
           const th = D === 1 || tries > 200 ? rng() * Math.PI * 2 : this.districtAngle(d) + (rng() - 0.5) * width * 0.92;
           const r0 = Math.max(4, this.footR + 1.2);
           const r = r0 + Math.sqrt(rng()) * (w.R - 1 - r0);
           const x = Math.cos(th) * r, z = Math.sin(th) * r;
-          if (w.isFreeGround(x, z, 0.5) && ok(x, z, 0)) pos = new THREE.Vector3(x, 0, z);
+          if (w.isFreeGround(x, z, tries < 300 ? 0.5 : 0)) {
+            const y = w.groundY ? w.groundY(x, z) : 0;
+            if (tries >= 340 || ok(x, z, y)) pos = new THREE.Vector3(x, y, z);
+          }
         }
       }
       if (!pos) pos = new THREE.Vector3((rng() - 0.5) * 8, 0, 4 + rng() * 3);
@@ -888,9 +906,13 @@ export class Game {
     const r = Math.hypot(x, z);
     const minR = Math.max(3.7, this.footR + 0.8);
     if (r < minR) { const k = minR / Math.max(r, 0.01); x *= k; z *= k; }
-    const th = Math.atan2(z, x), maxR = this.world.radiusAt(th) - 1;
-    if (Math.hypot(x, z) > maxR) { const k = maxR / Math.hypot(x, z); x *= k; z *= k; }
-    const y = this.world.heightAt(x, z, p.pos.y + 0.6);
+    let y;
+    if (this.world.dropPoint) ({ x, y, z } = this.world.dropPoint(x, z, p.pos.y + 0.6, p.pos.x, p.pos.z));
+    else {
+      const th = Math.atan2(z, x), maxR = this.world.radiusAt(th) - 1;
+      if (Math.hypot(x, z) > maxR) { const k = maxR / Math.hypot(x, z); x *= k; z *= k; }
+      y = this.world.heightAt(x, z, p.pos.y + 0.6);
+    }
     if (v.chunk !== undefined) this.restChunk(this.chunks.get(v.chunk), new THREE.Vector3(x, y + S / 2, z), 0.4);
     else {
       const turn = cubeRotations()[Math.floor(Math.random() * 24)];

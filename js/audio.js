@@ -1,5 +1,20 @@
 // Tiny synthesised sound kit + generative ambient music. No assets needed.
+// Each world has its own music flavour (chords, tempo, instrument) and an ambient bed
+// (breeze and birds, howling wind, waves and gulls, starry shimmer, rain and wind).
 const PENTA = [0, 2, 4, 7, 9];
+
+const MUSIC = {
+  // C G Am F: bright plucks
+  meadow: { chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]], beat: 0.4, voice: 'pluck', density: 0.55, up: 12 },
+  // Dmaj7 Bm7 Gmaj7 A: slow music-box bells
+  frost: { chords: [[62, 66, 69, 73], [59, 62, 66, 69], [55, 59, 62, 66], [57, 61, 64, 69]], beat: 0.56, voice: 'bell', density: 0.38, up: 24 },
+  // F Bb C Dm: bouncy marimba with a swing and a little bass line
+  reef: { chords: [[53, 57, 60], [58, 62, 65], [60, 64, 67], [62, 65, 69]], beat: 0.33, voice: 'marimba', density: 0.62, up: 12, swing: 0.1, bass: 'offbeat' },
+  // Cmaj7#11 D/C Em7 D: floaty glass tones over wide pads
+  starfall: { chords: [[60, 64, 67, 71], [62, 66, 69, 74], [64, 67, 71, 74], [62, 66, 69, 72]], beat: 0.62, voice: 'glass', density: 0.34, up: 12, pad: 'wide' },
+  // Am F Dm E: a steady pulse under minor plucks
+  storm: { chords: [[57, 60, 64], [53, 57, 60], [50, 53, 57], [52, 56, 59]], beat: 0.36, voice: 'pluck', density: 0.5, up: 12, bass: 'pulse' },
+};
 
 export class Audio {
   constructor() {
@@ -9,6 +24,10 @@ export class Audio {
     this.musicOn = true;
     this.nextNote = 0;
     this.chordIdx = 0;
+    this.world = 'meadow';
+    this.surface = 'grass';
+    this.ambNodes = null;
+    this.ambEventT = 3;
   }
 
   unlock() {
@@ -22,6 +41,7 @@ export class Audio {
       this.master.connect(this.comp).connect(c.destination);
       this.sfx = c.createGain(); this.sfx.gain.value = this.sfxVol; this.sfx.connect(this.master);
       this.music = c.createGain(); this.music.gain.value = this.musicVol * 0.5; this.music.connect(this.master);
+      this.amb = c.createGain(); this.amb.gain.value = this.sfxVol; this.amb.connect(this.master);
       // simple feedback delay for a dreamy tail
       this.delay = c.createDelay(1); this.delay.delayTime.value = 0.38;
       this.fb = c.createGain(); this.fb.gain.value = 0.38;
@@ -31,13 +51,23 @@ export class Audio {
       this.noiseBuf = c.createBuffer(1, c.sampleRate * 2.5, c.sampleRate);
       const d = this.noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      this.startAmbience();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
   }
 
-  setSfx(v) { this.sfxVol = v; if (this.sfx) this.sfx.gain.value = v; }
+  setSfx(v) { this.sfxVol = v; if (this.sfx) { this.sfx.gain.value = v; this.amb.gain.value = v; } }
   setMusic(v) { this.musicVol = v; if (this.music) this.music.gain.value = v * 0.5; }
   suspend(s) { if (!this.ctx) return; s ? this.ctx.suspend() : this.ctx.resume(); }
+
+  // switch music flavour, footsteps and ambient bed to a world (theme id)
+  setWorld(id) {
+    const prev = this.world;
+    this.world = MUSIC[id] ? id : 'meadow';
+    this.surface = { frost: 'snow', reef: 'sand', storm: 'grass' }[this.world] || 'grass';
+    this.delay && (this.delay.delayTime.value = this.world === 'starfall' ? 0.5 : this.world === 'frost' ? 0.45 : 0.38);
+    if (prev !== this.world || !this.ambNodes) { this.chordIdx = 0; this.startAmbience(); }
+  }
 
   tone({ f = 440, f2 = null, type = 'sine', t = 0, dur = 0.2, vol = 0.3, attack = 0.005, out = null, wet = 0 }) {
     const c = this.ctx; if (!c) return;
@@ -54,15 +84,16 @@ export class Audio {
     o.start(t0); o.stop(t0 + dur + 0.05);
   }
 
-  noise({ t = 0, dur = 0.08, vol = 0.2, freq = 1200, q = 1, type = 'bandpass' }) {
+  noise({ t = 0, dur = 0.08, vol = 0.2, freq = 1200, q = 1, type = 'bandpass', f2 = null, attack = 0, out = null }) {
     const c = this.ctx; if (!c) return;
     const t0 = c.currentTime + t;
     const s = c.createBufferSource(); s.buffer = this.noiseBuf;
-    const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const f = c.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t0); f.Q.value = q;
+    if (f2) f.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
     const g = c.createGain();
-    g.gain.setValueAtTime(vol, t0);
+    if (attack) { g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + attack); } else g.gain.setValueAtTime(vol, t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    s.connect(f).connect(g).connect(this.sfx);
+    s.connect(f).connect(g).connect(out || this.sfx);
     s.start(t0, Math.random() * 0.3); s.stop(t0 + dur + 0.02);
   }
 
@@ -92,10 +123,42 @@ export class Audio {
   }
   jump() { this.tone({ f: 260, f2: 420, type: 'sine', dur: 0.1, vol: 0.06 }); }
   land(v) { this.noise({ dur: 0.07, vol: Math.min(0.25, v * 0.02), freq: 400, q: 0.7 }); }
-  step() {
-    if (this.surface === 'snow') this.noise({ dur: 0.07, vol: 0.06, freq: 2600 + Math.random() * 800, q: 0.6, type: 'highpass' });
-    else if (this.surface === 'sand') this.noise({ dur: 0.06, vol: 0.045, freq: 1800 + Math.random() * 500, q: 0.5 });
-    else this.noise({ dur: 0.045, vol: 0.05, freq: 700 + Math.random() * 400, q: 0.8 });
+  step(kind = this.surface) {
+    const r = Math.random();
+    switch (kind) {
+      case 'snow': this.noise({ dur: 0.07, vol: 0.06, freq: 2600 + r * 800, q: 0.6, type: 'highpass' }); break;
+      case 'sand': this.noise({ dur: 0.06, vol: 0.045, freq: 1800 + r * 500, q: 0.5 }); break;
+      case 'ice':
+        this.noise({ dur: 0.05, vol: 0.035, freq: 5200 + r * 1500, q: 0.8, type: 'highpass' });
+        this.tone({ f: 2300 + r * 600, type: 'sine', dur: 0.04, vol: 0.012 });
+        break;
+      case 'water':
+        this.noise({ dur: 0.2, vol: 0.08, freq: 900 + r * 300, q: 0.7, type: 'lowpass', f2: 300 });
+        this.noise({ t: 0.02, dur: 0.12, vol: 0.05, freq: 2600 + r * 900, q: 1.2 });
+        break;
+      case 'wood':
+        this.tone({ f: 190 + r * 30, f2: 140, type: 'triangle', dur: 0.06, vol: 0.06 });
+        this.noise({ dur: 0.04, vol: 0.04, freq: 900, q: 1.5 });
+        break;
+      case 'stone': this.noise({ dur: 0.04, vol: 0.06, freq: 1300 + r * 500, q: 1.6 }); break;
+      case 'crystal':
+        this.noise({ dur: 0.04, vol: 0.04, freq: 1500, q: 1 });
+        this.tone({ f: this.midi(84 + PENTA[Math.floor(r * 5)]), type: 'sine', dur: 0.25, vol: 0.018, wet: 0.5 });
+        break;
+      default: this.noise({ dur: 0.045, vol: 0.05, freq: 700 + r * 400, q: 0.8 });
+    }
+  }
+  // jump pad
+  boing() {
+    this.tone({ f: 170, f2: 720, type: 'sine', dur: 0.35, vol: 0.22 });
+    this.tone({ f: 340, f2: 1440, type: 'triangle', dur: 0.3, vol: 0.05 });
+    [0, 4, 7, 12].forEach((n, i) => this.tone({ f: this.midi(84 + n), type: 'sine', t: 0.05 + i * 0.05, dur: 0.25, vol: 0.04, wet: 0.5 }));
+  }
+  // wind gust (and the gentle float back after a fall)
+  whoosh(soft = 0) {
+    this.noise({ dur: 1.8, vol: soft ? 0.09 : 0.13, freq: 260, f2: 1100, q: 1.4, attack: 0.6 });
+    this.noise({ t: 0.3, dur: 1.6, vol: soft ? 0.05 : 0.08, freq: 900, f2: 380, q: 1.1, attack: 0.5 });
+    if (soft) [0, 4, 7, 11, 14].forEach((n, i) => this.tone({ f: this.midi(79 + n), type: 'sine', t: 0.2 + i * 0.12, dur: 0.5, vol: 0.04, wet: 0.6 }));
   }
   hint() {
     [0, 4, 7, 12].forEach((n, i) => this.tone({ f: this.midi(76 + n), type: 'sine', t: i * 0.06, dur: 0.3, vol: 0.08, wet: 0.6 }));
@@ -117,21 +180,110 @@ export class Audio {
     this.noise({ t: 0.6, dur: 0.6, vol: 0.05, freq: 6000, q: 0.5, type: 'highpass' });
   }
 
-  // --- ambient music: soft plucks over slow chords ---
+  // --- ambient bed: looped filtered noise with slow swells, plus little events ---
+  startAmbience() {
+    const c = this.ctx;
+    if (!c) return;
+    if (this.ambNodes) {
+      const old = this.ambNodes;
+      old.out.gain.setTargetAtTime(0.0001, c.currentTime, 0.4);
+      setTimeout(() => old.stop.forEach(n => { try { n.stop(); } catch { /* already stopped */ } }), 2000);
+    }
+    const out = c.createGain();
+    out.gain.setValueAtTime(0.0001, c.currentTime);
+    out.gain.setTargetAtTime(1, c.currentTime + 0.2, 0.8);
+    out.connect(this.amb);
+    const stop = [];
+    // one noise layer: filter type/freq, level, and an optional slow swell (lfo Hz, depth) on level or cutoff
+    const layer = (type, freq, q, vol, lfo = 0, depth = 0, onFreq = false) => {
+      const s = c.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true;
+      const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+      const g = c.createGain(); g.gain.value = vol;
+      s.connect(f).connect(g).connect(out);
+      s.start(c.currentTime, Math.random() * 2);
+      stop.push(s);
+      if (lfo) {
+        const o = c.createOscillator(); o.frequency.value = lfo;
+        const d = c.createGain(); d.gain.value = depth;
+        o.connect(d).connect(onFreq ? f.frequency : g.gain);
+        o.start(); stop.push(o);
+      }
+    };
+    const w = this.world;
+    if (w === 'meadow') layer('bandpass', 520, 0.6, 0.018, 0.07, 0.01);
+    else if (w === 'frost') { layer('bandpass', 420, 3, 0.05, 0.09, 260, true); layer('bandpass', 900, 5, 0.012, 0.13, 400, true); }
+    else if (w === 'reef') { layer('lowpass', 650, 0.5, 0.05, 0.11, 0.045); layer('highpass', 3500, 0.4, 0.006, 0.11, 0.005); }
+    else if (w === 'starfall') {
+      for (const f of [880, 883.5, 1318.5]) {
+        const o = c.createOscillator(); o.frequency.value = f; o.type = 'sine';
+        const g = c.createGain(); g.gain.value = 0.0035;
+        o.connect(g).connect(out); o.start(); stop.push(o);
+      }
+      layer('bandpass', 1800, 0.8, 0.006, 0.05, 0.004);
+    } else if (w === 'storm') { layer('highpass', 2800, 0.5, 0.035, 0.2, 0.008); layer('bandpass', 320, 1.2, 0.04, 0.06, 0.025); }
+    this.ambNodes = { out, stop };
+  }
+
+  ambientEvents(dt) {
+    this.ambEventT -= dt;
+    if (this.ambEventT > 0) return;
+    const r = Math.random;
+    const w = this.world;
+    const o = this.amb;
+    if (w === 'meadow') {
+      // a bird: a few quick chirps
+      const base = 2600 + r() * 1400, n = 2 + Math.floor(r() * 4);
+      for (let i = 0; i < n; i++) this.tone({ f: base, f2: base * (1.2 + r() * 0.3), type: 'sine', t: i * 0.11, dur: 0.07, vol: 0.025, out: o });
+      this.ambEventT = 1.5 + r() * 4;
+    } else if (w === 'frost') {
+      [0, 7, 12].forEach((nn, i) => this.tone({ f: this.midi(88 + nn + (r() < 0.5 ? 2 : 0)), type: 'sine', t: i * 0.09, dur: 0.6, vol: 0.012, wet: 0.6, out: o }));
+      this.ambEventT = 5 + r() * 6;
+    } else if (w === 'reef') {
+      // a gull far away
+      const f = 1300 + r() * 300;
+      for (let i = 0; i < 2 + Math.floor(r() * 2); i++) this.tone({ f, f2: f * 0.7, type: 'triangle', t: i * 0.28, dur: 0.22, vol: 0.02, out: o });
+      this.ambEventT = 6 + r() * 8;
+    } else if (w === 'starfall') {
+      this.tone({ f: this.midi(91 + PENTA[Math.floor(r() * 5)]), type: 'sine', dur: 1.2, vol: 0.015, attack: 0.05, wet: 0.8, out: o });
+      this.ambEventT = 2 + r() * 4;
+    } else this.ambEventT = 5;
+  }
+
+  // --- ambient music: soft notes over slow chords, flavoured per world ---
   updateMusic() {
     const c = this.ctx;
-    if (!c || !this.musicOn || this.musicVol <= 0 || c.state !== 'running') return;
-    if (c.currentTime < this.nextNote - 0.2) return;
-    if (this.nextNote < c.currentTime) this.nextNote = c.currentTime + 0.1;
-    const chords = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]];
-    const beat = 0.42;
+    if (!c || c.state !== 'running') return;
+    const now = c.currentTime;
+    const dt = Math.min(0.1, now - (this.lastTick ?? now));
+    this.lastTick = now;
+    this.ambientEvents(dt);
+    if (!this.musicOn || this.musicVol <= 0) return;
+    if (now < this.nextNote - 0.2) return;
+    if (this.nextNote < now) this.nextNote = now + 0.1;
+    const P = MUSIC[this.world] || MUSIC.meadow;
+    const beat = P.beat;
+    const ch = P.chords[this.chordIdx % P.chords.length];
     for (let i = 0; i < 8; i++) {
-      const t = this.nextNote - c.currentTime + i * beat;
-      const ch = chords[this.chordIdx % chords.length];
-      if (i === 0) ch.forEach(n => this.tone({ f: this.midi(n), type: 'sine', t, dur: beat * 8, vol: 0.05, attack: 0.6, out: this.music }));
-      if (Math.random() < 0.55) {
-        const n = ch[Math.floor(Math.random() * 3)] + 12 + (Math.random() < 0.3 ? 12 : 0);
-        this.tone({ f: this.midi(n), type: 'triangle', t, dur: 0.7, vol: 0.06, out: this.music, wet: 0.35 });
+      const t = this.nextNote - now + i * beat + (i % 2 ? (P.swing || 0) * beat : 0);
+      if (i === 0) {
+        ch.slice(0, 3).forEach(n => this.tone({ f: this.midi(n), type: 'sine', t, dur: beat * 8, vol: 0.045, attack: 0.6, out: this.music }));
+        if (P.pad === 'wide') ch.forEach(n => this.tone({ f: this.midi(n + 12) * 1.004, type: 'sine', t, dur: beat * 8, vol: 0.02, attack: 1.2, out: this.music, wet: 0.4 }));
+      }
+      if (P.bass === 'pulse') this.tone({ f: this.midi(ch[0] - 12), type: 'triangle', t, dur: beat * 0.7, vol: 0.06, out: this.music });
+      else if (P.bass === 'offbeat' && i % 2 === 0) this.tone({ f: this.midi(ch[i % 4 === 0 ? 0 : 2] - 12), type: 'sine', t, dur: beat * 0.8, vol: 0.08, out: this.music });
+      if (Math.random() < P.density) {
+        const n = ch[Math.floor(Math.random() * ch.length)] + P.up + (Math.random() < 0.3 ? 12 : 0);
+        const f = this.midi(n);
+        if (P.voice === 'bell') {
+          this.tone({ f, type: 'sine', t, dur: 1.4, vol: 0.05, out: this.music, wet: 0.5 });
+          this.tone({ f: f * 2.76, type: 'sine', t, dur: 0.5, vol: 0.012, out: this.music, wet: 0.5 });
+        } else if (P.voice === 'marimba') {
+          this.tone({ f, type: 'sine', t, dur: 0.28, vol: 0.075, out: this.music, wet: 0.2 });
+          this.tone({ f: f * 4, type: 'sine', t, dur: 0.05, vol: 0.02, out: this.music });
+        } else if (P.voice === 'glass') {
+          this.tone({ f, type: 'sine', t, dur: 1.8, vol: 0.04, attack: 0.09, out: this.music, wet: 0.7 });
+          this.tone({ f: f * 2.01, type: 'sine', t, dur: 1.0, vol: 0.012, attack: 0.09, out: this.music, wet: 0.7 });
+        } else this.tone({ f, type: 'triangle', t, dur: 0.7, vol: 0.06, out: this.music, wet: 0.35 });
       }
     }
     this.nextNote += beat * 8;
