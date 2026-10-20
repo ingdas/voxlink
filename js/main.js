@@ -728,7 +728,9 @@ function frame(now) {
   audio.updateMusic();
   // nothing 3D is visible behind these screens
   if (app === 'paused' || app === 'loading' || app === 'menu') return;
-  game.update(dt);
+  // a feature can own the frame for its own app state (ctx.modes[app] replaces game.update; rendering still happens)
+  const mode = ctx.modes[app];
+  if (mode) mode(dt); else game.update(dt);
   renderer.render(scene, camera);
   renderer.adapt(dt);
 }
@@ -744,6 +746,7 @@ const ctx = {
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [], settings: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures
+  modes: {}, // app state -> (dt) => void, per-frame update used instead of game.update while app is that state
 };
 
 // ---------- boot ----------
