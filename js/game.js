@@ -30,6 +30,13 @@ function badgeTexture(num, style) {
   g.font = `700 ${t.length > 2 ? 44 : t.length > 1 ? 54 : 64}px Fredoka, sans-serif`;
   g.fillText(t, 64, 66);
   if (num === 6 || num === 9) g.fillRect(52, 94, 24, 6);
+  if (style === 'ready') {
+    // check mark badge so "ready" never relies on colour alone
+    g.fillStyle = INK;
+    g.beginPath(); g.arc(102, 27, 22, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#fff4e0'; g.lineWidth = 7; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(92, 28); g.lineTo(99, 35); g.lineTo(112, 20); g.stroke();
+  }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   badgeCache.set(k, tex);
@@ -63,6 +70,7 @@ export class Game {
     this.tmpQ = new THREE.Quaternion();
     this.pack = [];
     this.active = 0;
+    this.comfort = { kick: 1, spin: 1 }; // scaled down by the reduced-motion setting
   }
 
   // ---------- level lifecycle ----------
@@ -514,7 +522,7 @@ export class Game {
       this.audio.win();
       this.fx.confettiBurst(new THREE.Vector3(0, PEDESTAL_TOP + this.figureHeight, 0), 3, 240);
     }
-    this.orbitAngle += dt * 0.25;
+    this.orbitAngle += dt * 0.25 * this.comfort.spin;
     const target = this.orbitPose(this.orbitAngle, 0.85);
     const k = ease(Math.min(1, t / 2.2));
     this.camera.position.lerpVectors(this.camFrom.pos, target.pos, k);
@@ -547,7 +555,7 @@ export class Game {
     this.player.applyCamera(this.camera);
     if (this.kick > 0.001 || this.camera.fov !== this.camera.userData.baseFov) {
       this.kick = this.kick > 0.002 ? this.kick * Math.exp(-dt * 9) : 0;
-      this.camera.fov = (this.camera.userData.baseFov || 70) * (1 + this.kick * 0.03);
+      this.camera.fov = (this.camera.userData.baseFov || 70) * (1 + this.kick * 0.03 * this.comfort.kick);
       this.camera.updateProjectionMatrix();
     }
     this.camera.updateMatrixWorld();

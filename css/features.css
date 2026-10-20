@@ -1,1 +1,85 @@
 /* Styles for js/features/* modules. Each feature appends its own section below. */
+
+/* ---------- Access: comfort, accessibility & controls (js/features/access.js) ---------- */
+/* long settings list scrolls inside its panel */
+#screen-settings .panel { min-height: 0; }
+#screen-settings .settings {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y;
+  -webkit-overflow-scrolling: touch; margin: 0 -10px; padding: 2px 10px 4px; scrollbar-width: thin; scrollbar-color: var(--ink) transparent;
+}
+#screen-settings .settings::-webkit-scrollbar { width: 8px; }
+#screen-settings .settings::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
+.acc-sec {
+  align-self: flex-start; margin-top: 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--paper); background: var(--ink); border-radius: 999px; padding: 3px 12px;
+}
+.acc-sec.acc-sec-end { display: none; }
+#screen-settings .setting input[type=range] { width: 46%; flex: none; }
+@media (min-width: 521px) { .setting.acc-range > span { white-space: nowrap; } }
+.setting.acc-range .acc-val { display: inline-block; }
+.setting .acc-val { font-style: normal; font-size: 14px; font-weight: 700; color: var(--ink-soft); margin-left: 4px; white-space: nowrap; }
+.setting.acc-off { opacity: .5; }
+.acc-keys { display: flex; flex-direction: column; gap: 6px; background: #fffaf0; border: var(--line) solid var(--ink); border-radius: 14px; padding: 10px 12px; margin-top: -6px; }
+.acc-key { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-weight: 600; font-size: 16px; }
+.acc-key small { display: block; font-size: 12px; color: var(--ink-soft); }
+.acc-key kbd { margin: 0; font-size: 13px; padding: 2px 8px; white-space: nowrap; }
+.kbtn {
+  font: inherit; font-weight: 700; font-size: 15px; min-width: 64px; height: 34px; padding: 0 12px; cursor: pointer;
+  color: var(--ink); background: var(--paper); border: var(--line) solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ink);
+  transition: transform .09s, box-shadow .09s;
+}
+.kbtn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--ink); }
+.kbtn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.kbtn.wait { background: var(--sun); animation: acc-wait .9s ease-in-out infinite; }
+@keyframes acc-wait { 50% { background: #ffe08a; } }
+.acc-keys-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
+.acc-keys-foot small { font-size: 12px; font-weight: 600; color: var(--ink-soft); line-height: 1.2; }
+body.mobile .acc-desk:not(.on), body.mobile #acc-keys { display: none; }
+@media (max-height: 500px) {
+  .acc-keys { padding: 6px 10px; gap: 4px; margin-top: -2px; }
+  .acc-key { font-size: 14px; }
+  .kbtn { height: 30px; font-size: 14px; }
+}
+
+/* focus rings for keyboard / gamepad navigation */
+.toggle:focus-visible, .kbtn:focus-visible, input[type=range]:focus-visible { outline: 3px dashed var(--ink); outline-offset: 4px; }
+.node:focus-visible { outline: none; }
+.node:focus-visible .island { outline: 4px dashed var(--ink); outline-offset: 6px; }
+body.pad-nav.playing canvas#c { cursor: none; }
+body.mobile.pad-nav #crosshair { display: block; }
+
+/* floating toast for menus (the HUD one is hidden there) */
+#acc-toast { position: fixed; z-index: 60; pointer-events: none; }
+
+/* UI size: zoom HUD clusters and menu panels (not the stick / edge markers, which are placed in px) */
+body.ui-scaled #hud :is(.hud-top, .needs, .toast, .coach, .kubo-bark, .tooltip, .pack-wrap, .keys, .touch-btns) { zoom: var(--ui-hud, 1); }
+body.ui-scaled :is(.screen .panel, .title-top, .title-bottom, .map-top, .talk-box) { zoom: var(--ui-menu, 1); }
+body.ui-scaled .progress { width: min(340px, calc(52vw / var(--ui-hud, 1))); }
+body.ui-scaled .needs { max-width: calc(92vw / var(--ui-hud, 1)); }
+body.ui-scaled .coach { max-width: min(calc(88vw / var(--ui-hud, 1)), 520px); }
+body.ui-scaled .kubo-bark { max-width: min(320px, calc(60vw / var(--ui-hud, 1))); }
+body.ui-scaled .toast { max-width: min(calc(90vw / var(--ui-hud, 1)), 460px); }
+
+/* reduced motion: decorative animations jump straight to their end state */
+body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after {
+  animation-duration: .01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; scroll-behavior: auto !important;
+}
+body.reduce-motion .screen .panel, body.reduce-motion .talk-box, body.reduce-motion .kubo-bark,
+body.reduce-motion .toggle i, body.reduce-motion .slot, body.reduce-motion .map-kubo { transition-duration: .01ms !important; }
+
+/* high contrast: stronger ink, readiness is shown by a check mark, not only green */
+body.high-contrast { --ink: #120b1d; --ink-soft: #2e2541; }
+body.high-contrast .slot:not(.full) { background: rgba(18, 11, 29, .55); border-color: var(--paper); }
+body.high-contrast .keys { text-shadow: 0 1px 0 var(--ink), 0 0 4px var(--ink), 0 0 8px var(--ink); }
+body.high-contrast .coach, body.high-contrast .pack-tip, body.high-contrast .tooltip .tip-label { box-shadow: 0 0 0 2px var(--paper); }
+body.high-contrast #crosshair i { box-shadow: 0 0 0 2px var(--paper); }
+body.high-contrast .chip.ready, body.high-contrast .slot.fits { position: relative; }
+body.high-contrast .chip.ready::after, body.high-contrast .slot.fits::after {
+  content: ''; position: absolute; top: -11px; right: -11px; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%23fff4e0' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat;
+  border: 2px solid var(--paper);
+}
+body.high-contrast .slot.fits { background: #c9f7e0; }
+body.high-contrast .slot.fits::after { top: -9px; left: -8px; right: auto; width: 22px; height: 22px; background-size: 15px; }
+body.high-contrast .slot .chip.ready::after { display: none; }
+body.high-contrast .slot .chip.ready { outline: 2px solid var(--ink); outline-offset: 1px; }
