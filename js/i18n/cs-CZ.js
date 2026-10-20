@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Skupina může mít nejvýš {n} kostek",
   "puzzler.tip.attach": "Klikni a spoj tady!",
   "puzzler.tip.withCount": "{label} · kostky: {n}",
+  "workshop.cam.frame": "Zobrazit celou figurku",
+  "workshop.cam.left": "Otočit doleva",
+  "workshop.cam.right": "Otočit doprava",
+  "workshop.cam.top": "Pohled shora",
 };

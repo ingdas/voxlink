@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "กลุ่มหนึ่งมีได้สูงสุด {n} บล็อก",
   "puzzler.tip.attach": "คลิกเพื่อเชื่อมตรงนี้!",
   "puzzler.tip.withCount": "{label} · {n} บล็อก",
+  "workshop.cam.frame": "แสดงรูปปั้นทั้งหมด",
+  "workshop.cam.left": "หมุนไปทางซ้าย",
+  "workshop.cam.right": "หมุนไปทางขวา",
+  "workshop.cam.top": "มุมมองจากด้านบน",
 };

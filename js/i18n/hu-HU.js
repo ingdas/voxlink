@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Egy csoportban legfeljebb {n} kocka lehet",
   "puzzler.tip.attach": "Kattints az összekötéshez!",
   "puzzler.tip.withCount": "{label} · kockák: {n}",
+  "workshop.cam.frame": "Egész figura mutatása",
+  "workshop.cam.left": "Forgatás balra",
+  "workshop.cam.right": "Forgatás jobbra",
+  "workshop.cam.top": "Felülnézet",
 };

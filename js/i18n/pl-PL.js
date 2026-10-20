@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Grupa może mieć maksymalnie {n} klocków",
   "puzzler.tip.attach": "Kliknij, by połączyć tutaj!",
   "puzzler.tip.withCount": "{label} · klocki: {n}",
+  "workshop.cam.frame": "Pokaż całą figurkę",
+  "workshop.cam.left": "Obróć w lewo",
+  "workshop.cam.right": "Obróć w prawo",
+  "workshop.cam.top": "Widok z góry",
 };

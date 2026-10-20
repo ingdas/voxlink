@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Eine Gruppe hat höchstens {n} Blöcke",
   "puzzler.tip.attach": "Klick zum Verbinden!",
   "puzzler.tip.withCount": "{label} · {n} Blöcke",
+  "workshop.cam.frame": "Ganze Figur zeigen",
+  "workshop.cam.left": "Nach links drehen",
+  "workshop.cam.right": "Nach rechts drehen",
+  "workshop.cam.top": "Draufsicht",
 };

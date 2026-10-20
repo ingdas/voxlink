@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Satu kelompok paling banyak {n} balok",
   "puzzler.tip.attach": "Klik untuk menghubungkan di sini!",
   "puzzler.tip.withCount": "{label} · {n} balok",
+  "workshop.cam.frame": "Tampilkan seluruh figur",
+  "workshop.cam.left": "Putar ke kiri",
+  "workshop.cam.right": "Putar ke kanan",
+  "workshop.cam.top": "Tampak atas",
 };

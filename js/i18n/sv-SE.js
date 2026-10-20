@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "En grupp kan ha högst {n} klossar",
   "puzzler.tip.attach": "Klicka för att länka här!",
   "puzzler.tip.withCount": "{label} · {n} klossar",
+  "workshop.cam.frame": "Visa hela figuren",
+  "workshop.cam.left": "Vrid åt vänster",
+  "workshop.cam.right": "Vrid åt höger",
+  "workshop.cam.top": "Vy ovanifrån",
 };

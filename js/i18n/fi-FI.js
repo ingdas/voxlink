@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Ryhmässä voi olla enintään {n} palikkaa",
   "puzzler.tip.attach": "Yhdistä tähän klikkaamalla!",
   "puzzler.tip.withCount": "{label} · palikoita {n}",
+  "workshop.cam.frame": "Näytä koko hahmo",
+  "workshop.cam.left": "Käännä vasemmalle",
+  "workshop.cam.right": "Käännä oikealle",
+  "workshop.cam.top": "Näkymä ylhäältä",
 };

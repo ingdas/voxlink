@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "В группе может быть не больше {n} блоков",
   "puzzler.tip.attach": "Нажми, чтобы соединить здесь!",
   "puzzler.tip.withCount": "{label} · блоков: {n}",
+  "workshop.cam.frame": "Показать всю фигуру",
+  "workshop.cam.left": "Повернуть влево",
+  "workshop.cam.right": "Повернуть вправо",
+  "workshop.cam.top": "Вид сверху",
 };

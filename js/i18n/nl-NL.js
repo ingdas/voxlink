@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Een groepje kan maximaal {n} blokken hebben",
   "puzzler.tip.attach": "Klik om hier te verbinden!",
   "puzzler.tip.withCount": "{label} · {n} blokken",
+  "workshop.cam.frame": "Hele figuur tonen",
+  "workshop.cam.left": "Naar links draaien",
+  "workshop.cam.right": "Naar rechts draaien",
+  "workshop.cam.top": "Bovenaanzicht",
 };

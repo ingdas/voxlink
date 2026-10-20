@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Un gruppo può avere al massimo {n} blocchi",
   "puzzler.tip.attach": "Clicca per collegare qui!",
   "puzzler.tip.withCount": "{label} · {n} blocchi",
+  "workshop.cam.frame": "Inquadra la figura",
+  "workshop.cam.left": "Ruota a sinistra",
+  "workshop.cam.right": "Ruota a destra",
+  "workshop.cam.top": "Vista dall'alto",
 };

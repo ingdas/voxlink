@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Un grupo puede tener hasta {n} bloques",
   "puzzler.tip.attach": "¡Clic para unir aquí!",
   "puzzler.tip.withCount": "{label} · {n} bloques",
+  "workshop.cam.frame": "Encuadrar la figura",
+  "workshop.cam.left": "Girar a la izquierda",
+  "workshop.cam.right": "Girar a la derecha",
+  "workshop.cam.top": "Vista cenital",
 };

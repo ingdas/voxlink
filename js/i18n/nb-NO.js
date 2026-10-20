@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "En gruppe kan ha opptil {n} klosser",
   "puzzler.tip.attach": "Klikk for å koble her!",
   "puzzler.tip.withCount": "{label} · {n} klosser",
+  "workshop.cam.frame": "Vis hele figuren",
+  "workshop.cam.left": "Snu mot venstre",
+  "workshop.cam.right": "Snu mot høyre",
+  "workshop.cam.top": "Sett ovenfra",
 };

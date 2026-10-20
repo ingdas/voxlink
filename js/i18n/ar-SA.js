@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "أقصى عدد للمكعّبات في المجموعة: {n}",
   "puzzler.tip.attach": "انقر للربط هنا!",
   "puzzler.tip.withCount": "{label} · المكعّبات: {n}",
+  "workshop.cam.frame": "عرض المجسّم كاملًا",
+  "workshop.cam.left": "تدوير لليسار",
+  "workshop.cam.right": "تدوير لليمين",
+  "workshop.cam.top": "منظر علوي",
 };

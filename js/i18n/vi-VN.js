@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Một cụm có tối đa {n} khối",
   "puzzler.tip.attach": "Bấm để nối vào đây!",
   "puzzler.tip.withCount": "{label} · {n} khối",
+  "workshop.cam.frame": "Xem toàn bộ tượng",
+  "workshop.cam.left": "Xoay trái",
+  "workshop.cam.right": "Xoay phải",
+  "workshop.cam.top": "Nhìn từ trên xuống",
 };

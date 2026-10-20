@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Un grup poate avea cel mult {n} blocuri",
   "puzzler.tip.attach": "Apasă ca să legi aici!",
   "puzzler.tip.withCount": "{label} · {n} blocuri",
+  "workshop.cam.frame": "Arată toată figurina",
+  "workshop.cam.left": "Rotește la stânga",
+  "workshop.cam.right": "Rotește la dreapta",
+  "workshop.cam.top": "Vedere de sus",
 };

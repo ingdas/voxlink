@@ -36,6 +36,12 @@ export default {
   'workshop.tool.clear': 'Clear',
   'workshop.colour': 'Colour {c}',
 
+  // editor view buttons (icon buttons: aria-label + tooltip)
+  'workshop.cam.frame': 'Frame figure',
+  'workshop.cam.left': 'Turn left',
+  'workshop.cam.right': 'Turn right',
+  'workshop.cam.top': 'Top view',
+
   // editor status line
   'workshop.status.startTap': 'Tap the plate to place a block · drag to turn',
   'workshop.status.startClick': 'Click the plate to place a block · drag to turn',

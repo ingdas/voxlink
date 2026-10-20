@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Bir grupta en fazla {n} blok olabilir",
   "puzzler.tip.attach": "Buraya bağlamak için tıkla!",
   "puzzler.tip.withCount": "{label} · blok: {n}",
+  "workshop.cam.frame": "Tüm figürü göster",
+  "workshop.cam.left": "Sola döndür",
+  "workshop.cam.right": "Sağa döndür",
+  "workshop.cam.top": "Üstten görünüm",
 };

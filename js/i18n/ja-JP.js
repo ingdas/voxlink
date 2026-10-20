@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "かたまりはブロック{n}こまでだよ",
   "puzzler.tip.attach": "クリックでここにつなぐ！",
   "puzzler.tip.withCount": "{label} · ブロック{n}こ",
+  "workshop.cam.frame": "フィギュア全体を表示",
+  "workshop.cam.left": "左に回す",
+  "workshop.cam.right": "右に回す",
+  "workshop.cam.top": "真上から見る",
 };

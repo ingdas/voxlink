@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "묶음에는 블록을 최대 {n}개까지 넣을 수 있어요",
   "puzzler.tip.attach": "클릭해서 여기에 연결!",
   "puzzler.tip.withCount": "{label} · 블록 {n}개",
+  "workshop.cam.frame": "조각상 전체 보기",
+  "workshop.cam.left": "왼쪽으로 돌리기",
+  "workshop.cam.right": "오른쪽으로 돌리기",
+  "workshop.cam.top": "위에서 보기",
 };

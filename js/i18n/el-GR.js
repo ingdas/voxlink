@@ -449,4 +449,8 @@ export default {
   "puzzler.toast.chunkMax": "Μια ομάδα χωράει έως {n} τουβλάκια",
   "puzzler.tip.attach": "Πάτα για ένωση εδώ!",
   "puzzler.tip.withCount": "{label} · τουβλάκια: {n}",
+  "workshop.cam.frame": "Προβολή όλης της φιγούρας",
+  "workshop.cam.left": "Περιστροφή αριστερά",
+  "workshop.cam.right": "Περιστροφή δεξιά",
+  "workshop.cam.top": "Κάτοψη",
 };
