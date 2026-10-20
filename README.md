@@ -4,8 +4,10 @@ A cozy first-person, cel-shaded voxel puzzle for desktop and mobile browsers.
 
 A storm smashed the Great Figures of the Archipelago into loose blocks. Every block face that
 carries a number belongs against the face with the same number on another block. Grab blocks, link
-matching numbers onto the growing figure, and rebuild all 16 figures across 4 island chapters
-with Kubo, the last Keeper.
+matching numbers onto the growing figure, and rebuild all 20 figures across 5 island chapters
+with Kubo, the last Keeper. The finale is the 330-block Keeper Colossus.
+
+Live: https://dasseville.me/voxlink/ (every push to `main` deploys through GitHub Actions).
 
 ## Run
 
@@ -25,10 +27,14 @@ Opening `index.html` straight from disk won't work, because browsers block ES mo
 | Move | WASD / arrows, Shift to run | Left thumb (floating stick, push fully to run) |
 | Look | Mouse (pointer lock) | Drag with right thumb |
 | Grab / link | Click (or E) | Tap a block / bubble |
-| Jump | Space | Jump button |
+| Jump / float | Space (hold inside the glowing ring to float up tall figures) | Jump button |
 | Backpack slot | 1–4, mouse wheel, Tab | Tap a slot |
 | Drop | Right-click / Q | Drop button |
 | Hint | H | Bulb button |
+| Photo mode | C | Camera button |
+| Gamepad | Left stick move, right stick look, A jump, X/RT link, B/LT drop, Y hint, LB/RB slot, Start pause | |
+
+Keys can be rebound in Settings.
 
 ## How it plays
 
@@ -36,6 +42,22 @@ Opening `index.html` straight from disk won't work, because browsers block ES mo
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.
 - Each figure has 3 stars: finish it, beat the par time, and use no hints.
+- Big figures are built in parts; tall ones get the Keeper's updraft (hold jump inside the ring).
+- Extras: a daily figure (same layout for everyone), Kubo's Garden (walk among your finished
+  figures), photo mode, the Workshop (build and share your own figures), and Puzzler mode
+  (link blocks anywhere, solve sums).
+
+## Languages
+
+All 25 CrazyGames locales. The language comes from the player's choice in Settings, then `?lang=`,
+then the CrazyGames SDK (`user.systemInfo.locale`), then the browser. English strings live in
+`js/i18n/en/*.js`; each locale is `js/i18n/<code>.js`. Every new user-visible string needs a key
+in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (CI runs it).
+
+## Debug mode
+
+Open with `?debug` for a panel to play any figure, quick-solve, solve a part, win instantly,
+fly / no-clip, unlock everything, and see FPS. Toggle it with the backtick key.
 
 ## Code map
 
@@ -45,6 +67,9 @@ Opening `index.html` straight from disk won't work, because browsers block ES mo
 - `js/game.js`: level session (sockets, backpack, interaction, animations, celebration)
 - `js/render.js`: toon materials and the ink-outline post pass (depth + normal edges)
 - `js/player.js`, `js/input.js`: first-person controller, keyboard/mouse/touch input
-- `js/main.js`: app flow, HUD, world map, dialogue, saves
+- `js/main.js`: app flow, HUD, world map, dialogue, saves, and the `ctx` object for features
+- `js/features/*.js`: optional features plugged in through `init(ctx)` (daily, garden, photo,
+  workshop, puzzler, accessibility, language picker, debug)
+- `js/i18n.js`, `js/i18n/`: translations and locale detection
 - `js/audio.js`: synthesized sound effects and generative music
 - `lib/three.module.min.js`: bundled three.js r186
