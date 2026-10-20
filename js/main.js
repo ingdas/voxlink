@@ -7,6 +7,7 @@ import { Game, PACK_SIZE } from './game.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { FX } from './fx.js';
+import FEATURES from './features/index.js';
 
 const $ = id => document.getElementById(id);
 const mobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0;
@@ -79,7 +80,7 @@ const game = new Game({
   renderer, scene, camera, audio, input, fx,
   events: {
     progress: (n, total, level) => {
-      $('lvl-name').textContent = isDone(level.id) ? level.name : 'Mystery figure';
+      $('lvl-name').textContent = level.kind || isDone(level.id) ? level.name : 'Mystery figure';
       $('count').textContent = `${n} / ${total}`;
       $('bar-fill').style.width = `${(n / total) * 100}%`;
       renderNeeds();
@@ -93,7 +94,8 @@ const game = new Game({
     introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); },
     pause: () => pause(),
     saveSession: data => { save.session = data; persist(); },
-    tick: g => tickHud(g),
+    tick: g => { tickHud(g); ctx.hooks.tick.forEach(f => f(g)); },
+    link: (g, i) => ctx.hooks.link.forEach(f => f(g, i)),
   },
 });
 
@@ -315,15 +317,18 @@ function talk(lines, done) {
   start();
 }
 
+const levelOf = x => (typeof x === 'object' ? x : LEVELS[x]);
+// index: campaign index or level object (daily / custom figures). resume: true to continue a saved session
 function startLevel(index, resume = false) {
   audio.unlock();
   audio.suspend(false);
-  const session = resume && save.session?.id === LEVELS[index].id ? save.session : null;
-  if (!session) { delete save.session; persist(); }
-  const keepCam = app === 'title' && game.levelIndex === index && !session;
+  const lvl = levelOf(index);
+  const session = resume === true ? (save.session?.id === lvl.id ? save.session : null) : resume || null;
+  if (!session && !lvl.kind) { delete save.session; persist(); }
+  const keepCam = app === 'title' && game.level === lvl && !session;
   $('kubo-bark').classList.remove('show');
   if (!keepCam) {
-    game.load(index, session);
+    game.load(lvl, session);
     game.orbitAngle = 0.5;
     game.updateOrbit(0, 0, 1);
   }
@@ -378,6 +383,8 @@ function onComplete(stats) {
   input.enabled = false;
   document.body.classList.remove('playing');
   const lvl = game.level, idx = game.levelIndex;
+  ctx.hooks.complete.forEach(f => f(stats, lvl));
+  if (lvl.kind) { setTimeout(() => ctx.completeHandlers[lvl.kind]?.(stats, lvl), 2600); return; }
   const par = parTime(lvl);
   const run = { done: true, fast: stats.time <= par, clean: stats.hints === 0 };
   const prev = save.stars[lvl.id] || {};
@@ -391,29 +398,37 @@ function onComplete(stats) {
   pendingUnlock = save.unlocked > oldUnlocked ? { from: idx, to: save.unlocked - 1 } : null;
   delete save.session;
   persist();
-  setTimeout(() => {
-    $('hud').classList.add('off');
-    $('lvl-name').textContent = lvl.name;
-    $('complete-name').textContent = lvl.name;
-    $('complete-time').textContent = fmt(stats.time);
-    $('complete-par').textContent = `par ${fmt(par)}`;
-    $('complete-hints').textContent = stats.hints;
-    $('complete-img').src = thumbs[idx] || '';
-    $('complete-thumb').classList.toggle('reveal', firstClear);
-    $('complete-best').style.display = isBest && !firstClear ? '' : 'none';
-    $('complete-say').innerHTML = lvl.outro;
-    const st = [run.done, run.fast, run.clean];
-    $('complete-stars').innerHTML = st.map(() => '<svg><use href="#i-star"/></svg>').join('');
-    const svgs = $('complete-stars').children;
-    st.forEach((on, k) => {
-      if (!on) return;
-      setTimeout(() => { svgs[k].classList.add('on'); audio.star(k); }, 500 + k * 280);
-    });
-    const finale = idx === LEVELS.length - 1;
-    $('next-label').textContent = finale && firstClear ? 'Epilogue' : 'Continue';
-    $('btn-next').dataset.finale = finale && firstClear ? '1' : '';
-    setBase('screen-complete');
-  }, 2600);
+  const finale = idx === LEVELS.length - 1 && firstClear;
+  setTimeout(() => showComplete({
+    name: lvl.name, img: thumbs[idx], reveal: firstClear, time: stats.time, par, hints: stats.hints,
+    stars: [run.done, run.fast, run.clean], best: isBest && !firstClear ? 'New best!' : '', say: lvl.outro,
+    nextLabel: finale ? 'Epilogue' : 'Continue', onNext: finale ? showEnding : openMap, onMap: openMap,
+    onRetry: () => { pendingUnlock = null; startLevel(lvl); },
+  }), 2600);
+}
+
+// Results panel, shared by campaign, daily and custom figures.
+let completeActions = {};
+function showComplete(o) {
+  $('hud').classList.add('off');
+  $('lvl-name').textContent = o.name;
+  $('complete-name').textContent = o.name;
+  $('complete-time').textContent = fmt(o.time);
+  $('complete-par').textContent = o.par ? `par ${fmt(o.par)}` : (o.parText || 'time');
+  $('complete-hints').textContent = o.hints;
+  $('complete-img').src = o.img || '';
+  $('complete-thumb').classList.toggle('reveal', !!o.reveal);
+  $('complete-best').style.display = o.best ? '' : 'none';
+  $('complete-best').textContent = o.best || '';
+  $('complete-say').innerHTML = o.say || '';
+  $('complete-say').closest('.say').style.display = o.say ? '' : 'none';
+  const st = o.stars || [];
+  $('complete-stars').innerHTML = st.map(() => '<svg><use href="#i-star"/></svg>').join('');
+  const svgs = $('complete-stars').children;
+  st.forEach((on, k) => { if (on) setTimeout(() => { svgs[k].classList.add('on'); audio.star(k); }, 500 + k * 280); });
+  $('next-label').textContent = o.nextLabel || 'Continue';
+  completeActions = o;
+  setBase('screen-complete');
 }
 
 // ---------- world map ----------
@@ -560,8 +575,14 @@ function showEnding() {
 }
 
 // ---------- thumbnails (rendered once with the game's own renderer) ----------
-function renderThumbs() {
-  const size = 256;
+function renderThumbs() { return LEVELS.map(l => renderThumb(expandLevel(l).cells)); }
+let thumbKit = null;
+// Render a figure (list of expanded cells) to a PNG data URL with the game's outline renderer.
+function renderThumb(cells, size = 256) {
+  if (!thumbKit) thumbKit = makeThumbKit(size);
+  return thumbKit(cells);
+}
+function makeThumbKit(size) {
   const rt = new THREE.WebGLRenderTarget(size, size);
   const ts = new THREE.Scene();
   ts.add(new THREE.HemisphereLight(0xcfe0ff, 0xc9a98a, 1.5));
@@ -574,9 +595,7 @@ function renderThumbs() {
   const cv = document.createElement('canvas');
   cv.width = cv.height = size;
   const g = cv.getContext('2d');
-  const out = [];
-  for (const lvl of LEVELS) {
-    const { cells } = expandLevel(lvl);
+  return cells => {
     const puzzle = generatePuzzle(cells, mulberry32(7));
     const group = new THREE.Group();
     const box = new THREE.Box3();
@@ -603,13 +622,10 @@ function renderThumbs() {
       }
     }
     g.putImageData(img, 0, 0);
-    out.push(cv.toDataURL());
     ts.remove(group);
     group.traverse(o => o.geometry?.dispose());
-  }
-  mat.dispose();
-  rt.dispose();
-  return out;
+    return cv.toDataURL();
+  };
 }
 
 // ---------- settings ----------
@@ -668,16 +684,16 @@ $('btn-map-back').onclick = () => enterTitle();
 $('btn-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-p-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-resume').onclick = () => resume();
-$('btn-restart').onclick = () => startLevel(game.levelIndex);
-$('btn-quit').onclick = () => openMap();
+$('btn-restart').onclick = () => startLevel(game.level);
+$('btn-quit').onclick = () => (game.level?.kind ? enterTitle() : openMap());
 $('btn-pause').onclick = () => pause();
 $('btn-hint').onclick = () => input.actions.push({ type: 'hint' });
 $('btn-brief-back').onclick = () => popOverlay('screen-brief');
 $('btn-brief-go').onclick = () => startLevel(briefIdx, true);
 $('btn-brief-fresh').onclick = () => startLevel(briefIdx, false);
-$('btn-c-map').onclick = () => openMap();
-$('btn-c-retry').onclick = () => { pendingUnlock = null; startLevel(game.levelIndex); };
-$('btn-next').onclick = () => { if ($('btn-next').dataset.finale) showEnding(); else openMap(); };
+$('btn-c-map').onclick = () => (completeActions.onMap || openMap)();
+$('btn-c-retry').onclick = () => (completeActions.onRetry || (() => startLevel(game.level)))();
+$('btn-next').onclick = () => (completeActions.onNext || openMap)();
 $('btn-ending-map').onclick = () => openMap();
 const jump = $('btn-jump');
 jump.addEventListener('pointerdown', e => { e.preventDefault(); input.actions.push({ type: 'jump' }); input.jumpButtonHeld = true; jump.classList.add('pressed'); });
@@ -717,6 +733,19 @@ function frame(now) {
   renderer.adapt(dt);
 }
 
+// ---------- feature context ----------
+// Feature modules (js/features/*.js) get this object in init(ctx) and hook in from there.
+const ctx = {
+  THREE, game, renderer, scene, camera, audio, input, fx, save, persist, mobile, $, fmt, hex,
+  LEVELS, CHAPTERS, expandLevel, parTime,
+  get app() { return app; }, set app(v) { app = v; },
+  get base() { return base; }, overlays,
+  setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete,
+  renderThumb, get thumbs() { return thumbs; }, goFullscreen,
+  hooks: { tick: [], complete: [], link: [], settings: [] },
+  completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures
+};
+
 // ---------- boot ----------
 async function boot() {
   const fill = $('load-fill');
@@ -734,6 +763,7 @@ async function boot() {
   fill.style.width = '80%';
   await new Promise(r => setTimeout(r, 30));
   bindSettings();
+  for (const f of FEATURES) f.init?.(ctx);
   enterTitle();
   renderer.gl.compile(scene, camera);
   fill.style.width = '100%';
@@ -747,4 +777,4 @@ async function boot() {
 boot();
 
 // expose for debugging
-window.__voxlink = { game, renderer, save, openMap, startLevel, LEVELS };
+window.__voxlink = { game, renderer, save, openMap, startLevel, LEVELS, ctx };

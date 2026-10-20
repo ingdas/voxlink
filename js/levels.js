@@ -1,6 +1,6 @@
 // Figures, chapters and story. Figures are built on an integer grid (x right, y up, z towards the viewer).
 
-const P = {
+export const PALETTE = {
   r: 0xff5d5d, // coral red
   o: 0xff9f43, // orange
   y: 0xffd23f, // sunflower
@@ -24,7 +24,7 @@ const P = {
 };
 
 // ---------- tiny voxel modelling kit ----------
-function figure(fn) {
+export function figure(fn) {
   const m = new Map();
   const k = (x, y, z) => `${x},${y},${z}`;
   const api = {
@@ -314,18 +314,20 @@ CHAPTERS.forEach((ch, ci) => ch.levels.forEach((l, li) => {
 }));
 
 const cache = new Map();
+export function forgetLevel(id) { cache.delete(id); }
 // Expand a level into a list of cells {ix,iy,iz,x,y,z,color} centred on x/z.
 export function expandLevel(level) {
   if (cache.has(level.id)) return cache.get(level.id);
-  const raw = largestComponent(FIGURES[level.id](), level.id);
+  const src = level.voxels ? () => level.voxels.map(v => ({ ...v })) : level.figure || FIGURES[level.id];
+  const raw = largestComponent(src(), level.id);
   const xs = raw.map(c => c.x), ys = raw.map(c => c.y), zs = raw.map(c => c.z);
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const minY = Math.min(...ys), maxY = Math.max(...ys);
   const minZ = Math.min(...zs), maxZ = Math.max(...zs);
   const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
   const cells = raw.map(c => {
-    if (!(c.c in P)) throw new Error(`Unknown palette '${c.c}' in ${level.id}`);
-    return { ix: c.x, iy: c.y - minY, iz: c.z, x: c.x - cx, y: c.y - minY, z: c.z - cz, color: P[c.c] };
+    if (!(c.c in PALETTE)) throw new Error(`Unknown palette '${c.c}' in ${level.id}`);
+    return { ix: c.x, iy: c.y - minY, iz: c.z, x: c.x - cx, y: c.y - minY, z: c.z - cz, color: PALETTE[c.c] };
   });
   const out = { cells, width: maxX - minX + 1, depth: maxZ - minZ + 1, height: maxY - minY + 1 };
   cache.set(level.id, out);

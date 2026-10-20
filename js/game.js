@@ -7,6 +7,7 @@ import { LAYER_OVERLAY } from './render.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
 export const PACK_SIZE = 4;
+export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
 
@@ -66,27 +67,29 @@ export class Game {
 
   // ---------- level lifecycle ----------
   // resume: { seed, placed: [cell indices in link order], elapsed, hints }
+  // level: campaign index, or a level object ({ id, name, voxels|figure, theme, kind, ... })
   load(index, resume = null) {
     this.unload();
-    const level = LEVELS[index];
-    const chapter = CHAPTERS[level.chapter];
-    this.levelIndex = index;
+    const level = typeof index === 'object' ? index : LEVELS[index];
+    const chapter = CHAPTERS[level.chapter ?? 0];
+    const themeId = level.theme || chapter.theme;
+    this.levelIndex = level.index ?? -1;
     this.level = level;
     const { cells, height } = expandLevel(level);
     this.cells = cells;
     this.runSeed = resume?.seed ?? ((Math.random() * 1e9) | 0);
     const rng = mulberry32(this.runSeed);
-    const layoutRng = mulberry32(1000 + index * 7919);
+    const layoutRng = mulberry32(1000 + hashId(level.id) * 7919);
     this.puzzle = generatePuzzle(cells, rng);
     // keep scenery and loose blocks clear of the space the finished figure will occupy
     this.footR = Math.max(3.2, ...cells.map(c => Math.hypot(c.x, c.z) * S + S));
     const R = Math.max(12 + Math.sqrt(cells.length) * 1.25, this.footR + 14);
     this.world = buildWorld({
-      rng: layoutRng, radius: R, seed: index + 1, quality: this.renderer.mobile ? 'low' : 'high', clearR: this.footR,
-      theme: chapter.theme, difficulty: Math.min(1, level.chapter / 3 + level.indexInChapter * 0.08),
+      rng: layoutRng, radius: R, seed: (hashId(level.id) % 97) + 1, quality: this.renderer.mobile ? 'low' : 'high', clearR: this.footR,
+      theme: themeId, difficulty: Math.min(1, (level.chapter ?? 1) / 3 + (level.indexInChapter ?? 1) * 0.08),
     });
     this.scene.add(this.world.group);
-    this.audio.surface = { frost: 'snow', reef: 'sand' }[chapter.theme] || 'grass';
+    this.audio.surface = { frost: 'snow', reef: 'sand' }[themeId] || 'grass';
     this.scene.fog.color.setHex(this.world.theme.skyHorizon);
     this.scene.fog.density = this.world.theme.fogDensity;
     this.scene.add(this.ghost);
@@ -114,7 +117,7 @@ export class Game {
     this.placedCount = 0;
     this.pack = [];
     this.active = 0;
-    this.scatter(rng, Math.min(0.5, 0.18 + level.chapter * 0.08));
+    this.scatter(rng, Math.min(0.5, 0.18 + (level.chapter ?? 1) * 0.08));
     this.place(this.puzzle.root, true);
     // big figures start with a small pre-built core so several bubbles are open from the start
     const seed = cells.length < 30 ? 0 : Math.round(cells.length * 0.07);
@@ -139,7 +142,7 @@ export class Game {
     this.focus = null;
     this.focusKey = '';
     this.waved = false;
-    this.tutorial = index === 0 ? 1 : 0;
+    this.tutorial = this.levelIndex === 0 ? 1 : 0;
     this.packTipShown = false;
     this.barked = new Set();
     this.kick = 0;
@@ -260,6 +263,7 @@ export class Game {
       this.events.vibrate?.(18);
       this.emitProgress();
       this.linkOrder.push(i);
+      this.events.link?.(this, i);
       if (this.placedCount === this.voxels.length) this.complete();
       else this.events.saveSession?.(this.sessionData());
     }
@@ -364,7 +368,7 @@ export class Game {
     this.events.vibrate?.(10);
     if (this.fx.beamTarget === v.mesh) this.fx.clearBeam();
     if (this.tutorial === 1 || this.tutorial === 2) this.tutorial = this.sockets.has(i) ? 3 : 2;
-    if (this.pack.length === 2 && !this.packTipShown && this.levelIndex <= 4) {
+    if (this.pack.length === 2 && !this.packTipShown && this.levelIndex >= 0 && this.levelIndex <= 4) {
       this.packTipShown = true;
       this.events.toast?.(`You can carry up to ${PACK_SIZE} blocks at once`);
     }
