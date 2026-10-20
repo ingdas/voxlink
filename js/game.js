@@ -140,7 +140,8 @@ export class Game {
     this.nextChunk = 1;
     // keep scenery and loose blocks clear of the space the finished figure will occupy
     this.footR = Math.max(3.2, ...cells.map(c => Math.hypot(c.x, c.z) * S + S));
-    const R = Math.max(12 + Math.sqrt(cells.length) * 1.25, this.footR + 14);
+    // island size: walking dominates play time (see docs/design-notes.md), so keep it as compact as is comfortable
+    const R = Math.max(12 + Math.sqrt(cells.length) * 0.95, this.footR + 12);
     this.world = buildWorld({
       rng: layoutRng, radius: R, seed: (hashId(level.id) % 97) + 1, quality: this.renderer.mobile ? 'low' : 'high', clearR: this.footR,
       theme: themeId, difficulty: Math.min(1, (level.chapter ?? 1) / 3 + (level.indexInChapter ?? 1) * 0.08),

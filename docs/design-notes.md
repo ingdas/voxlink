@@ -35,3 +35,19 @@ Windmill (70), Whale (84), Dragon (118) and Octopus (122) show the same ordering
 part, the first one facing the spawn). No bubbles are held back; parts remain as milestones with a
 celebration. A district compass points to the active district. A **Magnet** tool (charges earned
 by linking) pulls every block that fits right now within 10 m into the backpack.
+
+## 2026-10-21 · Follow-up experiments (same simulator, districts + magnet)
+
+| Change (Colossus, 330 blocks)                         | time    | walking |
+|-------------------------------------------------------|---------|---------|
+| baseline, linking within 4 m of the pedestal          | 26.0 min | 5.2 km |
+| link from ~11 m (what the game already allows)        | 21.9 min | 3.7 km |
+| + backpack of 6                                       | 20.4 min | 3.3 km |
+| + backpack of 8                                       | 20.0 min | 3.2 km |
+| link 11 m + island radius × 0.8                       | 17.5 min | 2.3 km |
+| longer reading distance (floating number labels)      | slower: more irrelevant numbers read |
+
+**Decisions.** Walking dominates play time, so islands for big figures are ~15 % smaller
+(`R = max(12 + 0.95·√n, footprint + 12)`). The backpack stays at 4: 6–8 slots only gain 5–8 %
+and crowd the HUD on phones. No floating number labels: the "fits now" glint already does the
+useful part, more visible numbers only add noise.
