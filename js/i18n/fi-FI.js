@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Sait <b>magneetin</b>! Paina <b>R</b>, niin se vetää luoksesi kaikki lähellä olevat sopivat palikat.",
   "kubo.magnet.touch": "Sait <b>magneetin</b>! Napauta <b>magneettinappia</b>, niin se vetää luoksesi kaikki lähellä olevat sopivat palikat.",
   "kubo.districts": "Iso hahmo! Palikat on jaettu <b>alueisiin</b>, joilla on numeroidut liput. <b>Kompassi</b> näyttää, missä sopivia palikoita on juuri nyt.",
+  "toast.chain": "Ketju ×{n}!",
 };

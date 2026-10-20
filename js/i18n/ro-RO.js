@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Ai câștigat un <b>magnet</b>! Apasă <b>R</b> ca să atragi toate blocurile potrivite din apropiere.",
   "kubo.magnet.touch": "Ai câștigat un <b>magnet</b>! Atinge <b>butonul magnet</b> ca să atragi toate blocurile potrivite din apropiere.",
   "kubo.districts": "E una mare! Blocurile ei sunt împărțite în <b>cartiere</b> cu steaguri numerotate. <b>Busola</b> arată unde sunt acum blocuri potrivite.",
+  "toast.chain": "Lanț ×{n}!",
 };

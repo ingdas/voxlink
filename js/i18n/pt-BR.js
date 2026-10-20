@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Você ganhou um <b>ímã</b>! Aperte <b>R</b> para puxar todos os blocos por perto que encaixam.",
   "kubo.magnet.touch": "Você ganhou um <b>ímã</b>! Toque no <b>botão do ímã</b> para puxar todos os blocos por perto que encaixam.",
   "kubo.districts": "Essa é grande! Os blocos estão separados em <b>distritos</b> com bandeiras numeradas. A <b>bússola</b> mostra onde há blocos que encaixam agora.",
+  "toast.chain": "Corrente ×{n}!",
 };

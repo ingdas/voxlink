@@ -230,6 +230,8 @@ export class Game {
     this.tutorial = this.levelIndex === 0 ? 1 : 0;
     this.packTipShown = false;
     this.barked = new Set();
+    this.chainQueue = [];
+    this.chain = 0;
     this.kick = 0;
     this.emitProgress();
     this.emitPack();
@@ -697,10 +699,16 @@ export class Game {
       }
       if (n >= 16 && left === 3 && !this.barked.has('last')) { this.barked.add('last'); this.events.kubo?.(t('kubo.last3')); }
       this.fx.burst(v.target, v.cell.color, 24, 4);
-      if (!this.quietLink) { this.audio.link(this.placedCount / this.voxels.length); this.events.vibrate?.(18); }
+      if (!this.quietLink) { this.audio.link(this.placedCount / this.voxels.length, this.chain); this.events.vibrate?.(18); }
       this.emitProgress();
       this.linkOrder.push(i);
       this.sinceLink = 0;
+      // chain: carried blocks that belong right on the block we just placed fly in by themselves
+      for (const c of this.puzzle.children[i]) {
+        if (this.pack.includes(c) && !this.chainQueue.some(q => q.i === c)) this.chainQueue.push({ i: c, at: this.t + 0.22 + this.chainQueue.length * 0.12 });
+      }
+      if (this.t - (this.lastLinkT ?? -9) > 1.2) this.chain = 0;
+      this.lastLinkT = this.t;
       if (this.stageCount > 1 && ++this.magnetLinks >= 12) {
         this.magnetLinks = 0;
         if (this.magnetCharges < 3) {
@@ -1038,6 +1046,13 @@ export class Game {
     this.sway.y += (look.y * 1.5 - this.sway.y) * Math.min(1, dt * 10);
     this.elapsed += dt;
     this.sinceLink += dt;
+    while (this.chainQueue.length && this.chainQueue[0].at <= this.t) {
+      const { i } = this.chainQueue.shift();
+      if (!this.pack.includes(i) || !this.sockets.has(i)) continue;
+      this.chain++;
+      this.launch(i);
+      if (this.chain >= 2) this.events.toast?.(t('toast.chain', { n: this.chain + 1 }));
+    }
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
     if (this.tutorial === 1 && this.elapsed > 3) this.tutorial = 2;
     if (this.stageCount > 1 && !this.districtTip && this.elapsed > 2.5) { this.districtTip = true; this.events.tip?.('districts'); }

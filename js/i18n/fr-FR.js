@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Tu as gagné un <b>aimant</b> ! Appuie sur <b>R</b> pour attirer tous les blocs proches qui s’emboîtent.",
   "kubo.magnet.touch": "Tu as gagné un <b>aimant</b> ! Touche le <b>bouton aimant</b> pour attirer tous les blocs proches qui s’emboîtent.",
   "kubo.districts": "Une grande ! Ses blocs sont rangés par <b>quartiers</b> avec des drapeaux numérotés. La <b>boussole</b> montre où des blocs s’emboîtent en ce moment.",
+  "toast.chain": "Chaîne ×{n} !",
 };

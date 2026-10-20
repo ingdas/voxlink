@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Hai guadagnato una <b>calamita</b>! Premi <b>R</b> per attirare tutti i blocchi vicini che si incastrano.",
   "kubo.magnet.touch": "Hai guadagnato una <b>calamita</b>! Tocca il <b>pulsante calamita</b> per attirare tutti i blocchi vicini che si incastrano.",
   "kubo.districts": "Una figura grande! I blocchi sono divisi in <b>quartieri</b> con bandiere numerate. La <b>bussola</b> indica dove ci sono blocchi che si incastrano adesso.",
+  "toast.chain": "Catena ×{n}!",
 };

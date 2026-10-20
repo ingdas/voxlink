@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Je hebt een <b>magneet</b>! Druk op <b>R</b> om alle passende blokken in de buurt aan te trekken.",
   "kubo.magnet.touch": "Je hebt een <b>magneet</b>! Tik op de <b>magneetknop</b> om alle passende blokken in de buurt aan te trekken.",
   "kubo.districts": "Een grote! De blokken liggen verdeeld over <b>wijken</b> met genummerde vlaggen. Het <b>kompas</b> wijst waar nu blokken passen.",
+  "toast.chain": "Ketting ×{n}!",
 };

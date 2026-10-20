@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Získal jsi <b>magnet</b>! Zmáčkni <b>R</b> a přitáhneš všechny pasující kostky poblíž.",
   "kubo.magnet.touch": "Získal jsi <b>magnet</b>! Ťukni na <b>tlačítko magnetu</b> a přitáhneš všechny pasující kostky poblíž.",
   "kubo.districts": "Je velká! Kostky leží ve <b>čtvrtích</b> s očíslovanými vlajkami. <b>Kompas</b> ukazuje, kde teď jsou kostky, které pasují.",
+  "toast.chain": "Řetěz ×{n}!",
 };

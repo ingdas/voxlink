@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "¡Has ganado un <b>imán</b>! Pulsa <b>R</b> para atraer todos los bloques cercanos que encajan.",
   "kubo.magnet.touch": "¡Has ganado un <b>imán</b>! Toca el <b>botón del imán</b> para atraer todos los bloques cercanos que encajan.",
   "kubo.districts": "¡Una figura grande! Sus bloques están repartidos en <b>distritos</b> con banderas numeradas. La <b>brújula</b> señala dónde encajan bloques ahora mismo.",
+  "toast.chain": "¡Cadena ×{n}!",
 };

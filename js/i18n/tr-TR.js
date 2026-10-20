@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Bir <b>mıknatıs</b> kazandın! Yakındaki uyan tüm blokları çekmek için <b>R</b>’ye bas.",
   "kubo.magnet.touch": "Bir <b>mıknatıs</b> kazandın! Yakındaki uyan tüm blokları çekmek için <b>mıknatıs düğmesine</b> dokun.",
   "kubo.districts": "Bu büyük! Blokları numaralı bayraklı <b>bölgelere</b> ayrılmış. <b>Pusula</b> şu an uyan blokların yerini gösterir.",
+  "toast.chain": "Zincir ×{n}!",
 };

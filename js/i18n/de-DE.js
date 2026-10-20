@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Du hast einen <b>Magneten</b>! Drück <b>R</b>, um alle passenden Blöcke in der Nähe anzuziehen.",
   "kubo.magnet.touch": "Du hast einen <b>Magneten</b>! Tipp auf den <b>Magnet-Knopf</b>, um alle passenden Blöcke in der Nähe anzuziehen.",
   "kubo.districts": "Eine große Figur! Ihre Blöcke liegen in <b>Bezirken</b> mit nummerierten Flaggen. Der <b>Kompass</b> zeigt, wo gerade Blöcke passen.",
+  "toast.chain": "Kette ×{n}!",
 };

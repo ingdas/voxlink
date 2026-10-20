@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Bạn nhận được <b>nam châm</b>! Nhấn <b>R</b> để hút mọi khối vừa ở gần.",
   "kubo.magnet.touch": "Bạn nhận được <b>nam châm</b>! Chạm <b>nút nam châm</b> để hút mọi khối vừa ở gần.",
   "kubo.districts": "Tượng lớn đây! Các khối được chia vào các <b>khu</b> có cờ đánh số. <b>La bàn</b> chỉ nơi đang có khối vừa ngay lúc này.",
+  "toast.chain": "Chuỗi ×{n}!",
 };

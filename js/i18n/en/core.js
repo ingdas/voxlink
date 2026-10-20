@@ -98,6 +98,7 @@ export default {
   "toast.carry": "You can carry up to {n} blocks at once",
   "toast.carrying": "You're carrying block {n} — its bubble is lit up",
   "toast.recharging": "Hint is recharging…",
+  "toast.chain": "Chain ×{n}!",
   "toast.follow": "Follow the light to block {n}",
   "daily.named": "Daily · {name}",
   "daily.figure": "Daily figure",

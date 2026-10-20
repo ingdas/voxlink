@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Kamu dapat <b>magnet</b>! Tekan <b>R</b> untuk menarik semua balok cocok di dekatmu.",
   "kubo.magnet.touch": "Kamu dapat <b>magnet</b>! Ketuk <b>tombol magnet</b> untuk menarik semua balok cocok di dekatmu.",
   "kubo.districts": "Patung besar! Baloknya dibagi ke <b>distrik</b> dengan bendera bernomor. <b>Kompas</b> menunjuk ke tempat balok yang cocok saat ini.",
+  "toast.chain": "Rantai ×{n}!",
 };

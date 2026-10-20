@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Du har fået en <b>magnet</b>! Tryk på <b>R</b> for at trække alle klodser i nærheden, der passer, til dig.",
   "kubo.magnet.touch": "Du har fået en <b>magnet</b>! Tryk på <b>magnetknappen</b> for at trække alle klodser i nærheden, der passer, til dig.",
   "kubo.districts": "En stor en! Klodserne ligger i <b>kvarterer</b> med nummererede flag. <b>Kompasset</b> viser, hvor der lige nu er klodser, der passer.",
+  "toast.chain": "Kæde ×{n}!",
 };

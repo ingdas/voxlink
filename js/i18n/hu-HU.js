@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Kaptál egy <b>mágnest</b>! Nyomd meg az <b>R</b> gombot, és magadhoz húzza a közeli illő kockákat.",
   "kubo.magnet.touch": "Kaptál egy <b>mágnest</b>! Koppints a <b>mágnes gombra</b>, és magadhoz húzza a közeli illő kockákat.",
   "kubo.districts": "Ez egy nagy! A kockái <b>negyedekbe</b> vannak rendezve, számozott zászlókkal. Az <b>iránytű</b> mutatja, hol vannak most illő kockák.",
+  "toast.chain": "Lánc ×{n}!",
 };

@@ -77,9 +77,9 @@ export class Audio {
   }
   drop() { this.tone({ f: 420, f2: 200, type: 'triangle', dur: 0.14, vol: 0.2 }); }
   thud() { this.tone({ f: 140, f2: 60, type: 'sine', dur: 0.12, vol: 0.3 }); this.noise({ dur: 0.05, vol: 0.06, freq: 500 }); }
-  link(progress) {
-    // rising pentatonic as the figure fills up
-    const step = Math.floor(progress * 14);
+  link(progress, chain = 0) {
+    // rising pentatonic as the figure fills up; chains climb further
+    const step = Math.floor(progress * 14) + chain * 2;
     const base = 60 + 12 * Math.floor(step / 5) + PENTA[step % 5];
     this.noise({ dur: 0.05, vol: 0.14, freq: 2500, q: 2 });
     this.tone({ f: 180, f2: 90, type: 'sine', dur: 0.1, vol: 0.3 });

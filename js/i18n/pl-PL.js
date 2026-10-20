@@ -456,4 +456,5 @@ export default {
   "kubo.magnet.desk": "Masz <b>magnes</b>! Naciśnij <b>R</b>, by przyciągnąć wszystkie pasujące klocki w pobliżu.",
   "kubo.magnet.touch": "Masz <b>magnes</b>! Stuknij <b>przycisk magnesu</b>, by przyciągnąć wszystkie pasujące klocki w pobliżu.",
   "kubo.districts": "Ale duża! Klocki leżą w <b>dzielnicach</b> z numerowanymi flagami. <b>Kompas</b> pokazuje, gdzie teraz są pasujące klocki.",
+  "toast.chain": "Łańcuch ×{n}!",
 };
