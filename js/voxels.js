@@ -55,6 +55,61 @@ export function getAtlas(renderer) {
   return atlas;
 }
 
+// Puzzler mode: one shared per-level atlas = the number atlas plus "sum" tiles drawn into spare cells.
+// tiles: [{ cell, text }]. Reused between levels so it costs exactly one extra texture.
+let puzzleAtlas = null;
+export function getPuzzleAtlas(renderer, tiles) {
+  const base = getAtlas(renderer);
+  if (!puzzleAtlas) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = CELL * GRID;
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = base.texture.anisotropy;
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    puzzleAtlas = { canvas: cv, texture: tex };
+  }
+  const g = puzzleAtlas.canvas.getContext('2d');
+  g.drawImage(base.canvas, 0, 0);
+  for (const t of tiles) {
+    const x0 = (t.cell % GRID) * CELL, y0 = Math.floor(t.cell / GRID) * CELL;
+    g.fillStyle = '#d6d0c6';
+    g.fillRect(x0, y0, CELL, CELL);
+    g.fillStyle = '#ffffff';
+    roundRect(g, x0 + 7, y0 + 7, CELL - 14, CELL - 14, 14);
+    g.fill();
+    // a "ticket" instead of the round socket ring, so sums read differently from plain numbers
+    g.fillStyle = '#efe6ff';
+    roundRect(g, x0 + 12, y0 + 30, CELL - 24, 68, 18);
+    g.fill();
+    g.lineWidth = 6;
+    g.strokeStyle = INK;
+    g.stroke();
+    g.fillStyle = INK;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    let size = 46;
+    do { g.font = `700 ${size}px Fredoka, "Arial Rounded MT Bold", sans-serif`; size -= 2; } while (size > 20 && g.measureText(t.text).width > CELL - 36);
+    g.fillText(t.text, x0 + CELL / 2, y0 + CELL / 2 + 2);
+    // orientation bar (sums can contain 6s and 9s)
+    g.fillRect(x0 + CELL / 2 - 14, y0 + 104, 28, 6);
+  }
+  puzzleAtlas.texture.needsUpdate = true;
+  return puzzleAtlas;
+}
+
+// A small sum/difference/product that equals k, e.g. 7 -> "3+4", 12 -> "15−3", 20 -> "4×5".
+export function sumFor(k, rng) {
+  const ops = [];
+  if (k >= 3) ops.push(() => { const a = 1 + Math.floor(rng() * (k - 1)); return `${a}+${k - a}`; });
+  ops.push(() => { const d = 1 + Math.floor(rng() * (k < 20 ? 9 : 12)); return `${k + d}\u2212${d}`; });
+  const fac = [];
+  for (let a = 2; a <= 12; a++) if (k % a === 0 && k / a >= 2 && k / a <= 12) fac.push(a);
+  if (fac.length) { const f = () => { const a = fac[Math.floor(rng() * fac.length)]; return `${a}\u00d7${k / a}`; }; ops.push(f, f); }
+  return ops[Math.floor(rng() * ops.length)]();
+}
+
 export function roundRect(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y);
@@ -73,7 +128,7 @@ export function buildVoxelGeometry(faces, size = S) {
   const pad = 2 / (CELL * GRID);
   faces.forEach((f, d) => {
     const { n, u, v } = DIRS[d];
-    const cell = f.type === 'num' ? f.num : 0;
+    const cell = f.cell ?? (f.type === 'num' ? f.num : 0); // f.cell: explicit atlas cell (puzzler sums)
     const cu = (cell % GRID) / GRID, cv = 1 - (Math.floor(cell / GRID) + 1) / GRID;
     const u0 = cu + pad, u1 = cu + 1 / GRID - pad, v0 = cv + pad, v1 = cv + 1 / GRID - pad;
     c.setHex(f.type === 'color' ? f.color : f.type === 'num' ? FACE_CREAM : FACE_BLANK);

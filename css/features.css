@@ -14,3 +14,47 @@
 .daily-hist small { font-size: 10px; font-weight: 700; color: var(--ink-soft); }
 .daily-hist p { margin: auto; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
 @media (max-height: 500px) { .daily .brief-thumb { width: 70px; height: 70px; } .daily-hist { height: 46px; } .daily { gap: 7px; padding: 12px 16px; } }
+
+/* ---------- Puzzler mode ---------- */
+.pz-row { cursor: pointer; padding-top: 5px; padding-bottom: 5px; }
+.pz-row > svg { fill: none; stroke-width: 2.2; }
+.pz-row.on { background: #f1e9ff; }
+.pz-row.on > svg { fill: var(--lilac); }
+.pz-txt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.pz-txt b { font-size: 15px; }
+.pz-txt small { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.pz-row .toggle { margin-left: auto; flex: none; transform: scale(.85); transform-origin: right center; }
+.pz-badge { display: none; font-style: normal; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; background: var(--lilac); border: 2px solid var(--ink); border-radius: 999px; padding: 0 7px 0 4px; align-self: center; }
+.pz-badge.on { display: inline-flex; }
+.pz-badge svg { width: 14px; height: 14px; stroke-width: 2.4; fill: var(--paper); }
+.stage:empty + .pz-badge { margin-left: auto; }
+.pz-badge + span { flex: none; }
+body.puzzler #needs { display: none; }
+.chip.sum { background: #efe6ff; font-size: 14px; padding: 0 7px; letter-spacing: -.02em; }
+.slot .nums .chip.sum { font-size: 11px; padding: 0 3px; }
+.slot.chunk .sw { display: none; }
+.slot.chunk .nums { max-height: 42px; overflow: hidden; }
+.slot .cnt { position: absolute; top: -9px; left: -7px; min-width: 24px; height: 20px; border-radius: 999px; background: var(--lilac); border: 2px solid var(--ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+@media (max-width: 520px), (max-height: 500px) {
+  .pz-badge span { display: none; }
+  .pz-badge { padding: 0 3px; }
+  .pz-txt small { font-size: 11px; }
+}
+/* narrow portrait pill: the badge becomes a sticker on the pill's bottom edge */
+@media (max-width: 520px) {
+  #hud .progress { position: relative; }
+  .pz-badge.on { position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); padding: 0 7px 0 4px; }
+  .pz-badge span { display: inline; }
+}
+/* short landscape screens: make room for the extra row in the briefing */
+@media (max-height: 500px) {
+  .brief { gap: 4px; padding-top: 10px; padding-bottom: 15px; }
+  .brief .brief-thumb { width: 58px; height: 58px; }
+  .brief .goal { padding-top: 2px; padding-bottom: 2px; }
+  .brief .goal svg { width: 20px; height: 20px; }
+  .pz-row { padding: 1px 6px 1px 10px; }
+  .pz-txt b { font-size: 14px; }
+  .pz-txt small { white-space: nowrap; }
+  .pz-row .toggle { transform: scale(.7); margin: -5px 0 -5px auto; }
+}
+@media (max-height: 500px) and (min-width: 600px) { .panel.narrow.brief { width: min(440px, 100%); } }

@@ -116,7 +116,7 @@ screen.orientation?.addEventListener?.('change', () => setTimeout(resize, 120));
 resize();
 
 // ---------- HUD ----------
-const chip = (n, cls = '') => `<span class="chip ${cls} ${n === 6 || n === 9 ? 'u' : ''}">${n}</span>`;
+const chip = (n, cls = '', label) => `<span class="chip ${cls} ${label ? 'sum' : n === 6 || n === 9 ? 'u' : ''}">${label ?? n}</span>`;
 let lastNeeds = '';
 function renderNeeds() {
   if (!game.world) return;
@@ -141,9 +141,9 @@ function renderPack(info) {
   for (let k = 0; k < PACK_SIZE; k++) {
     const s = info.slots[k];
     if (!s) { html += `<div class="slot" data-k="${k}"></div>`; continue; }
-    const nums = s.numbers.map(n => chip(n, n === s.link && s.fits ? 'ready' : '')).join('');
-    html += `<div class="slot full ${k === info.active ? 'active' : ''} ${s.fits ? 'fits' : ''}" data-k="${k}">
-      <span class="key">${k + 1}</span><span class="sw" style="background:${hex(s.color)}"></span><div class="nums">${nums}</div></div>`;
+    const nums = s.numbers.map((n, j) => chip(n, n === s.link && s.fits ? 'ready' : '', s.labels?.[j])).join('');
+    html += `<div class="slot full ${k === info.active ? 'active' : ''} ${s.fits ? 'fits' : ''} ${s.count > 1 ? 'chunk' : ''}" data-k="${k}">
+      <span class="key">${k + 1}</span>${s.count > 1 ? `<span class="cnt">×${s.count}</span>` : ''}<span class="sw" style="background:${hex(s.color)}"></span><div class="nums">${nums}</div></div>`;
   }
   el.innerHTML = html;
   $('btn-drop').classList.toggle('show', info.slots.length > 0);
@@ -168,8 +168,10 @@ function renderFocus(info) {
   let label = '', nums = '';
   if (info.kind === 'loose') {
     ch.className = info.far ? 'far' : 'grab';
-    nums = info.numbers.map(n => chip(n, n === info.fit ? 'ready' : '')).join('');
-    label = info.far ? 'Get closer' : info.full ? 'Click to swap' : 'Click to grab';
+    nums = info.numbers.map((n, j) => chip(n, n === info.fit ? 'ready' : '', info.labels?.[j])).join('');
+    label = info.far ? 'Get closer' : info.attach ? 'Click to link here!' : info.full ? 'Click to swap' : 'Click to grab';
+    if (info.attach && !info.far) ch.className = 'link';
+    if (info.count > 1 && !info.far) label += ` · ${info.count} blocks`;
   } else if (info.far) { ch.className = 'far'; label = 'Get closer'; }
   else if (info.ok) { ch.className = 'link'; label = 'Click to link!'; }
   else if (info.holding) { ch.className = 'bad'; label = `Needs block ${info.num}`; }
@@ -236,10 +238,10 @@ function tickHud(g) {
     else el.classList.remove('show');
   }
   if (coachStep === 4) { coachTimer += g.lastDt; if (coachTimer > 4.5) g.tutorial = 5; }
-  $('hint-cd').style.setProperty('--p', `${g.hintCooldown > 0 ? (g.hintCooldown / 8) * 100 : 0}%`);
+  $('hint-cd').style.setProperty('--p', `${g.hintCooldown > 0 ? (g.hintCooldown / (g.hintMax || 8)) * 100 : 0}%`);
   if (!mobile && g.elapsed > 16) $('keys').classList.add('fade');
   const far = g.player.pos.length() > 7;
-  placeEdge($('edge-home'), homePos, far && g.pack.some(i => g.sockets.has(i)));
+  placeEdge($('edge-home'), homePos, far && g.hasFitInPack());
   placeEdge($('edge-hint'), fx.beamTarget?.position ?? homePos, !!fx.beamTarget);
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
