@@ -191,6 +191,8 @@ body.mobile .garden-keys { display: none !important; }
 }
 @media (max-width: 520px) {
   .garden-card { bottom: calc(124px + var(--sab)); max-width: 88vw; }
+}
+
 /* ---------- G2: Figure workshop (js/features/workshop.js) ---------- */
 .ws-input {
   flex: 1; min-width: 0; font: inherit; font-weight: 600; font-size: 16px; color: var(--ink);
