@@ -1177,6 +1177,8 @@ export class Game {
       const hovered = this.focus && this.focus.kind === 'loose' && !this.focus.far
         && (this.focus.i === v.i || (v.chunk !== undefined && this.voxels[this.focus.i].chunk === v.chunk));
       v.highlight += ((hovered ? 1 : 0) - v.highlight) * Math.min(1, dt * 14);
+      // all blocks are out at once: only nearby ones cast shadows (saves a lot on big figures)
+      if ((this.t * 4 + v.i) % 8 < 1) m.castShadow = m.position.distanceToSquared(this.camera.position) < 900;
       // blocks that fit right now glint when you're near
       const fitsNow = this.mode === 'play' && !this.puzzler && this.sockets.has(v.i) && m.position.distanceToSquared(this.player.pos) < 81;
       v.glint = (v.glint || 0) + ((fitsNow ? 1 : 0) - (v.glint || 0)) * Math.min(1, dt * 3);

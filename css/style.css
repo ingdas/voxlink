@@ -529,3 +529,19 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 #btn-magnet .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
 #btn-magnet.empty { filter: saturate(.2); opacity: .7; }
 .edge.district { border-width: 3px; }
+
+/* ---------- Small screens: keep Kubo's tips clear of the bubble list ---------- */
+@media (max-height: 500px) {
+  .kubo-bark { top: auto; bottom: calc(46% - 40px); max-width: 40vw; padding: 6px 10px 6px 6px; gap: 8px; }
+  .kubo-bark .kubo.mini { --s: 32px; }
+  .kubo-bark p { font-size: 12.5px; }
+}
+@media (max-width: 520px) {
+  .kubo-bark { top: calc(150px + var(--sat)); max-width: 72vw; }
+  .kubo-bark p { font-size: 13px; }
+}
+.slot { height: auto; min-height: 66px; padding: 5px 0; }
+@media (max-height: 500px), (max-width: 520px) { .slot { min-height: 56px; padding: 4px 0; } }
+.slot .nums { max-width: 62px; }
+.slot .nums .chip { padding: 0 3px; min-width: 20px; font-size: 11.5px; }
+@media (max-height: 500px), (max-width: 520px) { .slot { width: 62px; } }
