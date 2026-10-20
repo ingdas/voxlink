@@ -133,6 +133,7 @@ function enter(origin = 'title') {
   const n = doneCount(), total = ctx.LEVELS.length;
   $('lvl-name').textContent = gardenName();
   $('count').textContent = t('museum.hudCount', { n, total });
+  $('stage').textContent = '';
   $('bar-fill').style.width = `${(n / total) * 100}%`;
   $('garden-keys').classList.remove('fade');
   $('hud').classList.remove('off');
