@@ -31,6 +31,7 @@ const PAD_LEGEND = () => [
   ['A', actLabel('jump'), t('access.pad.note.select')], ['X / RT', actLabel('interact'), ''],
   ['B / LT', actLabel('drop'), t('access.pad.note.back')], ['Y', actLabel('hint'), ''], ['LB / RB', actLabel('slot'), ''],
   [t('access.pad.start'), actLabel('pause'), ''], [t('access.pad.dpad'), actLabel('menuFocus'), ''],
+  ['◀', t('aria.magnet'), ''], ['▶', t('aria.express'), ''],
 ];
 const PRIMARY = '#btn-play, #btn-brief-go, #btn-next, #btn-resume, #btn-ending-map';
 const FOCUSABLE = '.btn, .toggle, .node, input[type=range], .kbtn';
@@ -302,6 +303,8 @@ export function init(ctx) {
     if (pressed(3)) act({ type: 'hint' });
     if (pressed(4)) act({ type: 'cycle', d: -1 });
     if (pressed(5)) act({ type: 'cycle', d: 1 });
+    if (pressed(14)) act({ type: 'magnet' });
+    if (pressed(15)) act({ type: 'express' });
     if (pressed(9)) ctx.pause();
   }
   requestAnimationFrame(loop);
