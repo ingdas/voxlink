@@ -63,7 +63,12 @@ fly / no-clip, unlock everything, and see FPS. Toggle it with the backtick key.
 
 - `js/levels.js`: figures (a small voxel modelling kit), chapters, story text, par times
 - `js/voxels.js`: number atlas, per-face voxel geometry, spanning-tree puzzle generator
-- `js/world.js`: themed island generation (terrain, plateaus, trees, particles, lights)
+- `js/world.js`: themes, the shared island builder (pedestal, grass, clouds, particles, lights) and the
+  world queries the game and player use (`floorAt`, `surfaceAt`, `clampPlayer`, `dropPoint`, ...)
+- `js/world-layouts.js`: one generator per chapter world (meadow terraces and pond, frost archipelago,
+  reef lagoon and piers, starfall floating islets and jump pads, storm ruins and wind gusts)
+- `js/world-kit.js`, `js/world-sky.js`: merged static geometry, shape contours, skies (aurora, sunset,
+  moon and ringed planet, storm vortex, cloud sea)
 - `js/game.js`: level session (sockets, backpack, interaction, animations, celebration)
 - `js/render.js`: toon materials and the ink-outline post pass (depth + normal edges)
 - `js/player.js`, `js/input.js`: first-person controller, keyboard/mouse/touch input

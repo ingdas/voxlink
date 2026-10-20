@@ -231,12 +231,12 @@ class Garden {
     this.disposables = [];
     this.world = buildWorld({
       rng: mulberry32(424242), radius: ISLAND_R, seed: 11, quality: renderer.mobile ? 'low' : 'high',
-      theme: 'meadow', clearR: RING + 3.4,
+      theme: 'meadow', clearR: RING + 3.4, plain: true,
     });
     scene.add(this.world.group);
     scene.fog.color.setHex(this.world.theme.skyHorizon);
     scene.fog.density = this.world.theme.fogDensity * 0.8;
-    ctx.audio.surface = 'grass';
+    ctx.audio.setWorld?.('meadow');
     this.group = new THREE.Group();
     scene.add(this.group);
     this.colliders = [];
