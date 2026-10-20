@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Patung terakhir",
   "kubo.lift": "Patung tinggi! Masuk ke lingkaran bercahaya dan <b>tahan lompat</b> untuk melayang ke atas.",
   "kubo.lift.touch": "Patung tinggi! Masuk ke lingkaran bercahaya dan <b>tahan tombol lompat</b> untuk melayang ke atas.",
+  "puzzler.title": "Mode Teka-teki",
+  "puzzler.desc": "Hubungkan balok di mana saja, amati patung, pecahkan hitungannya",
+  "puzzler.badge": "Teka-teki",
+  "puzzler.kubo.1": "Mode Teka-teki! Hitungan seperti 3+4 cocok di gelembung 7. Balok lepas juga bisa dihubungkan di tanah.",
+  "puzzler.kubo.2": "Hubungkan balok lepas jadi kelompok, lalu terbangkan seluruh kelompok ke patung!",
+  "puzzler.kubo.chunk": "Kelompok {n} balok! Ambil dan hubungkan ke patung sekaligus.",
+  "puzzler.toast.chunkMax": "Satu kelompok paling banyak {n} balok",
+  "puzzler.tip.attach": "Klik untuk menghubungkan di sini!",
+  "puzzler.tip.withCount": "{label} · {n} balok",
 };

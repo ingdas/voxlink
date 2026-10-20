@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Poslední figurka",
   "kubo.lift": "Vysoká figurka! Stoupni do zářícího kruhu a <b>drž skok</b>, abys vyletěl nahoru.",
   "kubo.lift.touch": "Vysoká figurka! Stoupni do zářícího kruhu a <b>drž tlačítko skoku</b>, abys vyletěl nahoru.",
+  "puzzler.title": "Hlavolamový režim",
+  "puzzler.desc": "Spojuj kostky kdekoli, čti figurku, počítej příklady",
+  "puzzler.badge": "Hlavolam",
+  "puzzler.kubo.1": "Hlavolam! Příklad jako 3+4 patří do bubliny 7. Volné kostky můžeš spojovat i na zemi.",
+  "puzzler.kubo.2": "Spoj volné kostky do skupin a pošli celou skupinu na figurku!",
+  "puzzler.kubo.chunk": "Skupina kostek: {n}! Vezmi ji a připoj k figurce naráz.",
+  "puzzler.toast.chunkMax": "Skupina může mít nejvýš {n} kostek",
+  "puzzler.tip.attach": "Klikni a spoj tady!",
+  "puzzler.tip.withCount": "{label} · kostky: {n}",
 };

@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Figura finale",
   "kubo.lift": "Figura alta! Entra nell’anello luminoso e <b>tieni premuto salta</b> per fluttuare verso l’alto.",
   "kubo.lift.touch": "Figura alta! Entra nell’anello luminoso e <b>tieni premuto il tasto salta</b> per fluttuare verso l’alto.",
+  "puzzler.title": "Modalità Rompicapo",
+  "puzzler.desc": "Collega i blocchi ovunque, osserva la figura e risolvi i conti",
+  "puzzler.badge": "Rompicapo",
+  "puzzler.kubo.1": "Rompicapo! Un conto come 3+4 va nella bolla 7. I blocchi sparsi si possono collegare anche a terra.",
+  "puzzler.kubo.2": "Collega i blocchi sparsi in gruppi e fai volare il gruppo intero sulla figura!",
+  "puzzler.kubo.chunk": "Un gruppo da {n}! Prendilo e collegalo alla figura in un colpo solo.",
+  "puzzler.toast.chunkMax": "Un gruppo può avere al massimo {n} blocchi",
+  "puzzler.tip.attach": "Clicca per collegare qui!",
+  "puzzler.tip.withCount": "{label} · {n} blocchi",
 };

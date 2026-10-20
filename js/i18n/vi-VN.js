@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Tượng cuối cùng",
   "kubo.lift": "Tượng cao quá! Bước vào vòng sáng và <b>giữ nút nhảy</b> để bay lên.",
   "kubo.lift.touch": "Tượng cao quá! Bước vào vòng sáng và <b>giữ nút nhảy</b> để bay lên.",
+  "puzzler.title": "Chế độ Đố vui",
+  "puzzler.desc": "Nối khối ở bất cứ đâu, quan sát tượng, giải phép tính",
+  "puzzler.badge": "Đố vui",
+  "puzzler.kubo.1": "Chế độ Đố vui! Phép tính như 3+4 khớp với bong bóng 7. Các khối rời cũng có thể nối với nhau trên mặt đất.",
+  "puzzler.kubo.2": "Nối các khối rời thành cụm, rồi bay cả cụm lên tượng!",
+  "puzzler.kubo.chunk": "Một cụm {n} khối! Nhặt lên và nối vào tượng một lần luôn.",
+  "puzzler.toast.chunkMax": "Một cụm có tối đa {n} khối",
+  "puzzler.tip.attach": "Bấm để nối vào đây!",
+  "puzzler.tip.withCount": "{label} · {n} khối",
 };

@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Figurine finale",
   "kubo.lift": "Figurine géante ! Entre dans l’anneau lumineux et <b>maintiens saut</b> pour t’envoler.",
   "kubo.lift.touch": "Figurine géante ! Entre dans l’anneau lumineux et <b>maintiens le bouton de saut</b> pour t’envoler.",
+  "puzzler.title": "Mode Casse-tête",
+  "puzzler.desc": "Relie les blocs partout, observe la figurine et résous les calculs",
+  "puzzler.badge": "Casse-tête",
+  "puzzler.kubo.1": "Mode Casse-tête ! Un calcul comme 3+4 va dans la bulle 7. Les blocs au sol peuvent aussi se relier entre eux.",
+  "puzzler.kubo.2": "Relie des blocs en groupes, puis envoie tout le groupe sur la figurine !",
+  "puzzler.kubo.chunk": "Un groupe de {n} ! Prends-le et relie-le à la figurine d’un coup.",
+  "puzzler.toast.chunkMax": "Un groupe peut contenir jusqu’à {n} blocs",
+  "puzzler.tip.attach": "Clique pour relier ici !",
+  "puzzler.tip.withCount": "{label} · {n} blocs",
 };

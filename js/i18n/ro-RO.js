@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Figura finală",
   "kubo.lift": "Figură înaltă! Intră în inelul strălucitor și <b>ține apăsat săritura</b> ca să plutești în sus.",
   "kubo.lift.touch": "Figură înaltă! Intră în inelul strălucitor și <b>ține apăsat butonul de săritură</b> ca să plutești în sus.",
+  "puzzler.title": "Mod Puzzle",
+  "puzzler.desc": "Leagă blocuri oriunde, privește figura, rezolvă calculele",
+  "puzzler.badge": "Puzzle",
+  "puzzler.kubo.1": "Mod Puzzle! Un calcul ca 3+4 se potrivește la bula 7. Blocurile libere se pot lega și pe jos.",
+  "puzzler.kubo.2": "Leagă blocurile libere în grupuri și trimite tot grupul pe figură!",
+  "puzzler.kubo.chunk": "Un grup de {n}! Ia-l și leagă-l de figură dintr-odată.",
+  "puzzler.toast.chunkMax": "Un grup poate avea cel mult {n} blocuri",
+  "puzzler.tip.attach": "Apasă ca să legi aici!",
+  "puzzler.tip.withCount": "{label} · {n} blocuri",
 };

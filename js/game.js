@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { LEVELS, CHAPTERS, expandLevel } from './levels.js';
 import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
-import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, cubeRotations } from './voxels.js';
+import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS } from './voxels.js';
 import { Player } from './player.js';
 import { LAYER_OVERLAY } from './render.js';
 import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
 export const PACK_SIZE = 4;
+export const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
@@ -128,6 +129,11 @@ export class Game {
     const rng = mulberry32(this.runSeed);
     const layoutRng = mulberry32(1000 + hashId(level.id) * 7919);
     this.puzzle = generatePuzzle(cells, rng);
+    // optional Puzzler mode (decided per load by a feature module; classic when unset)
+    this.puzzler = !!this.puzzlerFor?.(level, resume);
+    this.exprs = null;
+    this.chunks = new Map(); // puzzler: id -> { id, members:Set, anchor, restPos, restQuat }
+    this.nextChunk = 1;
     // keep scenery and loose blocks clear of the space the finished figure will occupy
     this.footR = Math.max(3.2, ...cells.map(c => Math.hypot(c.x, c.z) * S + S));
     const R = Math.max(12 + Math.sqrt(cells.length) * 1.25, this.footR + 14);
@@ -149,6 +155,7 @@ export class Game {
     this.liftFx = this.liftR ? makeLiftFx(this.scene, this.liftR, this.liftTop) : null;
 
     this.mat = voxelMaterial(this.renderer.gl);
+    if (this.puzzler) this.mat.map = this.applySums().texture;
     this.voxels = cells.map((c, i) => {
       const geo = buildVoxelGeometry(this.puzzle.faces[i]);
       const mat = this.mat.clone();
@@ -204,6 +211,7 @@ export class Game {
     this.splits = resume?.splits?.slice() ?? [];
     this.sinceLink = 0;
     this.hintCooldown = 0;
+    this.hintMax = this.puzzler ? 16 : 8;
     this.focus = null;
     this.focusKey = '';
     this.waved = false;
@@ -213,6 +221,161 @@ export class Game {
     this.kick = 0;
     this.emitProgress();
     this.emitPack();
+  }
+
+  // Puzzler: the child side of every link shows a small sum instead of the plain number
+  // (deterministic from the run seed; the parent side and the bubble keep the number).
+  applySums() {
+    const { faces, parent, parentDir, edgeNum } = this.puzzle;
+    const rng = mulberry32((this.runSeed ^ 0x51ab1e) >>> 0);
+    const base = this.cells.length - 1; // plain numbers use cells 1..n-1, sums go after them
+    const tiles = [];
+    this.exprs = {};
+    for (let i = 0; i < this.cells.length; i++) {
+      if (parent[i] < 0) continue;
+      const k = edgeNum[i], cell = base + k;
+      if (cell >= ATLAS_CELLS) continue; // no room left in the atlas: this face keeps its plain number
+      const text = sumFor(k, rng);
+      this.exprs[k] = text;
+      tiles.push({ cell, text });
+      faces[i][parentDir[i]] = { ...faces[i][parentDir[i]], cell, expr: text };
+    }
+    return getPuzzleAtlas(this.renderer.gl, tiles);
+  }
+
+  // ---------- puzzler chunks (blocks linked together on the ground) ----------
+  membersOf(i) {
+    const c = this.voxels[i].chunk;
+    return c === undefined ? [i] : [...this.chunks.get(c).members];
+  }
+  // every carried block (a chunk counts with all its blocks)
+  carriedAll() { return this.puzzler ? this.pack.flatMap(i => this.membersOf(i)) : this.pack; }
+  slotOf(i) {
+    if (!this.puzzler) return this.pack.indexOf(i);
+    const c = this.voxels[i].chunk;
+    return this.pack.findIndex(p => p === i || (c !== undefined && this.voxels[p].chunk === c));
+  }
+  carrying(i) { return this.slotOf(i) >= 0; }
+  hasFitInPack() { return this.carriedAll().some(i => this.sockets.has(i)); }
+  // the block of a group whose parent lies outside it (the one that links to the figure)
+  topOf(members) {
+    const set = new Set(members);
+    return members.find(m => !set.has(this.puzzle.parent[m])) ?? members[0];
+  }
+  // what a slot / tooltip shows for a block or chunk: its numbers that can still link
+  itemInfo(rep) {
+    const mem = this.membersOf(rep), set = new Set(mem), top = this.topOf(mem);
+    const list = [];
+    for (const m of mem) {
+      const v = this.voxels[m];
+      if (!set.has(v.parent) && v.parent >= 0) list.push({ n: v.num, label: this.exprs?.[v.num], link: true });
+      for (const c of this.puzzle.children[m]) if (!set.has(c)) list.push({ n: this.voxels[c].num });
+    }
+    list.sort((a, b) => (b.link ? 1 : 0) - (a.link ? 1 : 0) || a.n - b.n); // the linking face first
+    const tv = this.voxels[top];
+    return { numbers: list.map(x => x.n), labels: list.map(x => x.label), link: tv.num, fits: this.sockets.has(top), color: tv.cell.color, count: mem.length };
+  }
+  // pack slot whose block/chunk links straight onto loose block b (-2: it would, but the chunk would get too big)
+  attachSlot(b) {
+    if (!this.puzzler || !this.pack.length || this.voxels[b].state !== 'loose') return -1;
+    const B = new Set(this.membersOf(b));
+    const order = [this.active, ...this.pack.keys()].filter((k, j, a) => a.indexOf(k) === j && k < this.pack.length);
+    let tooBig = false;
+    for (const k of order) {
+      const A = this.membersOf(this.pack[k]);
+      if (!A.some(a => B.has(this.puzzle.parent[a]) || this.puzzle.children[a].some(c => B.has(c)))) continue;
+      if (A.length + B.size > CHUNK_MAX) { tooBig = true; continue; }
+      return k;
+    }
+    return tooBig ? -2 : -1;
+  }
+  // Rest positions of a chunk's blocks from its anchor transform; then sit it on the ground.
+  layoutChunk(ch) {
+    const a = this.voxels[ch.anchor].cell;
+    const pts = [];
+    for (const m of ch.members) {
+      const c = this.voxels[m].cell;
+      const p = new THREE.Vector3(c.ix - a.ix, c.iy - a.iy, c.iz - a.iz).multiplyScalar(S).applyQuaternion(ch.restQuat).add(ch.restPos);
+      p.y = ch.restPos.y + Math.round((p.y - ch.restPos.y) / S) * S;
+      pts.push([m, p]);
+    }
+    let shift = -Infinity;
+    for (const [, p] of pts) shift = Math.max(shift, this.world.heightAt(p.x, p.z, p.y + S / 2) + S / 2 - p.y);
+    ch.restPos.y += shift;
+    for (const [m, p] of pts) {
+      const w = this.voxels[m];
+      w.rest.pos.copy(p).setY(p.y + shift);
+      w.rest.quat.copy(ch.restQuat);
+    }
+    return shift;
+  }
+  // centre of a chunk in cells relative to its anchor, and its radius in metres
+  chunkShape(ch) {
+    const a = this.voxels[ch.anchor].cell, mid = new THREE.Vector3();
+    for (const m of ch.members) { const c = this.voxels[m].cell; mid.x += c.ix - a.ix; mid.y += c.iy - a.iy; mid.z += c.iz - a.iz; }
+    mid.divideScalar(ch.members.size);
+    let r = 0;
+    for (const m of ch.members) { const c = this.voxels[m].cell; r = Math.max(r, Math.hypot(c.ix - a.ix - mid.x, c.iz - a.iz - mid.z)); }
+    return { mid, radius: r * S + S / 2 };
+  }
+  // put a carried chunk down centred on pos (upright, random turn), animating every block
+  restChunk(ch, pos, dur) {
+    ch.restQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6);
+    const off = this.chunkShape(ch).mid.multiplyScalar(S).applyQuaternion(ch.restQuat);
+    ch.restPos.set(pos.x - off.x, pos.y, pos.z - off.z);
+    this.layoutChunk(ch);
+    [...ch.members].forEach((m, j) => {
+      const w = this.voxels[m];
+      this.startAnim(w, 'dropping', w.rest.pos, w.rest.quat, dur);
+      w.anim.quiet = j > 0;
+    });
+  }
+  // link the block/chunk in pack slot k onto loose block b (and its chunk) right where b lies
+  attach(k, b) {
+    const rep = this.pack[k], A = this.membersOf(rep), bv = this.voxels[b];
+    let ch = bv.chunk !== undefined ? this.chunks.get(bv.chunk) : null;
+    if (!ch) {
+      ch = { id: this.nextChunk++, members: new Set([b]), anchor: b, restPos: bv.rest.pos.clone(), restQuat: bv.rest.quat.clone() };
+      this.chunks.set(ch.id, ch);
+      bv.chunk = ch.id;
+    }
+    const before = [...ch.members];
+    const oldId = this.voxels[rep].chunk;
+    if (oldId !== undefined) this.chunks.delete(oldId);
+    for (const m of A) { ch.members.add(m); this.voxels[m].chunk = ch.id; }
+    this.pack.splice(k, 1);
+    this.active = Math.max(0, Math.min(this.active > k ? this.active - 1 : this.active, this.pack.length - 1));
+    const shift = this.layoutChunk(ch);
+    A.forEach((m, j) => {
+      const w = this.voxels[m];
+      this.startAnim(w, 'dropping', w.rest.pos, w.rest.quat, 0.32);
+      w.anim.quiet = j > 0;
+    });
+    if (shift > 1e-3) for (const m of before) { const w = this.voxels[m]; this.startAnim(w, 'dropping', w.rest.pos, w.rest.quat, 0.32); w.anim.quiet = true; }
+    this.ghost.visible = false;
+    this.audio.tone({ f: 420, f2: 760, type: 'triangle', dur: 0.16, vol: 0.09 });
+    this.fx.burst(bv.rest.pos, bv.cell.color, 12, 2.5);
+    this.events.vibrate?.(14);
+    if (ch.members.size >= 3 && !this.barked.has('chunk')) { this.barked.add('chunk'); this.events.kubo?.(t('puzzler.kubo.chunk', { n: ch.members.size })); }
+    this.emitPack();
+  }
+  // a carried chunk flies onto the figure; its blocks are placed in tree order when it lands
+  launchChunk(top) {
+    const ch = this.chunks.get(this.voxels[top].chunk);
+    this.chunks.delete(ch.id);
+    const order = [top];
+    for (let q = 0; q < order.length; q++) for (const c of this.puzzle.children[order[q]]) if (ch.members.has(c)) order.push(c);
+    order.forEach((m, j) => {
+      const w = this.voxels[m];
+      w.chunk = undefined;
+      this.startAnim(w, 'flying', w.target, new THREE.Quaternion(), 0.4);
+      if (j === 0) w.anim.group = order; else w.anim.follow = true;
+    });
+  }
+  placeGroup(order) {
+    order.forEach((m, j) => { this.quietLink = j > 0; this.place(m); });
+    this.quietLink = false;
+    if (order.length > 1) this.audio.tone({ f: 700, f2: 1300, type: 'sine', dur: 0.3, vol: 0.08 });
   }
 
   // Big figures are built in parts (bottom first). A block's part is never earlier than its parent's.
@@ -270,7 +433,7 @@ export class Game {
 
   // Nearest block that fits right now — only offered when the player seems stuck.
   radarTarget() {
-    if (this.mode !== 'play' || this.sinceLink < 20 || this.pack.some(i => this.sockets.has(i))) return null;
+    if (this.mode !== 'play' || this.sinceLink < (this.puzzler ? 45 : 20) || this.hasFitInPack()) return null;
     let best = null, bd = Infinity;
     for (const v of this.voxels) {
       if (v.state !== 'loose' || !this.sockets.has(v.i)) continue;
@@ -397,8 +560,7 @@ export class Game {
       }
       if (n >= 16 && left === 3 && !this.barked.has('last')) { this.barked.add('last'); this.events.kubo?.(t('kubo.last3')); }
       this.fx.burst(v.target, v.cell.color, 24, 4);
-      this.audio.link(this.placedCount / this.voxels.length);
-      this.events.vibrate?.(18);
+      if (!this.quietLink) { this.audio.link(this.placedCount / this.voxels.length); this.events.vibrate?.(18); }
       this.emitProgress();
       this.linkOrder.push(i);
       this.sinceLink = 0;
@@ -430,8 +592,8 @@ export class Game {
         const d = DIRS.findIndex(D => Math.round(n.x) === D.n[0] && Math.round(n.y) === D.n[1] && Math.round(n.z) === D.n[2]);
         let child = this.puzzle.children[vi].find(c => this.sockets.has(c) && this.puzzle.parentDir[c] === (d ^ 1));
         // clicking the block a carried block belongs to links it too (handy when its bubble is hidden)
-        if (child === undefined || !this.pack.includes(child)) {
-          const carried = this.pack.find(c => this.puzzle.parent[c] === vi && this.sockets.has(c));
+        if (child === undefined || !this.carrying(child)) {
+          const carried = this.carriedAll().find(c => this.puzzle.parent[c] === vi && this.sockets.has(c));
           if (carried !== undefined) child = carried;
         }
         if (child !== undefined) { hits.push({ kind: 'socket', child, d: h.distance }); break; }
@@ -476,9 +638,16 @@ export class Game {
     const h = this.rayFrom(x, y);
     if (!h) return;
     if (h.far) { this.events.toast?.(t('toast.far')); this.audio.wrong(); return; }
-    if (h.kind === 'loose') return this.grab(h.i);
+    if (h.kind === 'loose') {
+      if (this.puzzler) {
+        const k = this.attachSlot(h.i);
+        if (k >= 0) return this.attach(k, h.i);
+        if (k === -2) { this.audio.wrong(); this.events.toast?.(t('puzzler.toast.chunkMax', { n: CHUNK_MAX })); return; }
+      }
+      return this.grab(h.i);
+    }
     if (h.kind === 'socket') {
-      if (this.pack.includes(h.child)) return this.launch(h.child);
+      if (this.carrying(h.child)) return this.launch(h.child);
       const num = this.voxels[h.child].num;
       this.audio.wrong();
       this.shakeSocket(h.child);
@@ -495,20 +664,26 @@ export class Game {
     if (this.pack.length >= PACK_SIZE) {
       // swap: the active block takes the grabbed block's resting spot
       const old = this.voxels[this.pack[this.active]];
-      old.rest.pos.copy(v.rest.pos);
-      old.rest.quat.copy(v.rest.quat);
-      this.startAnim(old, 'dropping', old.rest.pos, old.rest.quat, 0.35);
+      if (old.chunk !== undefined) this.restChunk(this.chunks.get(old.chunk), v.rest.pos, 0.35);
+      else {
+        old.rest.pos.copy(v.rest.pos);
+        old.rest.quat.copy(v.rest.quat);
+        this.startAnim(old, 'dropping', old.rest.pos, old.rest.quat, 0.35);
+      }
       this.pack.splice(this.active, 1);
       this.events.toast?.(t('toast.swapped'));
     }
     this.pack.push(i);
     this.active = this.pack.length - 1;
-    v.state = 'lifting';
-    v.mesh.castShadow = false;
-    v.anim = { t: 0, dur: 0.22, from: v.mesh.position.clone(), fromQ: v.mesh.quaternion.clone() };
+    for (const m of this.membersOf(i)) {
+      const w = this.voxels[m];
+      w.state = 'lifting';
+      w.mesh.castShadow = false;
+      w.anim = { t: 0, dur: 0.22, from: w.mesh.position.clone(), fromQ: w.mesh.quaternion.clone() };
+      if (this.fx.beamTarget === w.mesh) this.fx.clearBeam();
+    }
     this.audio.pickup();
     this.events.vibrate?.(10);
-    if (this.fx.beamTarget === v.mesh) this.fx.clearBeam();
     if (this.tutorial === 1 || this.tutorial === 2) this.tutorial = this.sockets.has(i) ? 3 : 2;
     if (this.pack.length === 2 && !this.packTipShown && this.levelIndex >= 0 && this.levelIndex <= 4) {
       this.packTipShown = true;
@@ -530,16 +705,20 @@ export class Game {
     const v = this.voxels[this.pack[this.active]];
     const p = this.player;
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-    let x = p.pos.x + fx * 1.2, z = p.pos.z + fz * 1.2;
+    const reach = 1.2 + (v.chunk !== undefined ? this.chunkShape(this.chunks.get(v.chunk)).radius - S / 2 : 0);
+    let x = p.pos.x + fx * reach, z = p.pos.z + fz * reach;
     const r = Math.hypot(x, z);
     const minR = Math.max(3.7, this.footR + 0.8);
     if (r < minR) { const k = minR / Math.max(r, 0.01); x *= k; z *= k; }
     const th = Math.atan2(z, x), maxR = this.world.radiusAt(th) - 1;
     if (Math.hypot(x, z) > maxR) { const k = maxR / Math.hypot(x, z); x *= k; z *= k; }
     const y = this.world.heightAt(x, z, p.pos.y + 0.6);
-    v.rest.pos.set(x, y + S / 2, z);
-    v.rest.quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6).multiply(cubeRotations()[Math.floor(Math.random() * 24)]);
-    this.startAnim(v, 'dropping', v.rest.pos, v.rest.quat, 0.4);
+    if (v.chunk !== undefined) this.restChunk(this.chunks.get(v.chunk), new THREE.Vector3(x, y + S / 2, z), 0.4);
+    else {
+      v.rest.pos.set(x, y + S / 2, z);
+      v.rest.quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6).multiply(cubeRotations()[Math.floor(Math.random() * 24)]);
+      this.startAnim(v, 'dropping', v.rest.pos, v.rest.quat, 0.4);
+    }
     this.pack.splice(this.active, 1);
     this.active = Math.max(0, Math.min(this.active, this.pack.length - 1));
     this.audio.drop();
@@ -548,9 +727,10 @@ export class Game {
 
   launch(i) {
     const v = this.voxels[i];
-    this.pack.splice(this.pack.indexOf(i), 1);
+    this.pack.splice(this.slotOf(i), 1);
     if (this.active >= this.pack.length) this.active = Math.max(0, this.pack.length - 1);
-    this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), 0.34);
+    if (v.chunk !== undefined) this.launchChunk(i);
+    else this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), 0.34);
     this.ghost.visible = false;
     this.audio.tone({ f: 500, f2: 900, type: 'sine', dur: 0.2, vol: 0.08 });
     if (this.tutorial === 3) this.tutorial = 4;
@@ -564,7 +744,7 @@ export class Game {
 
   hint() {
     if (this.mode !== 'play') return;
-    const fitInPack = this.pack.find(i => this.sockets.has(i));
+    const fitInPack = this.carriedAll().find(i => this.sockets.has(i));
     if (fitInPack !== undefined) {
       // free: you're already carrying a fitting block, just point at its bubble
       const s = this.sockets.get(fitInPack);
@@ -577,13 +757,13 @@ export class Game {
     if (this.hintCooldown > 0) { this.events.toast?.(t('toast.recharging')); return; }
     const fits = this.voxels.filter(v => v.state === 'loose' && this.sockets.has(v.i));
     if (!fits.length) return;
-    this.hintCooldown = 8;
+    this.hintCooldown = this.hintMax;
     this.hintsUsed++;
     this.audio.hint();
     const pp = this.player.pos;
     fits.sort((a, b) => a.mesh.position.distanceToSquared(pp) - b.mesh.position.distanceToSquared(pp));
     const v = fits[0];
-    v.hop = 4;
+    for (const m of this.membersOf(v.i)) this.voxels[m].hop = 4;
     this.fx.pointBeam(v.mesh);
     this.events.toast?.(t('toast.follow', { n: v.num }));
   }
@@ -718,10 +898,14 @@ export class Game {
     let info = null;
     if (f && f.kind === 'loose') {
       const v = this.voxels[f.i];
-      info = { kind: 'loose', far: f.far, numbers: v.numbers, fit: this.sockets.has(v.i) ? v.num : null, full: this.pack.length >= PACK_SIZE };
+      if (this.puzzler) {
+        // no "this one fits" giveaway in puzzler mode; say whether it links to what you carry
+        const it = this.itemInfo(f.i);
+        info = { kind: 'loose', far: f.far, numbers: it.numbers, labels: it.labels, fit: null, full: this.pack.length >= PACK_SIZE, count: it.count, attach: this.attachSlot(f.i) >= 0 };
+      } else info = { kind: 'loose', far: f.far, numbers: v.numbers, fit: this.sockets.has(v.i) ? v.num : null, full: this.pack.length >= PACK_SIZE };
       if (!f.far && f.i !== prevLoose) this.audio.hover();
     } else if (f && f.kind === 'socket') {
-      info = { kind: 'socket', far: f.far, num: this.voxels[f.child].num, ok: this.pack.includes(f.child), holding: this.pack.length > 0 };
+      info = { kind: 'socket', far: f.far, num: this.voxels[f.child].num, ok: this.carrying(f.child), holding: this.pack.length > 0 };
     }
     this.events.focus?.(info);
   }
@@ -741,7 +925,19 @@ export class Game {
         : new THREE.Vector3(0, -0.75, -0.6);
       const pos = local.applyMatrix4(this.camera.matrixWorld);
       const quat = this.camera.quaternion.clone().multiply(this.handSpin);
-      poses[vi] = { pos, quat, scale: isActive ? 0.3 : 0.05, hidden: !isActive };
+      const mem = this.voxels[vi].chunk !== undefined ? this.membersOf(vi) : null;
+      if (!mem) { poses[vi] = { pos, quat, scale: isActive ? 0.3 : 0.05, hidden: !isActive }; return; }
+      // a chunk is shown shrunk so the whole group is about one held block big
+      const lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = new THREE.Vector3(-Infinity, -Infinity, -Infinity), c = new THREE.Vector3();
+      for (const m of mem) { const cl = this.voxels[m].cell; c.set(cl.ix, cl.iy, cl.iz); lo.min(c); hi.max(c); }
+      const ext = Math.max(hi.x - lo.x, hi.y - lo.y, hi.z - lo.z) + 1;
+      const scale = (isActive ? 0.36 : 0.05) / ext;
+      const mid = lo.add(hi).multiplyScalar(0.5);
+      for (const m of mem) {
+        const cl = this.voxels[m].cell;
+        const p = new THREE.Vector3(cl.ix - mid.x, cl.iy - mid.y, cl.iz - mid.z).multiplyScalar(S * scale).applyQuaternion(quat).add(pos);
+        poses[m] = { pos: p, quat, scale, hidden: !isActive };
+      }
     });
     return poses;
   }
@@ -782,7 +978,10 @@ export class Game {
         m.quaternion.slerpQuaternions(a.fromQ, a.toQ, v.state === 'flying' ? easeBack(k) : ease(k));
         m.scale.setScalar(THREE.MathUtils.lerp(a.fromScale, 1, ease(k)));
         if (a.t >= 1) {
-          if (v.state === 'flying') this.place(v.i);
+          if (v.state === 'flying') {
+            if (a.group) this.placeGroup(a.group);
+            else if (!a.follow) this.place(v.i); // chunk followers wait for their group's first block
+          }
           else {
             const quiet = v.anim.quiet;
             v.state = 'loose'; v.anim = null; m.position.copy(v.rest.pos); m.castShadow = true;
@@ -803,10 +1002,11 @@ export class Game {
         continue;
       }
       // loose
-      const hovered = this.focus && this.focus.kind === 'loose' && this.focus.i === v.i && !this.focus.far;
+      const hovered = this.focus && this.focus.kind === 'loose' && !this.focus.far
+        && (this.focus.i === v.i || (v.chunk !== undefined && this.voxels[this.focus.i].chunk === v.chunk));
       v.highlight += ((hovered ? 1 : 0) - v.highlight) * Math.min(1, dt * 14);
       // blocks that fit right now glint when you're near
-      const fitsNow = this.mode === 'play' && this.sockets.has(v.i) && m.position.distanceToSquared(this.player.pos) < 81;
+      const fitsNow = this.mode === 'play' && !this.puzzler && this.sockets.has(v.i) && m.position.distanceToSquared(this.player.pos) < 81;
       v.glint = (v.glint || 0) + ((fitsNow ? 1 : 0) - (v.glint || 0)) * Math.min(1, dt * 3);
       const tw = Math.max(0, Math.sin(this.t * 2.6 + v.i * 1.7));
       v.mat.emissive.setScalar(Math.max(v.highlight * (0.18 + 0.06 * Math.sin(this.t * 8)), v.glint * tw * tw * 0.16));
@@ -819,9 +1019,10 @@ export class Game {
   }
 
   updateSockets(dt) {
-    const anyFit = this.pack.some(i => this.sockets.has(i));
+    const carried = this.carriedAll();
+    const anyFit = carried.some(i => this.sockets.has(i));
     for (const s of this.sockets.values()) {
-      const ready = this.pack.includes(s.child);
+      const ready = carried.includes(s.child);
       const style = ready ? 'ready' : anyFit ? 'dim' : 'idle';
       if (style !== s.style) {
         s.style = style;
@@ -845,7 +1046,7 @@ export class Game {
       }
     }
     const f = this.focus;
-    const show = this.mode === 'play' && f && f.kind === 'socket' && !f.far && this.pack.includes(f.child);
+    const show = this.mode === 'play' && f && f.kind === 'socket' && !f.far && carried.includes(f.child);
     this.ghost.visible = !!show;
     if (show) {
       this.ghost.position.copy(this.voxels[f.child].target);
@@ -855,10 +1056,11 @@ export class Game {
 
   emitProgress() { this.events.progress?.(this.placedCount, this.voxels.length, this.level); }
   emitPack() {
-    this.focusKey = '';
+    this.focusKey = '#';
     this.events.pack?.({
       active: this.active,
       slots: this.pack.map(i => {
+        if (this.puzzler) return this.itemInfo(i);
         const v = this.voxels[i];
         return { numbers: v.numbers, link: v.num, fits: this.sockets.has(i), color: v.cell.color };
       }),
@@ -870,5 +1072,5 @@ export class Game {
   }
 
   openSocketNumbers() { return [...this.sockets.values()].map(s => s.num).sort((a, b) => a - b); }
-  readyNumbers() { return new Set(this.pack.filter(i => this.sockets.has(i)).map(i => this.voxels[i].num)); }
+  readyNumbers() { return new Set(this.carriedAll().filter(i => this.sockets.has(i)).map(i => this.voxels[i].num)); }
 }

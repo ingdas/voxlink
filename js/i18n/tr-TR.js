@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Son figür",
   "kubo.lift": "Uzun figür! Parlayan halkanın içine gir ve yukarı süzülmek için <b>zıplamayı basılı tut</b>.",
   "kubo.lift.touch": "Uzun figür! Parlayan halkanın içine gir ve yukarı süzülmek için <b>zıplama düğmesini basılı tut</b>.",
+  "puzzler.title": "Bulmaca modu",
+  "puzzler.desc": "Blokları her yerde bağla, figürü incele, işlemleri çöz",
+  "puzzler.badge": "Bulmaca",
+  "puzzler.kubo.1": "Bulmaca modu! 3+4 gibi bir işlem 7 numaralı baloncuğa uyar. Serbest bloklar yerde de birbirine bağlanabilir.",
+  "puzzler.kubo.2": "Serbest blokları gruplara bağla, sonra tüm grubu figüre uçur!",
+  "puzzler.kubo.chunk": "Grup: {n} blok! Al ve tek seferde figüre bağla.",
+  "puzzler.toast.chunkMax": "Bir grupta en fazla {n} blok olabilir",
+  "puzzler.tip.attach": "Buraya bağlamak için tıkla!",
+  "puzzler.tip.withCount": "{label} · blok: {n}",
 };

@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Siste figur",
   "kubo.lift": "Høy figur! Gå inn i den lysende ringen og <b>hold inne hopp</b> for å sveve opp.",
   "kubo.lift.touch": "Høy figur! Gå inn i den lysende ringen og <b>hold inne hoppeknappen</b> for å sveve opp.",
+  "puzzler.title": "Gåtemodus",
+  "puzzler.desc": "Koble klosser hvor som helst, les figuren, løs regnestykkene",
+  "puzzler.badge": "Gåte",
+  "puzzler.kubo.1": "Gåtemodus! Et regnestykke som 3+4 passer i boble 7. Løse klosser kan også kobles sammen på bakken.",
+  "puzzler.kubo.2": "Koble løse klosser i grupper, og send hele gruppen opp på figuren!",
+  "puzzler.kubo.chunk": "En gruppe på {n}! Ta den og koble den til figuren på én gang.",
+  "puzzler.toast.chunkMax": "En gruppe kan ha opptil {n} klosser",
+  "puzzler.tip.attach": "Klikk for å koble her!",
+  "puzzler.tip.withCount": "{label} · {n} klosser",
 };

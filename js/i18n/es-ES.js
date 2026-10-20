@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Figura final",
   "kubo.lift": "¡Figura alta! Entra en el anillo brillante y <b>mantén pulsado saltar</b> para flotar hacia arriba.",
   "kubo.lift.touch": "¡Figura alta! Entra en el anillo brillante y <b>mantén pulsado el botón de saltar</b> para flotar hacia arriba.",
+  "puzzler.title": "Modo Puzle",
+  "puzzler.desc": "Une bloques donde quieras, observa la figura y resuelve las sumas",
+  "puzzler.badge": "Puzle",
+  "puzzler.kubo.1": "¡Modo Puzle! Una suma como 3+4 encaja en la burbuja 7. Los bloques sueltos también se pueden unir en el suelo.",
+  "puzzler.kubo.2": "¡Une bloques sueltos en grupos y lanza el grupo entero a la figura!",
+  "puzzler.kubo.chunk": "¡Un grupo de {n}! Cógelo y únelo a la figura de una vez.",
+  "puzzler.toast.chunkMax": "Un grupo puede tener hasta {n} bloques",
+  "puzzler.tip.attach": "¡Clic para unir aquí!",
+  "puzzler.tip.withCount": "{label} · {n} bloques",
 };

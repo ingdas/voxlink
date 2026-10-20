@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Letzte Figur",
   "kubo.lift": "Große Figur! Stell dich in den leuchtenden Ring und <b>halte Springen gedrückt</b>, um nach oben zu schweben.",
   "kubo.lift.touch": "Große Figur! Stell dich in den leuchtenden Ring und <b>halte die Sprungtaste gedrückt</b>, um nach oben zu schweben.",
+  "puzzler.title": "Knobelmodus",
+  "puzzler.desc": "Verbinde Blöcke überall, lies die Figur, löse die Rechnungen",
+  "puzzler.badge": "Knobeln",
+  "puzzler.kubo.1": "Knobelmodus! Eine Rechnung wie 3+4 passt in Blase 7. Lose Blöcke kannst du auch am Boden verbinden.",
+  "puzzler.kubo.2": "Verbinde lose Blöcke zu Gruppen und schick die ganze Gruppe auf die Figur!",
+  "puzzler.kubo.chunk": "Eine Gruppe aus {n}! Schnapp sie dir und verbinde sie in einem Rutsch mit der Figur.",
+  "puzzler.toast.chunkMax": "Eine Gruppe hat höchstens {n} Blöcke",
+  "puzzler.tip.attach": "Klick zum Verbinden!",
+  "puzzler.tip.withCount": "{label} · {n} Blöcke",
 };

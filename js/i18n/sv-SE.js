@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Sista figuren",
   "kubo.lift": "Hög figur! Ställ dig i den lysande ringen och <b>håll in hopp</b> för att sväva upp.",
   "kubo.lift.touch": "Hög figur! Ställ dig i den lysande ringen och <b>håll in hoppknappen</b> för att sväva upp.",
+  "puzzler.title": "Klurläge",
+  "puzzler.desc": "Länka klossar var som helst, läs figuren, lös talen",
+  "puzzler.badge": "Klur",
+  "puzzler.kubo.1": "Klurläge! Ett tal som 3+4 passar i bubbla 7. Lösa klossar kan också länkas ihop på marken.",
+  "puzzler.kubo.2": "Länka lösa klossar till grupper och skicka hela gruppen till figuren!",
+  "puzzler.kubo.chunk": "En grupp med {n}! Ta den och länka den till figuren på en gång.",
+  "puzzler.toast.chunkMax": "En grupp kan ha högst {n} klossar",
+  "puzzler.tip.attach": "Klicka för att länka här!",
+  "puzzler.tip.withCount": "{label} · {n} klossar",
 };

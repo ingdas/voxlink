@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Laatste figuur",
   "kubo.lift": "Hoog figuur! Ga in de gloeiende ring staan en <b>houd springen ingedrukt</b> om omhoog te zweven.",
   "kubo.lift.touch": "Hoog figuur! Ga in de gloeiende ring staan en <b>houd de springknop ingedrukt</b> om omhoog te zweven.",
+  "puzzler.title": "Puzzelmodus",
+  "puzzler.desc": "Verbind blokken overal, lees het figuur, los de sommen op",
+  "puzzler.badge": "Puzzel",
+  "puzzler.kubo.1": "Puzzelmodus! Een som als 3+4 past in bubbel 7. Losse blokken kun je ook op de grond verbinden.",
+  "puzzler.kubo.2": "Verbind losse blokken tot groepjes en laat het hele groepje naar het figuur vliegen!",
+  "puzzler.kubo.chunk": "Een groepje van {n}! Pak het en verbind het in één keer met het figuur.",
+  "puzzler.toast.chunkMax": "Een groepje kan maximaal {n} blokken hebben",
+  "puzzler.tip.attach": "Klik om hier te verbinden!",
+  "puzzler.tip.withCount": "{label} · {n} blokken",
 };

@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Sidste figur",
   "kubo.lift": "Høj figur! Stil dig i den lysende ring og <b>hold hop nede</b> for at svæve op.",
   "kubo.lift.touch": "Høj figur! Stil dig i den lysende ring og <b>hold hop-knappen nede</b> for at svæve op.",
+  "puzzler.title": "Gådetilstand",
+  "puzzler.desc": "Forbind klodser overalt, læs figuren, løs regnestykkerne",
+  "puzzler.badge": "Gåde",
+  "puzzler.kubo.1": "Gådetilstand! Et regnestykke som 3+4 passer i boble 7. Løse klodser kan også forbindes på jorden.",
+  "puzzler.kubo.2": "Forbind løse klodser i grupper, og send hele gruppen op på figuren!",
+  "puzzler.kubo.chunk": "En gruppe på {n}! Tag den og forbind den med figuren på én gang.",
+  "puzzler.toast.chunkMax": "En gruppe kan højst have {n} klodser",
+  "puzzler.tip.attach": "Klik for at forbinde her!",
+  "puzzler.tip.withCount": "{label} · {n} klodser",
 };

@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Utolsó figura",
   "kubo.lift": "Magas figura! Állj a világító körbe, és <b>tartsd nyomva az ugrást</b>, hogy felfelé lebegj.",
   "kubo.lift.touch": "Magas figura! Állj a világító körbe, és <b>tartsd nyomva az ugrás gombot</b>, hogy felfelé lebegj.",
+  "puzzler.title": "Fejtörő mód",
+  "puzzler.desc": "Köss össze kockákat bárhol, figyeld a figurát, oldd meg a feladatokat",
+  "puzzler.badge": "Fejtörő",
+  "puzzler.kubo.1": "Fejtörő mód! Egy 3+4-es feladat a 7-es buborékba illik. A szabad kockák a földön is összeköthetők.",
+  "puzzler.kubo.2": "Kösd csoportokba a szabad kockákat, és küldd az egész csoportot a figurára!",
+  "puzzler.kubo.chunk": "Kockacsoport: {n} darab! Fogd meg, és kösd a figurára egyszerre.",
+  "puzzler.toast.chunkMax": "Egy csoportban legfeljebb {n} kocka lehet",
+  "puzzler.tip.attach": "Kattints az összekötéshez!",
+  "puzzler.tip.withCount": "{label} · kockák: {n}",
 };

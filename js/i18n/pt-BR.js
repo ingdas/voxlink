@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Figura final",
   "kubo.lift": "Figura alta! Entre no anel brilhante e <b>segure pular</b> para flutuar para cima.",
   "kubo.lift.touch": "Figura alta! Entre no anel brilhante e <b>segure o botão de pular</b> para flutuar para cima.",
+  "puzzler.title": "Modo Quebra-cabeça",
+  "puzzler.desc": "Ligue blocos em qualquer lugar, observe a figura e resolva as contas",
+  "puzzler.badge": "Quebra-cabeça",
+  "puzzler.kubo.1": "Modo Quebra-cabeça! Uma conta como 3+4 encaixa na bolha 7. Blocos soltos também podem se ligar no chão.",
+  "puzzler.kubo.2": "Ligue blocos soltos em grupos e mande o grupo inteiro para a figura!",
+  "puzzler.kubo.chunk": "Um grupo de {n}! Pegue e ligue na figura de uma vez.",
+  "puzzler.toast.chunkMax": "Um grupo pode ter até {n} blocos",
+  "puzzler.tip.attach": "Clique para ligar aqui!",
+  "puzzler.tip.withCount": "{label} · {n} blocos",
 };

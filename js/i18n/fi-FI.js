@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Viimeinen hahmo",
   "kubo.lift": "Korkea hahmo! Astu hehkuvaan renkaaseen ja <b>pidä hyppyä pohjassa</b>, niin leijut ylös.",
   "kubo.lift.touch": "Korkea hahmo! Astu hehkuvaan renkaaseen ja <b>pidä hyppynappia pohjassa</b>, niin leijut ylös.",
+  "puzzler.title": "Pulmatila",
+  "puzzler.desc": "Yhdistä palikoita missä vain, tutki hahmoa, ratkaise laskut",
+  "puzzler.badge": "Pulma",
+  "puzzler.kubo.1": "Pulmatila! Lasku kuten 3+4 sopii kuplaan 7. Irtopalikoita voi yhdistää myös maassa.",
+  "puzzler.kubo.2": "Yhdistä irtopalikat ryhmiksi ja lennätä koko ryhmä hahmoon!",
+  "puzzler.kubo.chunk": "Ryhmä, jossa on {n}! Nappaa se ja yhdistä se hahmoon kerralla.",
+  "puzzler.toast.chunkMax": "Ryhmässä voi olla enintään {n} palikkaa",
+  "puzzler.tip.attach": "Yhdistä tähän klikkaamalla!",
+  "puzzler.tip.withCount": "{label} · palikoita {n}",
 };

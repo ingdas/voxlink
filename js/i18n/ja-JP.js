@@ -440,4 +440,13 @@ export default {
   "brief.boss": "さいごのフィギュア",
   "kubo.lift": "大きなフィギュアだね！ 光るわっかの中で<b>ジャンプを長押し</b>すると、ふわっと上にのぼれるよ。",
   "kubo.lift.touch": "大きなフィギュアだね！ 光るわっかの中で<b>ジャンプボタンを長押し</b>すると、ふわっと上にのぼれるよ。",
+  "puzzler.title": "パズルモード",
+  "puzzler.desc": "どこでもブロックをつなげて、フィギュアをよく見て、計算をとこう",
+  "puzzler.badge": "パズル",
+  "puzzler.kubo.1": "パズルモード！ 3+4 みたいな計算はバブル7にぴったり。地面のブロックどうしもつなげられるよ。",
+  "puzzler.kubo.2": "ばらばらのブロックをかたまりにつなげて、かたまりごとフィギュアに飛ばそう！",
+  "puzzler.kubo.chunk": "{n}こ のかたまり！ 持ちあげて、いっきにフィギュアにつなげよう。",
+  "puzzler.toast.chunkMax": "かたまりはブロック{n}こまでだよ",
+  "puzzler.tip.attach": "クリックでここにつなぐ！",
+  "puzzler.tip.withCount": "{label} · ブロック{n}こ",
 };

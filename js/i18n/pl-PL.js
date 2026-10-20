@@ -440,4 +440,13 @@ export default {
   "brief.boss": "Ostatnia figura",
   "kubo.lift": "Wysoka figura! Wejdź do świecącego kręgu i <b>przytrzymaj skok</b>, aby unieść się w górę.",
   "kubo.lift.touch": "Wysoka figura! Wejdź do świecącego kręgu i <b>przytrzymaj przycisk skoku</b>, aby unieść się w górę.",
+  "puzzler.title": "Tryb łamigłówki",
+  "puzzler.desc": "Łącz klocki gdziekolwiek, patrz na figurę, rozwiązuj działania",
+  "puzzler.badge": "Łamigłówka",
+  "puzzler.kubo.1": "Tryb łamigłówki! Działanie takie jak 3+4 pasuje do bańki 7. Luźne klocki możesz też łączyć na ziemi.",
+  "puzzler.kubo.2": "Łącz luźne klocki w grupy i wyślij całą grupę na figurę!",
+  "puzzler.kubo.chunk": "Grupa klocków: {n}! Złap ją i połącz z figurą za jednym razem.",
+  "puzzler.toast.chunkMax": "Grupa może mieć maksymalnie {n} klocków",
+  "puzzler.tip.attach": "Kliknij, by połączyć tutaj!",
+  "puzzler.tip.withCount": "{label} · klocki: {n}",
 };
