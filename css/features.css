@@ -97,3 +97,98 @@ body.high-contrast .slot.fits { background: #c9f7e0; }
 body.high-contrast .slot.fits::after { top: -9px; left: -8px; right: auto; width: 22px; height: 22px; background-size: 15px; }
 body.high-contrast .slot .chip.ready::after { display: none; }
 body.high-contrast .slot .chip.ready { outline: 2px solid var(--ink); outline-offset: 1px; }
+/* ---------- D: Photo mode (js/features/photo.js) ---------- */
+.screen.photo { padding: 0; display: block; cursor: grab; }
+.screen.photo:active { cursor: grabbing; }
+/* the frame band is mirrored in photo.js (BAND / BAND_R) so the PNG matches what you see */
+.photo-frame { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.photo-frame::after { content: ''; position: absolute; inset: 14px; border: var(--line) solid var(--ink); border-radius: 14px; box-shadow: 0 0 0 60px var(--paper); }
+.photo-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.photo-hint {
+  position: absolute; top: calc(30px + var(--sat)); left: 50%; transform: translateX(-50%); white-space: nowrap;
+  font-size: 15px; pointer-events: none; transition: opacity .4s, transform .4s;
+}
+.photo-hint.gone { opacity: 0; transform: translate(-50%, -8px); }
+.photo-mark { position: absolute; left: calc(30px + var(--sal)); bottom: calc(30px + var(--sab)); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none; }
+.photo-logo { display: flex; gap: 3px; }
+.photo-logo span {
+  width: 25px; height: 25px; display: grid; place-items: center; font-weight: 700; font-size: 16px; line-height: 1;
+  background: var(--c); border: 2.5px solid var(--ink); border-radius: 5px; box-shadow: 0 3px 0 var(--ink); transform: rotate(var(--rot));
+}
+.photo-name { font-weight: 700; font-size: 15px; line-height: 1; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 var(--ink); padding: 6px 12px; white-space: nowrap; }
+.photo-name:empty { display: none; }
+.photo-ctl { position: absolute; right: calc(32px + var(--sar)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.photo-ctl .pc { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.photo-ctl .pc > span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--paper); background: var(--ink); border-radius: 999px; padding: 2px 10px; }
+.photo-preview {
+  position: absolute; left: calc(30px + var(--sal)); top: calc(30px + var(--sat)); width: 150px; padding: 7px 7px 4px; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--paper); border: var(--line) solid var(--ink); border-radius: 12px; box-shadow: 0 5px 0 var(--ink);
+  display: flex; flex-direction: column; gap: 4px; align-items: stretch; transform: rotate(-4deg) scale(0); transform-origin: 30% 30%; transition: transform .35s cubic-bezier(.3, 1.6, .5, 1);
+}
+.photo-preview.show { transform: rotate(-4deg) scale(1); }
+.photo-preview img { width: 100%; border: 2.5px solid var(--ink); border-radius: 6px; display: block; background: var(--paper-2); }
+.photo-preview span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; text-align: center; }
+.photo-note {
+  position: absolute; top: calc(30px + var(--sat)); left: 50%; transform: translate(-50%, -8px); opacity: 0; pointer-events: none; white-space: nowrap;
+  background: var(--mint); border: var(--line) solid var(--ink); border-radius: 999px; box-shadow: 0 4px 0 var(--ink); padding: 6px 16px; font-weight: 700; transition: opacity .2s, transform .2s;
+}
+.photo-note.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-height: 500px) {
+  .photo-ctl { gap: 8px; }
+  .photo-ctl .pc { gap: 5px; }
+  .photo-preview { width: 120px; }
+}
+@media (max-aspect-ratio: 1/1) {
+  .photo-ctl { top: auto; transform: none; right: 0; left: 0; bottom: calc(108px + var(--sab)); flex-direction: row; justify-content: center; align-items: flex-end; gap: 26px; }
+  .photo-preview { width: 104px; }
+  .photo-preview img { height: 150px; object-fit: cover; }
+  .photo-hint { font-size: 13px; }
+}
+body.photo-mode #touch { display: none; }
+
+/* ---------- D: Kubo's Garden (js/features/museum.js) ---------- */
+.garden-count { margin-left: 2px; font-size: 13px; background: var(--ink); color: var(--paper); border-radius: 999px; padding: 2px 8px; letter-spacing: .02em; }
+.map-right { display: flex; align-items: center; gap: 10px; }
+.garden-only { display: none !important; }
+body.museum .garden-only { display: flex !important; }
+/* only the bits of the level HUD that make sense while strolling */
+body.museum #hud > :not(.hud-top):not(#kubo-bark):not(#crosshair):not(.touch-btns):not(#stick):not(.garden-only) { display: none !important; }
+body.museum .hud-top > :not(#btn-pause):not(.progress):not(.garden-only) { display: none !important; }
+body.museum #btn-drop { display: none; }
+body.museum .progress .bar i { background: var(--sun); }
+
+.garden-card {
+  position: absolute; left: 50%; bottom: calc(22px + var(--sab)); transform: translate(-50%, 16px); opacity: 0; transition: opacity .2s, transform .3s cubic-bezier(.3, 1.5, .5, 1);
+  align-items: center; gap: 12px; width: max-content; max-width: min(380px, 70vw);
+  background: var(--paper); border: var(--line) solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink); padding: 8px 16px 8px 8px;
+}
+.garden-card.show { opacity: 1; transform: translate(-50%, 0); }
+.gc-thumb { flex: none; width: 66px; height: 66px; border-radius: 50%; border: var(--line) solid var(--ink); background: radial-gradient(circle at 50% 40%, #fffaf0, var(--paper-2)); display: grid; place-items: center; position: relative; overflow: hidden; }
+.gc-thumb img { width: 92%; height: 92%; object-fit: contain; }
+.gc-thumb.mystery img { filter: brightness(0) opacity(.2); }
+.gc-thumb .q { position: absolute; font-size: 30px; font-weight: 700; opacity: .5; }
+.gc-thumb.kubo-thumb { background: #fffaf0; }
+.gc-thumb .kubo.mini { --s: 38px; }
+.gc-body { display: flex; flex-direction: column; min-width: 0; }
+.gc-body small { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+.gc-body b { font-size: 21px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gc-row { display: flex; align-items: center; gap: 10px; margin-top: 3px; }
+.gc-stars { display: flex; gap: 1px; }
+.gc-stars svg { width: 22px; height: 22px; stroke: var(--ink); stroke-width: 2.4; fill: rgba(42, 31, 61, .2); }
+.gc-stars svg.on { fill: var(--sun); }
+.gc-time { display: flex; align-items: center; gap: 4px; font-weight: 700; font-size: 15px; background: #fffaf0; border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px; }
+.gc-time svg { width: 16px; height: 16px; }
+.gc-act { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.gc-act svg { width: 16px; height: 16px; }
+
+.garden-keys { position: absolute; left: calc(14px + var(--sal)); bottom: calc(14px + var(--sab)); flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--paper); text-shadow: 0 1px 0 var(--ink), 0 0 6px rgba(42, 31, 61, .6); transition: opacity .6s; }
+.garden-keys.fade { opacity: 0; }
+body.mobile .garden-keys { display: none !important; }
+@media (max-height: 500px) {
+  .garden-card { bottom: calc(10px + var(--sab)); padding: 5px 12px 5px 5px; }
+  .gc-thumb { width: 50px; height: 50px; }
+  .gc-body b { font-size: 17px; }
+}
+@media (max-width: 520px) {
+  .garden-card { bottom: calc(124px + var(--sab)); max-width: 88vw; }
+}
