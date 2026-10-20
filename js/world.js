@@ -51,7 +51,7 @@ function islandRadiusFn(R, seed) {
   return th => R * (1 + 0.055 * Math.sin(3 * th + a) + 0.04 * Math.sin(5 * th + b) + 0.025 * Math.sin(8 * th + a * 2));
 }
 
-function dotTexture() {
+export function dotTexture() {
   const cv = document.createElement('canvas');
   cv.width = cv.height = 64;
   const g = cv.getContext('2d');

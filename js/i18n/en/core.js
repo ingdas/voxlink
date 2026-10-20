@@ -81,6 +81,8 @@ export default {
   "kubo.q1": "Ooh, it's taking shape!",
   "kubo.q2": "Halfway there! I can almost tell what it is…",
   "kubo.q3": "Three quarters done — you're a natural!",
+  "kubo.lift": "Tall figure! Step inside the glowing ring and <b>hold jump</b> to float up.",
+  "kubo.lift.touch": "Tall figure! Step inside the glowing ring and <b>hold the jump button</b> to float up.",
   "kubo.last3": "Just three more blocks!",
   "toast.far": "Too far away — get closer",
   "toast.findNum": "Find the block with a {n} on it",

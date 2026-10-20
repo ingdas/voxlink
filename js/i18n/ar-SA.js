@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "كتلة هلام",
   "workshop.name.14": "فارس شجاع",
   "workshop.name.15": "سيارة المذنّب",
-  "workshop.name.fallback": "مجسّم {n}"
+  "workshop.name.fallback": "مجسّم {n}",
+  "brief.boss": "المجسّم الأخير",
+  "kubo.lift": "مجسّم طويل! ادخل الحلقة المضيئة و<b>اضغط مطوّلًا على القفز</b> لتطفو إلى الأعلى.",
+  "kubo.lift.touch": "مجسّم طويل! ادخل الحلقة المضيئة و<b>اضغط مطوّلًا على زر القفز</b> لتطفو إلى الأعلى.",
 };

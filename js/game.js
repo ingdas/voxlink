@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { LEVELS, CHAPTERS, expandLevel } from './levels.js';
-import { buildWorld, PEDESTAL_TOP } from './world.js';
+import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
 import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, cubeRotations } from './voxels.js';
 import { Player } from './player.js';
 import { LAYER_OVERLAY } from './render.js';
@@ -42,6 +42,44 @@ function badgeTexture(num, style) {
   tex.colorSpace = THREE.SRGBColorSpace;
   badgeCache.set(k, tex);
   return tex;
+}
+
+// Glowing ring + rising sparkles marking the updraft zone.
+function makeLiftFx(scene, radius, top) {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.RingGeometry(radius - 0.12, radius + 0.12, 72),
+    new THREE.MeshBasicMaterial({ color: 0x8ff0ff, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.03;
+  const n = 140, pos = new Float32Array(n * 3), seeds = [];
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, r = radius * (0.55 + Math.random() * 0.45);
+    seeds.push({ a, r, y: Math.random() * (top + 2), s: 0.6 + Math.random() });
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xbff6ff, size: 0.12, map: dotTexture(), transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+  pts.frustumCulled = false;
+  for (const o of [ring, pts]) o.layers.set(LAYER_OVERLAY);
+  group.add(ring, pts);
+  scene.add(group);
+  let glow = 0;
+  return {
+    update(dt, t, inside, floating) {
+      glow += ((inside ? 1 : 0) - glow) * Math.min(1, dt * 5);
+      ring.material.opacity = 0.35 + 0.25 * Math.sin(t * 2.5) * 0.5 + glow * 0.35;
+      pts.material.opacity = 0.35 + glow * 0.4;
+      const speed = floating ? 3.2 : 1.1;
+      seeds.forEach((p, i) => {
+        p.y += dt * speed * p.s;
+        if (p.y > top + 2) p.y = 0;
+        p.a += dt * 0.25;
+        pos[i * 3] = Math.cos(p.a) * p.r; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = Math.sin(p.a) * p.r;
+      });
+      geo.attributes.position.needsUpdate = true;
+    },
+    dispose() { scene.remove(group); ring.geometry.dispose(); ring.material.dispose(); geo.dispose(); pts.material.map.dispose(); pts.material.dispose(); },
+  };
 }
 
 export class Game {
@@ -104,6 +142,11 @@ export class Game {
     this.scene.fog.density = this.world.theme.fogDensity;
     this.scene.add(this.ghost);
     this.figureHeight = height * S;
+    // tall figures get the Keeper's updraft around the pedestal (hold jump to float up)
+    this.liftR = height >= 5 ? this.footR + 3.2 : 0;
+    this.liftTop = PEDESTAL_TOP + this.figureHeight - 0.4;
+    this.liftTold = false;
+    this.liftFx = this.liftR ? makeLiftFx(this.scene, this.liftR, this.liftTop) : null;
 
     this.mat = voxelMaterial(this.renderer.gl);
     this.voxels = cells.map((c, i) => {
@@ -245,6 +288,8 @@ export class Game {
     for (const s of [...this.sockets.values()]) this.removeSocket(s);
     this.mat.dispose();
     this.fx.clearBeam();
+    this.liftFx?.dispose();
+    this.liftFx = null;
     this.world = null;
   }
 
@@ -304,6 +349,11 @@ export class Game {
     sprite.scale.setScalar(0.001);
     sprite.renderOrder = 5;
     this.scene.add(sprite);
+    // faint copy drawn through the figure, so hidden bubbles can still be found
+    const ghost = new THREE.Sprite(new THREE.SpriteMaterial({ map: sprite.material.map, depthTest: false, depthWrite: false, transparent: true, opacity: 0.28 }));
+    ghost.layers.set(LAYER_OVERLAY);
+    ghost.renderOrder = 4;
+    sprite.add(ghost);
     const proxy = new THREE.Mesh(new THREE.BoxGeometry(S, S, S));
     proxy.position.copy(v.target);
     proxy.userData.socket = child;
@@ -314,6 +364,7 @@ export class Game {
   removeSocket(s) {
     this.scene.remove(s.sprite);
     s.sprite.material.dispose();
+    s.sprite.children[0]?.material.dispose();
     this.pickGroup.remove(s.proxy);
     s.proxy.geometry.dispose();
     this.sockets.delete(s.child);
@@ -635,7 +686,11 @@ export class Game {
       else if (a.type === 'slot') this.selectSlot(a.k);
       else if (a.type === 'cycle') this.cycleSlot(a.d);
     }
-    this.player.update(dt, this.input, look, this.colliders, this.world);
+    const r = Math.hypot(this.player.pos.x, this.player.pos.z);
+    const lift = this.liftR && r < this.liftR ? { maxY: this.liftTop } : null;
+    if (this.liftR && !this.liftTold && (lift || this.elapsed > 8)) { this.liftTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
+    this.player.update(dt, this.input, look, this.colliders, this.world, lift);
+    if (this.liftFx) this.liftFx.update(dt, this.t, !!lift, this.player.floating);
     this.player.applyCamera(this.camera);
     if (this.kick > 0.001 || this.camera.fov !== this.camera.userData.baseFov) {
       this.kick = this.kick > 0.002 ? this.kick * Math.exp(-dt * 9) : 0;
@@ -768,7 +823,12 @@ export class Game {
     for (const s of this.sockets.values()) {
       const ready = this.pack.includes(s.child);
       const style = ready ? 'ready' : anyFit ? 'dim' : 'idle';
-      if (style !== s.style) { s.style = style; s.sprite.material.map = badgeTexture(s.num, style); s.sprite.material.needsUpdate = true; }
+      if (style !== s.style) {
+        s.style = style;
+        s.sprite.material.map = badgeTexture(s.num, style); s.sprite.material.needsUpdate = true;
+        const g = s.sprite.children[0];
+        if (g) { g.material.map = s.sprite.material.map; g.material.needsUpdate = true; }
+      }
       const appear = easeBack(Math.min(1, (this.t - s.born) / 0.35));
       const focused = this.focus && this.focus.kind === 'socket' && this.focus.child === s.child;
       let sc = 0.4 * appear * (1 + 0.05 * Math.sin(this.t * 3 + s.phase));

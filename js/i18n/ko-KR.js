@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "말랑 젤리",
   "workshop.name.14": "용감한 기사",
   "workshop.name.15": "혜성 자동차",
-  "workshop.name.fallback": "조각상 {n}"
+  "workshop.name.fallback": "조각상 {n}",
+  "brief.boss": "마지막 조각상",
+  "kubo.lift": "큰 조각상이에요! 빛나는 고리 안에 들어가서 <b>점프를 꾹 누르면</b> 위로 떠올라요.",
+  "kubo.lift.touch": "큰 조각상이에요! 빛나는 고리 안에 들어가서 <b>점프 버튼을 꾹 누르면</b> 위로 떠올라요.",
 };

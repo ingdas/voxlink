@@ -251,7 +251,7 @@ export default {
   "access.pad.leftStick": "Linker Stick",
   "access.pad.rightStick": "Rechter Stick",
   "access.pad.start": "Start",
-  "access.pad.dpad": "Steuerkreuz",
+  "access.pad.dpad": "D-Pad",
   "access.pad.note.run": "L3 drücken zum Rennen",
   "access.pad.note.select": "Menüs: auswählen",
   "access.pad.note.back": "Menüs: zurück",
@@ -437,4 +437,7 @@ export default {
   "workshop.name.14": "Tapferer Ritter",
   "workshop.name.15": "Kometenauto",
   "workshop.name.fallback": "Figur {n}",
+  "brief.boss": "Letzte Figur",
+  "kubo.lift": "Große Figur! Stell dich in den leuchtenden Ring und <b>halte Springen gedrückt</b>, um nach oben zu schweben.",
+  "kubo.lift.touch": "Große Figur! Stell dich in den leuchtenden Ring und <b>halte die Sprungtaste gedrückt</b>, um nach oben zu schweben.",
 };

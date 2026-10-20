@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Thạch Dẻo",
   "workshop.name.14": "Hiệp Sĩ Dũng Cảm",
   "workshop.name.15": "Xe Sao Chổi",
-  "workshop.name.fallback": "Tượng {n}"
+  "workshop.name.fallback": "Tượng {n}",
+  "brief.boss": "Tượng cuối cùng",
+  "kubo.lift": "Tượng cao quá! Bước vào vòng sáng và <b>giữ nút nhảy</b> để bay lên.",
+  "kubo.lift.touch": "Tượng cao quá! Bước vào vòng sáng và <b>giữ nút nhảy</b> để bay lên.",
 };

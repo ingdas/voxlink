@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Gelée Gloups",
   "workshop.name.14": "Brave Chevalier",
   "workshop.name.15": "Auto Comète",
-  "workshop.name.fallback": "Figurine {n}"
+  "workshop.name.fallback": "Figurine {n}",
+  "brief.boss": "Figurine finale",
+  "kubo.lift": "Figurine géante ! Entre dans l’anneau lumineux et <b>maintiens saut</b> pour t’envoler.",
+  "kubo.lift.touch": "Figurine géante ! Entre dans l’anneau lumineux et <b>maintiens le bouton de saut</b> pour t’envoler.",
 };

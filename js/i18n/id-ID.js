@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Jeli Gendut",
   "workshop.name.14": "Ksatria Pemberani",
   "workshop.name.15": "Mobil Komet",
-  "workshop.name.fallback": "Figur {n}"
+  "workshop.name.fallback": "Figur {n}",
+  "brief.boss": "Patung terakhir",
+  "kubo.lift": "Patung tinggi! Masuk ke lingkaran bercahaya dan <b>tahan lompat</b> untuk melayang ke atas.",
+  "kubo.lift.touch": "Patung tinggi! Masuk ke lingkaran bercahaya dan <b>tahan tombol lompat</b> untuk melayang ke atas.",
 };

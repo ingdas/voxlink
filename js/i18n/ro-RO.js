@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Gelatinel",
   "workshop.name.14": "Cavaler curajos",
   "workshop.name.15": "Mașina-Cometă",
-  "workshop.name.fallback": "Figurina {n}"
+  "workshop.name.fallback": "Figurina {n}",
+  "brief.boss": "Figura finală",
+  "kubo.lift": "Figură înaltă! Intră în inelul strălucitor și <b>ține apăsat săritura</b> ca să plutești în sus.",
+  "kubo.lift.touch": "Figură înaltă! Intră în inelul strălucitor și <b>ține apăsat butonul de săritură</b> ca să plutești în sus.",
 };

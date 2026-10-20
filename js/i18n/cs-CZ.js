@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Želé kulička",
   "workshop.name.14": "Statečný rytíř",
   "workshop.name.15": "Kometové auto",
-  "workshop.name.fallback": "Figurka {n}"
+  "workshop.name.fallback": "Figurka {n}",
+  "brief.boss": "Poslední figurka",
+  "kubo.lift": "Vysoká figurka! Stoupni do zářícího kruhu a <b>drž skok</b>, abys vyletěl nahoru.",
+  "kubo.lift.touch": "Vysoká figurka! Stoupni do zářícího kruhu a <b>drž tlačítko skoku</b>, abys vyletěl nahoru.",
 };

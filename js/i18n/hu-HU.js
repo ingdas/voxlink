@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Zselépaca",
   "workshop.name.14": "Bátor lovag",
   "workshop.name.15": "Üstökösautó",
-  "workshop.name.fallback": "Figura {n}"
+  "workshop.name.fallback": "Figura {n}",
+  "brief.boss": "Utolsó figura",
+  "kubo.lift": "Magas figura! Állj a világító körbe, és <b>tartsd nyomva az ugrást</b>, hogy felfelé lebegj.",
+  "kubo.lift.touch": "Magas figura! Állj a világító körbe, és <b>tartsd nyomva az ugrás gombot</b>, hogy felfelé lebegj.",
 };

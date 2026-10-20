@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Jöle Top",
   "workshop.name.14": "Cesur Şövalye",
   "workshop.name.15": "Kuyrukluyıldız Araba",
-  "workshop.name.fallback": "Figür {n}"
+  "workshop.name.fallback": "Figür {n}",
+  "brief.boss": "Son figür",
+  "kubo.lift": "Uzun figür! Parlayan halkanın içine gir ve yukarı süzülmek için <b>zıplamayı basılı tut</b>.",
+  "kubo.lift.touch": "Uzun figür! Parlayan halkanın içine gir ve yukarı süzülmek için <b>zıplama düğmesini basılı tut</b>.",
 };

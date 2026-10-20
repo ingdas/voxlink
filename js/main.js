@@ -184,7 +184,7 @@ function renderFocus(info) {
 let kuboTimer = 0;
 function kuboSays(msg) {
   const el = $('kubo-bark');
-  el.querySelector('p').textContent = msg;
+  el.querySelector('p').innerHTML = msg;
   el.classList.add('show');
   audio.tone({ f: 660, f2: 880, type: 'triangle', dur: 0.12, vol: 0.06 });
   clearTimeout(kuboTimer);

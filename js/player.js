@@ -37,7 +37,8 @@ export class Player {
     return null;
   }
 
-  update(dt, input, look, colliders, world) {
+  // lift: optional { maxY } — inside the Keeper's updraft, holding jump floats you up
+  update(dt, input, look, colliders, world, lift = null) {
     this.yaw -= look.x;
     this.pitch = THREE.MathUtils.clamp(this.pitch - look.y, -1.45, 1.45);
 
@@ -61,10 +62,28 @@ export class Player {
       this.onGround = false;
       this.onJump?.();
     }
-    // variable jump height: release early to cut the jump
-    if (!input.jumpHeld && this.vel.y > 3 && !this.onGround) this.vel.y -= GRAVITY * dt * 1.2;
-    this.vel.y -= GRAVITY * dt;
-    if (this.vel.y < -30) this.vel.y = -30;
+    this.floating = false;
+    if (lift && (input.jumpHeld || (!this.onGround && this.hoverT > 0))) {
+      // updraft: rise while jump is held, hover briefly after letting go, then sink gently
+      this.floating = true;
+      if (input.jumpHeld) {
+        this.hoverT = 1.4;
+        const target = this.pos.y < lift.maxY ? 4.2 : 0;
+        this.vel.y += (target - this.vel.y) * Math.min(1, dt * 6);
+      } else {
+        this.hoverT -= dt;
+        this.vel.y += (0 - this.vel.y) * Math.min(1, dt * 8);
+      }
+      this.onGround = false;
+    } else if (lift && !this.onGround) {
+      this.vel.y = Math.max(this.vel.y - GRAVITY * dt * 0.25, -1.6);
+    } else {
+      this.hoverT = 0;
+      // variable jump height: release early to cut the jump
+      if (!input.jumpHeld && this.vel.y > 3 && !this.onGround) this.vel.y -= GRAVITY * dt * 1.2;
+      this.vel.y -= GRAVITY * dt;
+      if (this.vel.y < -30) this.vel.y = -30;
+    }
 
     const wasGround = this.onGround;
     const fallSpeed = this.vel.y;

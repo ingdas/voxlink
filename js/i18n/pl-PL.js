@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Galaretek",
   "workshop.name.14": "Dzielny Rycerz",
   "workshop.name.15": "Kometowóz",
-  "workshop.name.fallback": "Figurka {n}"
+  "workshop.name.fallback": "Figurka {n}",
+  "brief.boss": "Ostatnia figura",
+  "kubo.lift": "Wysoka figura! Wejdź do świecącego kręgu i <b>przytrzymaj skok</b>, aby unieść się w górę.",
+  "kubo.lift.touch": "Wysoka figura! Wejdź do świecącego kręgu i <b>przytrzymaj przycisk skoku</b>, aby unieść się w górę.",
 };

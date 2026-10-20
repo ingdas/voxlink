@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Gelatina Blandi",
   "workshop.name.14": "Caballero Valiente",
   "workshop.name.15": "Coche Cometa",
-  "workshop.name.fallback": "Figura {n}"
+  "workshop.name.fallback": "Figura {n}",
+  "brief.boss": "Figura final",
+  "kubo.lift": "¡Figura alta! Entra en el anillo brillante y <b>mantén pulsado saltar</b> para flotar hacia arriba.",
+  "kubo.lift.touch": "¡Figura alta! Entra en el anillo brillante y <b>mantén pulsado el botón de saltar</b> para flotar hacia arriba.",
 };

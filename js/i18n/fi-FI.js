@@ -436,5 +436,8 @@ export default {
   "workshop.name.13": "Hyytelömöykky",
   "workshop.name.14": "Urhea ritari",
   "workshop.name.15": "Komeetta-auto",
-  "workshop.name.fallback": "Hahmo {n}"
+  "workshop.name.fallback": "Hahmo {n}",
+  "brief.boss": "Viimeinen hahmo",
+  "kubo.lift": "Korkea hahmo! Astu hehkuvaan renkaaseen ja <b>pidä hyppyä pohjassa</b>, niin leijut ylös.",
+  "kubo.lift.touch": "Korkea hahmo! Astu hehkuvaan renkaaseen ja <b>pidä hyppynappia pohjassa</b>, niin leijut ylös.",
 };
