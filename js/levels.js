@@ -446,4 +446,4 @@ function largestComponent(cells, id) {
 }
 
 // Target time for the clock star.
-export const parTime = level => Math.round((30 + expandLevel(level).cells.length * 9) / 15) * 15;
+export const parTime = level => Math.round((30 + expandLevel(level).cells.length * 7) / 15) * 15;
