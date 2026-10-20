@@ -53,7 +53,15 @@ Workshop editor:
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.
 - Each figure has 3 stars: finish it, beat the par time, and use no hints.
-- Big figures are built in parts; tall ones get the Keeper's updraft (hold jump inside the ring).
+- Big figures are split into parts: every part has its own flagged district on the island, and a
+  compass points to where blocks fit right now. All blocks are out from the start.
+- Tools on big figures: **Magnet** (R / magnet button) pulls nearby blocks that fit into your
+  backpack; **Kubo Express** (F / paper plane) sends every fitting carried block to the figure from
+  anywhere. Linking a block also pulls in carried blocks that belong on it (chain links).
+- Tall figures get the Keeper's updraft (hold jump inside the glowing ring).
+- Each world has its own twist: icy lakes (Frost), wading (Reef), low gravity and jump pads
+  (Starfall), wind gusts (Storm). Dropped blocks stack instead of overlapping.
+- Design decisions and the simulator behind them: `docs/design-notes.md`, `tools/design-sim.mjs`.
 - Extras: a daily figure (same layout for everyone), Kubo's Garden (walk among your finished
   figures), photo mode, the Workshop (build and share your own figures), and Puzzler mode
   (link blocks anywhere, solve sums).

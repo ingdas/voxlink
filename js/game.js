@@ -499,11 +499,18 @@ export class Game {
     for (let d = 0; d < this.stageCount; d++) {
       const color = DISTRICT_COLORS[d % DISTRICT_COLORS.length];
       let pos = null;
-      for (let k = 0; k < 40 && !pos; k++) {
-        const th = this.districtAngle(d) + (k ? (Math.random() - 0.5) * 0.6 : 0);
-        const r = r0 + (w.R - 1 - r0) * (0.45 + (k ? (Math.random() - 0.5) * 0.3 : 0));
+      // search outwards from the middle of the district until there is free ground for the pole
+      for (let k = 0; k < 160 && !pos; k++) {
+        const spread = Math.min(1, k / 80);
+        const th = this.districtAngle(d) + (k ? (Math.random() - 0.5) * (0.5 + spread * (Math.PI * 2 / this.stageCount - 0.5)) : 0);
+        const r = r0 + 0.6 + (w.R - 2 - r0) * (k ? Math.random() * (0.3 + spread * 0.7) + (1 - spread) * 0.3 : 0.45);
         const x = Math.cos(th) * r, z = Math.sin(th) * r;
-        if (w.isFreeGround(x, z, 0.4)) pos = new THREE.Vector3(x, w.groundY ? w.groundY(x, z) : w.heightAt(x, z), z);
+        if (w.isFreeGround(x, z, k < 100 ? 0.4 : 0)) pos = new THREE.Vector3(x, w.groundY ? w.groundY(x, z) : w.heightAt(x, z), z);
+      }
+      if (!pos) {
+        // last resort: on the pedestal side facing the district
+        const th = this.districtAngle(d), r = Math.max(3, this.footR + 0.6);
+        pos = new THREE.Vector3(Math.cos(th) * r, 0, Math.sin(th) * r);
       }
       if (!pos) continue;
       const flag = new THREE.Group();

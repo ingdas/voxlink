@@ -63,3 +63,19 @@ useful part, more visible numbers only add noise.
   figures with districts. It sends every carried block that fits to its bubble (key F / plane button).
 - Tools now: Hint (costs the no-hint star), Magnet (R, every 12 links), Kubo Express (F, every 20
   links), plus the Keeper's updraft on tall figures.
+
+## 2026-10-21 · Worlds with their own identity
+
+Every chapter used the same round island with box plateaus; only colours changed. Each world now
+has its own layout, landmarks, sky, music, ambience and one gentle twist:
+
+| World | Layout & landmarks | Twist |
+|---|---|---|
+| Meadow | stepped terraces, pond with bridge, cottage, fences, hay bales | none (tutorial baseline) |
+| Frost | archipelago of islets joined by ice bridges, igloo, aurora | slippery frozen lake |
+| Reef | sand crescent around a shallow lagoon, piers, sea stacks, sunset | wading slows you |
+| Starfall | floating islets over a cloud sea, crystals, moon & ringed planet | low gravity + jump pads |
+| Storm | ruined pillar ring and arches on a windswept plateau, vortex sky | gentle wind gusts |
+
+A reachability check (flood-fill + jump/step rules) confirms every block on every level can be
+reached, also after combining the new layouts with districts.
