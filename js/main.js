@@ -85,6 +85,8 @@ const game = new Game({
       $('lvl-name').textContent = level.kind || isDone(level.id) ? level.name : t('hud.mystery');
       $('count').textContent = `${n} / ${total}`;
       $('stage').textContent = game.stageCount > 1 ? t('hud.part', { k: game.stage + 1, n: game.stageCount }) : '';
+      $('stage').style.background = '';
+      renderMagnet(game.magnetCharges, false);
       $('bar-fill').style.width = `${(n / total) * 100}%`;
       renderNeeds();
     },
@@ -96,6 +98,8 @@ const game = new Game({
     complete: stats => onComplete(stats),
     introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); },
     pause: () => pause(),
+    magnet: (n, gained) => renderMagnet(n, gained),
+    tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
     saveSession: data => { if (!game.level.kind) { save.session = data; persist(); } },
     tick: g => { tickHud(g); ctx.hooks.tick.forEach(f => f(g)); },
@@ -247,6 +251,10 @@ function tickHud(g) {
   const far = g.player.pos.length() > 7;
   placeEdge($('edge-home'), homePos, far && g.hasFitInPack());
   placeEdge($('edge-hint'), fx.beamTarget?.position ?? homePos, !!fx.beamTarget);
+  const flag = g.flags?.[g.activeDistrict?.() ?? -1];
+  const inDistrict = flag && Math.hypot(g.player.pos.x - flag.pos.x, g.player.pos.z - flag.pos.z) < 9;
+  placeEdge($('edge-district'), flag?.pos ?? homePos, !!flag && !inDistrict && !g.hasFitInPack?.() && !fx.beamTarget);
+  if (flag) $('edge-district').style.background = flag.color;
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
 }
@@ -718,6 +726,14 @@ $('btn-restart').onclick = () => startLevel(game.level);
 $('btn-quit').onclick = () => (game.level?.kind ? enterTitle() : openMap());
 $('btn-pause').onclick = () => pause();
 $('btn-hint').onclick = () => input.actions.push({ type: 'hint' });
+$('btn-magnet').onclick = () => input.actions.push({ type: 'magnet' });
+function renderMagnet(n, gained) {
+  const b = $('btn-magnet');
+  b.classList.toggle('hidden', !(game.stageCount > 1));
+  b.classList.toggle('empty', n <= 0);
+  $('magnet-n').textContent = n;
+  if (gained) b.animate([{ transform: 'scale(1.4) rotate(-10deg)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' });
+}
 $('btn-brief-back').onclick = () => popOverlay('screen-brief');
 $('btn-brief-go').onclick = () => startLevel(briefIdx, true);
 $('btn-brief-fresh').onclick = () => startLevel(briefIdx, false);

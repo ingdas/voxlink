@@ -47,7 +47,7 @@ export function init(ctx) {
     show: () => { stopSolve(); ctx.enterTitle(); game.load(+ctx.$('dbg-level').value); game.mode = 'showcase'; },
     map: () => ctx.openMap(),
     solve: () => solve(),
-    part: () => { const s = game.stage; solve(() => game.stage !== s); },
+    part: () => { const s = game.districtDone?.size ?? 0; solve(() => (game.districtDone?.size ?? 0) !== s); },
     ten: () => { let n = 0; solve(() => ++n >= 10); },
     win: () => {
       stopSolve();

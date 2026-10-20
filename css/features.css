@@ -473,3 +473,4 @@ body.puzzler #needs { display: none; }
   .pz-row .toggle { transform: scale(.7); margin: -5px 0 -5px auto; }
 }
 @media (max-height: 500px) and (min-width: 600px) { .panel.narrow.brief { width: min(440px, 100%); } }
+body.museum #btn-magnet { display: none !important; }

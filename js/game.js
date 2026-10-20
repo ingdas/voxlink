@@ -85,6 +85,8 @@ function makeLiftFx(scene, radius, top) {
   };
 }
 
+const DISTRICT_COLORS = ['#ff6b6b', '#ffc93c', '#3ddc97', '#4cc9f0', '#b693f5', '#ff8fc7', '#ff9f43', '#9be36b', '#6c8cff', '#e8d9b8'];
+
 export class Game {
   constructor({ renderer, scene, camera, audio, input, fx, events }) {
     Object.assign(this, { renderer, scene, camera, audio, input, fx, events });
@@ -206,8 +208,15 @@ export class Game {
       this.linkOrder = resume.placed.slice();
       this.refreshColliders();
     }
-    this.stage = Math.min(this.stageCount - 1, Math.min(...this.voxels.filter(v => v.state !== 'placed').map(v => this.stageOf[v.i]), this.stageCount - 1));
-    this.syncStage(false);
+    this.districtDone = new Set();
+    for (let d = 0; d < this.stageCount; d++) if (this.stageCount > 1 && this.districtCleared(d)) this.districtDone.add(d);
+    this.stage = Math.min(this.stageCount - 1, this.districtDone.size);
+    this.syncStage();
+    this.buildDistrictFlags();
+    for (const d of this.districtDone) if (this.flags[d]) this.flags[d].banner.material.color.setScalar(0.55);
+    this.magnetCharges = this.stageCount > 1 ? 1 : 0;
+    this.magnetLinks = 0;
+    this.magnetTold = false;
     this.elapsed = resume?.elapsed ?? 0;
     this.hintsUsed = resume?.hints ?? 0;
     this.splits = resume?.splits?.slice() ?? [];
@@ -451,39 +460,99 @@ export class Game {
 
   stageCleared(k) { return this.voxels.every(v => this.stageOf[v.i] > k || v.state === 'placed'); }
 
-  // Show the blocks of the current part (raining them in when a new part starts) and open its bubbles.
-  syncStage(rain) {
-    for (const v of this.voxels) {
-      const inStage = this.stageOf[v.i] <= this.stage;
-      if (!inStage && v.state === 'loose') { v.state = 'waiting'; v.mesh.visible = false; }
-      else if (inStage && v.state === 'waiting') {
-        v.mesh.visible = true;
-        if (rain) {
-          const from = v.rest.pos.clone().add(new THREE.Vector3(0, 16 + Math.random() * 8, 0));
-          v.mesh.position.copy(from);
-          this.startAnim(v, 'dropping', v.rest.pos, v.rest.quat, 0.9);
-          v.anim.from.copy(from);
-          v.anim.delay = Math.random() * 1.6;
-          v.anim.quiet = Math.random() > 0.2;
-        } else v.state = 'loose';
-      }
-    }
+  // Every block is on the island from the start; parts are districts. Make sure all open bubbles exist.
+  syncStage() {
     for (const v of this.voxels) {
       if (v.state !== 'placed') continue;
-      for (const c of this.puzzle.children[v.i]) if (this.voxels[c].state !== 'placed' && this.stageOf[c] <= this.stage && !this.sockets.has(c)) this.addSocket(c);
+      for (const c of this.puzzle.children[v.i]) if (this.voxels[c].state !== 'placed' && !this.sockets.has(c)) this.addSocket(c);
     }
   }
 
-  advanceStage() {
-    this.stage++;
-    this.syncStage(true);
+  // Direction (angle around the pedestal) of district d; district 0 faces the spawn point.
+  districtAngle(d) { return Math.PI / 2 + d * ((Math.PI * 2) / this.stageCount); }
+
+  // A flag with the part number in the middle of each district.
+  buildDistrictFlags() {
+    this.flags = [];
+    if (this.stageCount < 2) return;
+    const group = (this.flagGroup = new THREE.Group());
+    const w = this.world, r0 = Math.max(4, this.footR + 1.2);
+    for (let d = 0; d < this.stageCount; d++) {
+      const color = DISTRICT_COLORS[d % DISTRICT_COLORS.length];
+      let pos = null;
+      for (let k = 0; k < 40 && !pos; k++) {
+        const th = this.districtAngle(d) + (k ? (Math.random() - 0.5) * 0.6 : 0);
+        const r = r0 + (w.R - 1 - r0) * (0.45 + (k ? (Math.random() - 0.5) * 0.3 : 0));
+        const x = Math.cos(th) * r, z = Math.sin(th) * r;
+        if (w.isFreeGround(x, z, 0.4)) pos = new THREE.Vector3(x, w.heightAt(x, z), z);
+      }
+      if (!pos) continue;
+      const flag = new THREE.Group();
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 3.2, 6), new THREE.MeshToonMaterial({ color: 0x6b4a36, gradientMap: this.mat.gradientMap }));
+      pole.position.y = 1.6;
+      const cv = document.createElement('canvas'); cv.width = 128; cv.height = 96;
+      const g = cv.getContext('2d');
+      g.fillStyle = color; g.fillRect(0, 0, 128, 96);
+      g.fillStyle = '#2a1f3d'; g.font = '700 64px Fredoka, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(d + 1), 64, 52);
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+      const banner = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.8, 8, 1), new THREE.MeshToonMaterial({ map: tex, side: THREE.DoubleSide, gradientMap: this.mat.gradientMap }));
+      banner.position.set(0.58, 2.7, 0);
+      flag.add(pole, banner);
+      flag.position.copy(pos);
+      flag.lookAt(0, pos.y, 0);
+      flag.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      group.add(flag);
+      this.flags[d] = { pos: pos.clone().setY(pos.y + 2.4), banner, color };
+    }
+    this.scene.add(group);
+  }
+
+  districtCleared(d) { return this.voxels.every(v => this.stageOf[v.i] !== d || v.state === 'placed'); }
+
+  // District with the most blocks that fit right now (where the compass points).
+  activeDistrict() {
+    const count = new Array(this.stageCount).fill(0);
+    for (const v of this.voxels) if (v.state === 'loose' && this.sockets.has(v.i)) count[this.stageOf[v.i]]++;
+    let best = -1;
+    count.forEach((c, d) => { if (c > 0 && (best < 0 || c > count[best])) best = d; });
+    return best;
+  }
+
+  // A district was completed (in any order): celebrate, and move the part counter on.
+  advanceStage(d) {
+    this.districtDone.add(d);
+    this.stage = Math.min(this.stageCount - 1, this.districtDone.size);
+    if (this.flags[d]) this.flags[d].banner.material.color.setScalar(0.55);
     this.fx.confettiBurst(new THREE.Vector3(0, PEDESTAL_TOP + this.figureHeight * 0.6, 0), 2, 90);
     [0, 1, 2].forEach(k => setTimeout(() => this.audio.star(k), 150 + k * 160));
     this.events.stage?.(this.stage, this.stageCount);
-    this.events.kubo?.(this.stage === this.stageCount - 1
-      ? t('kubo.partLast', { k: this.stage })
-      : t('kubo.part', { k: this.stage, n: this.stageCount }));
+    this.events.kubo?.(this.districtDone.size === this.stageCount - 1
+      ? t('kubo.partLast', { k: this.districtDone.size })
+      : t('kubo.part', { k: this.districtDone.size, n: this.stageCount }));
     this.emitProgress();
+  }
+
+  // Magnet tool: pull every block that fits right now within 10 m into the backpack.
+  useMagnet() {
+    if (this.mode !== 'play' || this.magnetCharges <= 0) { this.audio.wrong(); return; }
+    const p = this.player.pos;
+    const near = this.voxels
+      .filter(v => v.state === 'loose' && this.sockets.has(v.i) && v.mesh.position.distanceTo(p) < 10)
+      .sort((a, b) => a.mesh.position.distanceTo(p) - b.mesh.position.distanceTo(p));
+    let got = 0;
+    for (const v of near) {
+      if (this.pack.length >= PACK_SIZE) break;
+      if (v.state !== 'loose') continue; // already pulled in with its chunk
+      this.grab(v.i);
+      got++;
+    }
+    if (!got) { this.audio.wrong(); this.events.toast?.(t('magnet.none')); return; }
+    this.magnetCharges--;
+    this.fx.burst(new THREE.Vector3(p.x, p.y + 1, p.z), 0x9fe8ff, 30, 6);
+    this.audio.tone({ f: 300, f2: 1200, type: 'sawtooth', dur: 0.35, vol: 0.06 });
+    this.events.toast?.(t(got === 1 ? 'magnet.got.one' : 'magnet.got.other', { n: got }));
+    this.events.magnet?.(this.magnetCharges, false);
   }
 
   // Nearest block that fits right now — only offered when the player seems stuck.
@@ -508,6 +577,11 @@ export class Game {
     this.fx.clearBeam();
     this.liftFx?.dispose();
     this.liftFx = null;
+    if (this.flagGroup) {
+      this.scene.remove(this.flagGroup);
+      this.flagGroup.traverse(o => { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose(); } });
+      this.flagGroup = null;
+    }
     this.world = null;
   }
 
@@ -520,16 +594,23 @@ export class Game {
     const nTop = Math.min(w.tops.length * 3, Math.round(loose.length * topShare));
     // shuffle so the high-up blocks are a random selection
     const order = loose.slice().sort(() => rng() - 0.5);
+    // big figures: every part gets its own district (a slice of the island), the first one facing the spawn
+    const D = this.stageCount, width = (Math.PI * 2) / D;
+    const angDiff = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+    const topsOf = d => (D === 1 ? w.tops : w.tops.filter(t => angDiff(Math.atan2((t.box.min.z + t.box.max.z) / 2, (t.box.min.x + t.box.max.x) / 2), this.districtAngle(d)) < width / 2));
+    const districtTops = Array.from({ length: D }, (_, d) => topsOf(d));
     order.forEach((v, k) => {
       let pos = null;
-      for (let tries = 0; tries < 200 && !pos; tries++) {
-        if (k < nTop && w.tops.length) {
-          const t = w.tops[Math.floor(rng() * w.tops.length)];
+      const d = this.stageOf[v.i];
+      const tops = districtTops[d];
+      for (let tries = 0; tries < 260 && !pos; tries++) {
+        if (k < nTop && tops.length && tries < 120) {
+          const t = tops[Math.floor(rng() * tops.length)];
           const x = THREE.MathUtils.lerp(t.box.min.x + 0.45, t.box.max.x - 0.45, rng());
           const z = THREE.MathUtils.lerp(t.box.min.z + 0.45, t.box.max.z - 0.45, rng());
           if (w.heightAt(x, z) <= t.y + 0.01 && ok(x, z, t.y)) pos = new THREE.Vector3(x, t.y, z);
         } else {
-          const th = rng() * Math.PI * 2;
+          const th = D === 1 || tries > 200 ? rng() * Math.PI * 2 : this.districtAngle(d) + (rng() - 0.5) * width * 0.92;
           const r0 = Math.max(4, this.footR + 1.2);
           const r = r0 + Math.sqrt(rng()) * (w.R - 1 - r0);
           const x = Math.cos(th) * r, z = Math.sin(th) * r;
@@ -600,7 +681,7 @@ export class Game {
     this.placedCount++;
     const sock = this.sockets.get(i);
     if (sock) this.removeSocket(sock);
-    for (const c of this.puzzle.children[i]) if (this.voxels[c].state !== 'placed' && this.stageOf[c] <= this.stage) this.addSocket(c);
+    for (const c of this.puzzle.children[i]) if (this.voxels[c].state !== 'placed') this.addSocket(c);
     this.structureColliders.push(new THREE.Box3().setFromCenterAndSize(v.target, new THREE.Vector3(S, S, S)));
     this.refreshColliders();
     this.emitPack();
@@ -619,10 +700,19 @@ export class Game {
       this.emitProgress();
       this.linkOrder.push(i);
       this.sinceLink = 0;
+      if (this.stageCount > 1 && ++this.magnetLinks >= 12) {
+        this.magnetLinks = 0;
+        if (this.magnetCharges < 3) {
+          this.magnetCharges++;
+          this.events.magnet?.(this.magnetCharges, true);
+          if (!this.magnetTold) { this.magnetTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.magnet.touch' : 'kubo.magnet.desk')); }
+        }
+      }
       const fr = this.placedCount / this.voxels.length;
       while (this.splits.length < 3 && fr >= (this.splits.length + 1) * 0.25) this.splits.push(Math.round(this.elapsed * 10) / 10);
       this.events.link?.(this, i);
-      if (this.placedCount < this.voxels.length && this.stage < this.stageCount - 1 && this.stageCleared(this.stage)) this.advanceStage();
+      const d = this.stageOf[i];
+      if (this.stageCount > 1 && this.placedCount < this.voxels.length && !this.districtDone.has(d) && this.districtCleared(d)) this.advanceStage(d);
       if (this.placedCount === this.voxels.length) this.complete();
       else this.events.saveSession?.(this.sessionData());
     }
@@ -926,6 +1016,7 @@ export class Game {
       else if (a.type === 'interact') this.interact(a.x, a.y);
       else if (a.type === 'drop') this.drop();
       else if (a.type === 'hint') this.hint();
+      else if (a.type === 'magnet') this.useMagnet();
       else if (a.type === 'pause') this.events.pause?.();
       else if (a.type === 'slot') this.selectSlot(a.k);
       else if (a.type === 'cycle') this.cycleSlot(a.d);
@@ -948,6 +1039,7 @@ export class Game {
     this.sinceLink += dt;
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
     if (this.tutorial === 1 && this.elapsed > 3) this.tutorial = 2;
+    if (this.stageCount > 1 && !this.districtTip && this.elapsed > 2.5) { this.districtTip = true; this.events.tip?.('districts'); }
 
     this.setFocus(this.input.mobile ? null : this.rayFrom());
     this.events.tick?.(this);

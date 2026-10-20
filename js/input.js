@@ -36,6 +36,7 @@ export class Input {
       if (this.is(e.code, 'drop')) this.actions.push({ type: 'drop' });
       if (this.is(e.code, 'hint')) this.actions.push({ type: 'hint' });
       if (e.code === 'KeyP') this.actions.push({ type: 'pause' });
+      if (e.code === 'KeyR') this.actions.push({ type: 'magnet' });
       if (/^Digit[1-4]$/.test(e.code)) this.actions.push({ type: 'slot', k: +e.code.slice(5) - 1 });
       if (e.code === 'Tab') { this.actions.push({ type: 'cycle', d: e.shiftKey ? -1 : 1 }); e.preventDefault(); }
     });

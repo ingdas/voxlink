@@ -523,3 +523,9 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 /* ---------- Right-to-left (Arabic) ---------- */
 [dir=rtl] .logo { direction: ltr; }
 #count, #map-stars, .stage, .slot .key, .stat b, .splits span, #pause-info, .garden-count, #ending-stars b, .chip { direction: ltr; unicode-bidi: isolate; }
+
+/* ---------- Tools: hint + magnet ---------- */
+.hud-tools { display: flex; gap: 10px; }
+#btn-magnet .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
+#btn-magnet.empty { filter: saturate(.2); opacity: .7; }
+.edge.district { border-width: 3px; }
