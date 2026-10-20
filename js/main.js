@@ -509,7 +509,7 @@ function buildMap() {
     const stars = [s.done, s.fast, s.clean].map(on => `<svg class="${on ? 'on' : ''}"><use href="#i-star"/></svg>`).join('');
     const unlocking = pendingUnlock && i === pendingUnlock.to;
     const T = THEMES[CHAPTERS[l.chapter].theme];
-    html += `<button class="node ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${i === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" data-i="${i}" style="left:${p.x}px;top:${p.y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
+    html += `<button class="node ${l.boss ? 'boss' : ''} ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${i === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" data-i="${i}" style="left:${p.x}px;top:${p.y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
       <div class="island">${locked ? '<svg><use href="#i-lock"/></svg>' : `<img src="${thumbs[i] || ''}" alt="">${solved ? '' : '<span class="q">?</span>'}`}<span class="num">${i + 1}</span></div>
       ${locked ? '' : `<div class="stars">${stars}</div>`}
       <div class="name">${solved ? l.name : locked ? '???' : l.tag}</div></button>`;
@@ -572,7 +572,8 @@ function openBrief(i) {
   const l = LEVELS[i], ch = CHAPTERS[l.chapter];
   const solved = isDone(l.id);
   const s = save.stars[l.id] || {};
-  $('brief-chapter').textContent = `${ch.name} · ${l.indexInChapter + 1}`;
+  $('brief-chapter').textContent = l.boss ? t('brief.boss') : `${ch.name} · ${l.indexInChapter + 1}`;
+  $('brief-chapter').classList.toggle('boss', !!l.boss);
   $('brief-img').src = thumbs[i] || '';
   $('brief-thumb').classList.toggle('mystery', !solved);
   $('brief-name').textContent = solved ? l.name : t('hud.mystery');

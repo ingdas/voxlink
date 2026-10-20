@@ -6,6 +6,7 @@ export default {
   "common.settings": "Settings",
   "map.title": "World Map",
   "brief.start": "Start",
+  "brief.boss": "Final figure",
   "talk.skip": "Skip",
   "talk.more": "Tap to continue",
   "settings.look": "Look speed",

@@ -513,3 +513,9 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 .splits em { font-style: normal; font-size: 11px; }
 .splits em.up { color: #1f9e63; } .splits em.down { color: #d9483b; }
 @media (max-height: 500px) { .splits span { font-size: 11px; padding: 1px 6px; } }
+
+/* ---------- Final figure ---------- */
+.node.boss { transform: scale(1.25); }
+.node.boss .island { box-shadow: 0 7px 0 var(--ink), 0 0 0 7px rgba(255, 107, 107, .65); }
+.node.boss::after { content: '★'; position: absolute; top: -26px; left: 50%; transform: translateX(-50%); font-size: 26px; color: var(--sun); -webkit-text-stroke: 2px var(--ink); }
+.brief-chapter.boss { background: var(--coral); }

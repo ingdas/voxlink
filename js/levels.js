@@ -217,6 +217,79 @@ const FIGURES = {
     f.recolor((x, y, z) => (y === 1 && Math.abs(x) <= 1 && Math.abs(z) <= 1 ? 's' : null));
   }),
 
+  balloon: () => figure(f => {
+    // striped envelope
+    f.ellipsoid(0, 7, 0, 2.4, 2.9, 2.4, (x, y, z) => {
+      const a = Math.atan2(z, x);
+      if (y >= 9) return 'r';
+      return Math.floor(((a + Math.PI) / (Math.PI * 2)) * 8) % 2 ? 'y' : 'r';
+    });
+    f.set(0, 10, 0, 'y');
+    // ropes
+    for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (let y = 2; y <= 4; y++) f.set(x, y, z, 'B');
+    // basket
+    for (let y = 0; y <= 1; y++) for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) {
+      if (y === 1 && x === 0 && z === 0) continue;
+      f.set(x, y, z, 'b');
+    }
+    f.set(0, 1, 0, 'o');
+  }),
+
+  octopus: () => figure(f => {
+    f.ellipsoid(0, 5.2, 0, 2.1, 2.4, 2.1, 'p');
+    f.set(-1, 5, 2, 'w'); f.set(1, 5, 2, 'w'); f.set(-1, 5, 3, 'k'); f.set(1, 5, 3, 'k');
+    f.set(0, 4, 2, 'v');
+    // eight curly legs
+    const dirs = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+    dirs.forEach(([dx, dz], i) => {
+      let x = dx, z = dz, y = 3;
+      const path = [[x, y, z]];
+      for (let k = 0; k < 3; k++) { y = Math.max(0, y - 1); path.push([x, y, z]); x += dx; path.push([x, y, z]); z += dz; if (dz) path.push([x, y, z]); }
+      path.push([x, y + 1, z]);
+      if (i % 2) path.push([x, y + 2, z]);
+      for (const [px, py, pz] of path) f.set(px, py, pz, py === 0 ? 'v' : 'p');
+    });
+  }),
+
+  lighthouse: () => figure(f => {
+    const plus = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+    f.box(-1, 0, -1, 1, 0, 1, 'n');
+    for (const [x, z] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) f.set(x, 0, z, 'n');
+    for (let y = 1; y <= 10; y++) {
+      const c = Math.floor((y - 1) / 2) % 2 ? 'w' : 'r';
+      for (const [x, z] of plus) f.set(x, y, z, c);
+      if (y <= 2) for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) f.set(x, y, z, c);
+    }
+    f.set(0, 1, 2, 'B');
+    for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) f.set(x, 11, z, 'c');
+    for (const [x, z] of plus) f.set(x, 11, z, 'y');
+    f.box(-1, 12, -1, 1, 12, 1, 'k');
+    f.set(0, 13, 0, 'r');
+  }),
+  // The final boss: a giant Keeper statue with Kubo's face.
+  colossus: () => figure(f => {
+    for (const sx of [-1, 1]) {
+      f.box(sx * 1, 0, -1, sx * 2, 4, 0, 'n');                    // legs
+      f.box(sx * 1, 0, 1, sx * 2, 0, 1, 'k');                      // toes
+      f.box(sx * 4, 6, -1, sx * 4, 8, 0, 't');                     // arms
+      f.box(sx * 4, 3, -1, sx * 4, 5, 0, 'n');                     // fists
+    }
+    f.box(-3, 5, -2, 3, 8, 1, 't');                                 // body
+    f.box(-3, 5, -2, 3, 5, 1, 'B');                                 // belt
+    f.recolor((x, y, z) => (z === 1 && y >= 6 && y <= 7 && Math.abs(x) <= 1 ? 'c' : null)); // glowing heart
+    f.box(-3, 9, -2, 3, 13, 1, 'y');                                // Kubo head
+    f.recolor((x, y, z) => {
+      if (z !== 1 || y < 9 || y > 13) return null;
+      if (Math.abs(x) === 1 && (y === 11 || y === 12)) return 'k'; // eyes
+      if (y === 9 && Math.abs(x) <= 1) return 'k';                 // smile
+      if (y === 10 && Math.abs(x) === 2) return 'k';
+      if (y === 10 && Math.abs(x) === 3) return 'p';               // cheeks
+      return null;
+    });
+    f.recolor((x, y) => (y === 13 ? 'o' : null));                   // crown band
+    for (const x of [-3, 0, 3]) { f.set(x, 14, -1, 'o'); f.set(x, 14, 0, 'o'); f.set(x, 15, 0, 'y'); }
+    f.set(0, 16, 0, 'c');
+  }),
   dragon: () => figure(f => {
     f.box(-1, 2, -2, 1, 4, 2, 'v');
     for (const x of [-1, 1]) for (const z of [-2, 2]) f.del(x, 4, z);
@@ -294,13 +367,28 @@ export const CHAPTERS = [
       { id: 'robot', tag: 'Beep boop', name: 'Robot', intro: 'The old star-watchers built a helper here.', outro: 'Beep boop! The Robot salutes you.' },
       { id: 'castle', tag: 'Tiny kingdom', name: 'Castle', intro: 'A hollow figure — the walls go all the way around!', outro: 'The Castle! Its towers glow in the twilight.' },
       { id: 'rocket', tag: 'To the stars', name: 'Rocket', intro: 'The star-watchers dreamed of flying up there.', outro: 'The Rocket points at the stars. One figure left…' },
-      { id: 'dragon', tag: 'Oldest of all', name: 'Star Dragon', intro: "This is it. The Star Dragon — keeper of the skies. It isn't angry… just broken.", outro: 'The Star Dragon is whole! Listen… the wind is calm.' },
+      { id: 'dragon', tag: 'Oldest of all', name: 'Star Dragon', intro: "This is it. The Star Dragon — keeper of the skies. It isn't angry… just broken.", outro: 'The Star Dragon is whole! But look — the last of the storm is spinning far out at sea…' },
+    ],
+  },
+  {
+    id: 'storm', name: 'Eye of the Storm', blurb: 'Where it all ends',
+    theme: 'storm',
+    intro: [
+      'The skies are calm everywhere… except <b>here</b>. All the leftover storm gathered in one place.',
+      'Deep inside sleeps the <b>Keeper Colossus</b> — the first Keeper ever built. My great-great-great-grandcube!',
+      'It was holding the storm in its hands when it shattered. Rebuild it, and the storm is gone for good.',
+    ],
+    levels: [
+      { id: 'lighthouse', tag: 'Guiding light', name: 'Lighthouse', intro: 'A light in the storm. The sailors need it tonight.', outro: 'The Lighthouse shines through the rain! Now we can find our way deeper in.' },
+      { id: 'balloon', tag: 'Up, up and away', name: 'Hot Air Balloon', intro: 'The islanders used to float above the clouds in this one.', outro: 'The Balloon floats again! Hold on to your hat.' },
+      { id: 'octopus', tag: 'Eight arms, one hug', name: 'Octopus', intro: 'Count the arms when you are done. All eight!', outro: 'The Octopus waves all eight arms! Look — I can see the Colossus from here…' },
+      { id: 'colossus', tag: 'The final Keeper', name: 'Keeper Colossus', boss: true, intro: 'This is the biggest figure ever made. It will take many parts — and every block you can carry. Ready?', outro: 'The Colossus opens its eyes… and lets the storm go. The sky is clear!' },
     ],
   },
 ];
 
 export const ENDING = [
-  'The Star Dragon stretches its wings… and the clouds part.',
+  'The Keeper Colossus stretches its arms… and the last clouds drift away.',
   'Every island has its figures back. The Archipelago is <b>whole</b> again.',
   'Thank you, Linker. Visit any island whenever you like — and go for all the stars!',
 ];

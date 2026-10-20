@@ -28,7 +28,7 @@ export class Audio {
       this.wet = c.createGain(); this.wet.gain.value = 0.5;
       this.delay.connect(this.fb).connect(this.delay);
       this.delay.connect(this.wet).connect(this.master);
-      this.noiseBuf = c.createBuffer(1, c.sampleRate * 0.5, c.sampleRate);
+      this.noiseBuf = c.createBuffer(1, c.sampleRate * 2.5, c.sampleRate);
       const d = this.noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
@@ -104,6 +104,11 @@ export class Audio {
     const n = [76, 79, 84][k] ?? 84;
     this.tone({ f: this.midi(n), type: 'triangle', dur: 0.35, vol: 0.18, wet: 0.5 });
     this.tone({ f: this.midi(n + 12), type: 'sine', t: 0.03, dur: 0.3, vol: 0.07, wet: 0.5 });
+  }
+  thunder() {
+    const delay = 0.3 + Math.random() * 0.8;
+    this.noise({ t: delay, dur: 2.2, vol: 0.35, freq: 140, q: 0.4, type: 'lowpass' });
+    this.noise({ t: delay + 0.05, dur: 0.5, vol: 0.2, freq: 900, q: 0.3, type: 'lowpass' });
   }
   win() {
     const seq = [60, 64, 67, 72, 76, 79, 84];

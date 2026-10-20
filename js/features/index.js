@@ -5,5 +5,6 @@ import * as photo from './photo.js';
 import * as museum from './museum.js';
 import * as workshop from './workshop.js';
 import * as lang from './lang.js';
+import * as debug from './debug.js';
 
-export default [access, daily, photo, museum, workshop, lang];
+export default [access, daily, photo, museum, workshop, lang, debug];

@@ -98,6 +98,7 @@ export class Game {
       theme: themeId, difficulty: Math.min(1, (level.chapter ?? 1) / 3 + (level.indexInChapter ?? 1) * 0.08),
     });
     this.scene.add(this.world.group);
+    this.world.onFlash = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.thunder(); };
     this.audio.surface = { frost: 'snow', reef: 'sand' }[themeId] || 'grass';
     this.scene.fog.color.setHex(this.world.theme.skyHorizon);
     this.scene.fog.density = this.world.theme.fogDensity;
@@ -135,10 +136,10 @@ export class Game {
       first.rest.pos.set(0.9, S / 2, Math.min(R - 3, 9) - 3.2);
       first.mesh.position.copy(first.rest.pos);
     }
-    this.place(this.puzzle.root, true);
+    for (const r of this.puzzle.roots) this.place(r, true);
     // big figures start with a small pre-built core so several bubbles are open from the start
     const seed = cells.length < 30 ? 0 : Math.round(cells.length * 0.07);
-    const queue = [...this.puzzle.children[this.puzzle.root]];
+    const queue = this.puzzle.roots.flatMap(r => this.puzzle.children[r]);
     for (let k = 0; k < seed && queue.length; k++) {
       const c = queue.splice(Math.floor(rng() * queue.length), 1)[0];
       this.place(c, true);
@@ -179,8 +180,8 @@ export class Game {
     if (this.stageCount === 1) return;
     const byHeight = this.cells.map((c, i) => i).sort((a, b) => (this.cells[a].iy - this.cells[b].iy) || (Math.hypot(this.cells[a].x, this.cells[a].z) - Math.hypot(this.cells[b].x, this.cells[b].z)));
     byHeight.forEach((i, rank) => { this.stageOf[i] = Math.floor((rank * this.stageCount) / n); });
-    const queue = [this.puzzle.root];
-    this.stageOf[this.puzzle.root] = 0;
+    const queue = [...this.puzzle.roots];
+    for (const r of queue) this.stageOf[r] = 0;
     while (queue.length) {
       const p = queue.shift();
       for (const c of this.puzzle.children[p]) { this.stageOf[c] = Math.max(this.stageOf[c], this.stageOf[p]); queue.push(c); }
@@ -251,7 +252,7 @@ export class Game {
     const w = this.world;
     const placedPts = [];
     const ok = (x, z, y) => placedPts.every(p => Math.hypot(p.x - x, p.z - z) > 1.15 || Math.abs(p.y - y) > 1);
-    const loose = this.voxels.filter(v => v.i !== this.puzzle.root);
+    const loose = this.voxels.filter(v => !this.puzzle.roots.includes(v.i));
     const rots = cubeRotations();
     const nTop = Math.min(w.tops.length * 3, Math.round(loose.length * topShare));
     // shuffle so the high-up blocks are a random selection

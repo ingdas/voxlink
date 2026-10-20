@@ -36,6 +36,14 @@ export const THEMES = {
     rock: 0x9d8fd0, rockShape: 'rock', tuft: 0x5aa883, flowers: [0x6ee7ff, 0xffe066, 0xff9ee8],
     pedestal: [0x8f80c4, 0xbdb1e6, 0xffd23f], particles: 'fireflies', stars: true,
   },
+  storm: {
+    grass: 0x5f9e86, cap: 0x76b39a, cliff: 0x6f6a8f, dirt: 0x58547a, water: 0x2e4d6e, foam: 0xb8c8e0,
+    skyTop: 0x2c3354, skyHorizon: 0x8d94b8, fogDensity: 0.016,
+    sun: [0xdfe6ff, 1.5], sunPos: [10, 26, -8], hemi: [0xb4c0e8, 0x4f4a66, 1.7],
+    trees: 'round', leaves: [0x3f8f6e, 0x4c9a7a, 0x357a63], trunk: 0x5c4a44,
+    rock: 0x8f8aa8, rockShape: 'rock', tuft: 0x4f8c74, flowers: [0x9fb4ff, 0xffffff],
+    pedestal: [0x7b77a0, 0xaaa6c8, 0x4cc9f0], particles: 'rain', lightning: true,
+  },
 };
 
 function islandRadiusFn(R, seed) {
@@ -310,15 +318,16 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
 
   // --- Ambient particles that follow the camera ---
   if (T.particles) {
-    const n = T.particles === 'snow' ? 700 : T.particles === 'fireflies' ? 90 : 60;
+    const rain = T.particles === 'rain';
+    const n = T.particles === 'snow' ? 700 : rain ? 900 : T.particles === 'fireflies' ? 90 : 60;
     const span = T.particles === 'snow' ? 30 : 36;
     const pos = new Float32Array(n * 3), seeds = new Float32Array(n);
     for (let i = 0; i < n; i++) { pos.set([(rng() - 0.5) * span, rng() * 14, (rng() - 0.5) * span], i * 3); seeds[i] = rng() * 100; }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const color = T.particles === 'snow' ? 0xffffff : T.particles === 'fireflies' ? 0xffee88 : 0xfff4b0;
+    const color = T.particles === 'snow' ? 0xffffff : rain ? 0xc8d8ff : T.particles === 'fireflies' ? 0xffee88 : 0xfff4b0;
     const pm = new THREE.PointsMaterial({
-      color, size: T.particles === 'snow' ? 0.13 : 0.16, map: dotTexture(), transparent: true, depthWrite: false,
+      color, size: T.particles === 'snow' ? 0.13 : rain ? 0.07 : 0.16, opacity: rain ? 0.7 : 1, map: dotTexture(), transparent: true, depthWrite: false,
       blending: T.particles === 'snow' ? THREE.NormalBlending : THREE.AdditiveBlending,
     });
     const pts = new THREE.Points(g, pm);
@@ -331,7 +340,11 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
       for (let i = 0; i < n; i++) {
         let x = a[i * 3], y = a[i * 3 + 1], z = a[i * 3 + 2];
         const s = seeds[i];
-        if (T.particles === 'snow') {
+        if (rain) {
+          y -= dt * (14 + (s % 1) * 4);
+          x += dt * 1.5;
+          if (y < 0) y += 14;
+        } else if (T.particles === 'snow') {
           y -= dt * (0.9 + (s % 1) * 0.6);
           x += Math.sin(t * 0.8 + s) * dt * 0.4;
           if (y < 0) y += 14;
@@ -376,6 +389,22 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   sun.shadow.normalBias = 0.03;
   group.add(sun, sun.target);
 
+  // storm: lightning flashes light up the sky; the game plays thunder via api.onFlash
+  let flashT = 4 + rng() * 6, flash = 0;
+  if (T.lightning) {
+    const baseHemi = hemi.intensity, baseTop = sky.material.uniforms.top.value.clone(), baseHor = sky.material.uniforms.horizon.value.clone();
+    const white = new THREE.Color(0xeef2ff);
+    updaters.push(dt => {
+      flashT -= dt;
+      if (flashT <= 0) { flash = 1; flashT = 7 + Math.random() * 10; api.onFlash?.(); }
+      flash = Math.max(0, flash - dt * 3.5);
+      const k = flash > 0.5 ? flash : flash * (0.6 + 0.4 * Math.sin(flash * 40));
+      hemi.intensity = baseHemi * (1 + k * 1.6);
+      sky.material.uniforms.top.value.copy(baseTop).lerp(white, k * 0.5);
+      sky.material.uniforms.horizon.value.copy(baseHor).lerp(white, k * 0.7);
+    });
+  }
+
   const isFreeGround = (x, z, margin) => {
     if (Math.hypot(x, z) < Math.max(3.6, clearR + 1)) return false;
     const th = Math.atan2(z, x);
@@ -394,8 +423,8 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     return h;
   };
 
-  return {
-    group, colliders, blockers, radiusAt, R, tops, isFreeGround, heightAt, theme: T,
+  const api = {
+    group, colliders, blockers, radiusAt, R, tops, isFreeGround, heightAt, theme: T, onFlash: null,
     update(dt, t, cam) { for (const u of updaters) u(dt, t, cam); },
     dispose() {
       group.traverse(o => {
@@ -405,6 +434,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
       sun.shadow.map?.dispose();
     },
   };
+  return api;
 }
 
 const geoCache = {};
