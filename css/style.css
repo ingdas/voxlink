@@ -318,7 +318,7 @@ body.mobile .touch-btns { display: flex; }
   background: linear-gradient(rgba(42, 31, 61, .55), rgba(42, 31, 61, 0));
   padding: calc(12px + var(--sat)) calc(12px + var(--sar)) 12px calc(12px + var(--sal)); pointer-events: none;
 }
-.map-top > * { pointer-events: auto; }
+.screen.show .map-top > * { pointer-events: auto; }
 .map-title { font-size: 20px; }
 .star-total { display: flex; align-items: center; gap: 6px; font-size: 17px; }
 .star-total svg { color: var(--ink); fill: var(--sun); width: 22px; height: 22px; stroke-width: 2.4; }

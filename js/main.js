@@ -93,7 +93,7 @@ const game = new Game({
     complete: stats => onComplete(stats),
     introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); },
     pause: () => pause(),
-    saveSession: data => { save.session = data; persist(); },
+    saveSession: data => { if (game.level?.kind) return; save.session = data; persist(); },
     tick: g => { tickHud(g); ctx.hooks.tick.forEach(f => f(g)); },
     link: (g, i) => ctx.hooks.link.forEach(f => f(g, i)),
   },
@@ -728,6 +728,8 @@ function frame(now) {
   audio.updateMusic();
   // nothing 3D is visible behind these screens
   if (app === 'paused' || app === 'loading' || app === 'menu') return;
+  // a feature can own the frame for its own app state (e.g. the workshop editor)
+  if (ctx.views[app]) { ctx.views[app](dt); renderer.adapt(dt); return; }
   game.update(dt);
   renderer.render(scene, camera);
   renderer.adapt(dt);
@@ -744,6 +746,7 @@ const ctx = {
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [], settings: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures
+  views: {}, // app state -> (dt) => void; replaces game.update + scene render while app is in that state
 };
 
 // ---------- boot ----------
