@@ -117,7 +117,15 @@ export class Game {
     this.placedCount = 0;
     this.pack = [];
     this.active = 0;
+    this.computeStages();
+    this.stage = 0;
     this.scatter(rng, Math.min(0.5, 0.18 + (level.chapter ?? 1) * 0.08));
+    if (this.levelIndex === 0) {
+      // tutorial: put the first block right in front of the player
+      const first = this.voxels[this.puzzle.children[this.puzzle.root][0]];
+      first.rest.pos.set(0.9, S / 2, Math.min(R - 3, 9) - 3.2);
+      first.mesh.position.copy(first.rest.pos);
+    }
     this.place(this.puzzle.root, true);
     // big figures start with a small pre-built core so several bubbles are open from the start
     const seed = cells.length < 30 ? 0 : Math.round(cells.length * 0.07);
@@ -136,8 +144,12 @@ export class Game {
       this.linkOrder = resume.placed.slice();
       this.refreshColliders();
     }
+    this.stage = Math.min(this.stageCount - 1, Math.min(...this.voxels.filter(v => v.state !== 'placed').map(v => this.stageOf[v.i]), this.stageCount - 1));
+    this.syncStage(false);
     this.elapsed = resume?.elapsed ?? 0;
     this.hintsUsed = resume?.hints ?? 0;
+    this.splits = resume?.splits?.slice() ?? [];
+    this.sinceLink = 0;
     this.hintCooldown = 0;
     this.focus = null;
     this.focusKey = '';
@@ -148,6 +160,71 @@ export class Game {
     this.kick = 0;
     this.emitProgress();
     this.emitPack();
+  }
+
+  // Big figures are built in parts (bottom first). A block's part is never earlier than its parent's.
+  computeStages() {
+    const n = this.cells.length;
+    this.stageCount = n > 44 ? Math.ceil(n / 34) : 1;
+    this.stageOf = new Array(n).fill(0);
+    if (this.stageCount === 1) return;
+    const byHeight = this.cells.map((c, i) => i).sort((a, b) => (this.cells[a].iy - this.cells[b].iy) || (Math.hypot(this.cells[a].x, this.cells[a].z) - Math.hypot(this.cells[b].x, this.cells[b].z)));
+    byHeight.forEach((i, rank) => { this.stageOf[i] = Math.floor((rank * this.stageCount) / n); });
+    const queue = [this.puzzle.root];
+    this.stageOf[this.puzzle.root] = 0;
+    while (queue.length) {
+      const p = queue.shift();
+      for (const c of this.puzzle.children[p]) { this.stageOf[c] = Math.max(this.stageOf[c], this.stageOf[p]); queue.push(c); }
+    }
+  }
+
+  stageCleared(k) { return this.voxels.every(v => this.stageOf[v.i] > k || v.state === 'placed'); }
+
+  // Show the blocks of the current part (raining them in when a new part starts) and open its bubbles.
+  syncStage(rain) {
+    for (const v of this.voxels) {
+      const inStage = this.stageOf[v.i] <= this.stage;
+      if (!inStage && v.state === 'loose') { v.state = 'waiting'; v.mesh.visible = false; }
+      else if (inStage && v.state === 'waiting') {
+        v.mesh.visible = true;
+        if (rain) {
+          const from = v.rest.pos.clone().add(new THREE.Vector3(0, 16 + Math.random() * 8, 0));
+          v.mesh.position.copy(from);
+          this.startAnim(v, 'dropping', v.rest.pos, v.rest.quat, 0.9);
+          v.anim.from.copy(from);
+          v.anim.delay = Math.random() * 1.6;
+          v.anim.quiet = Math.random() > 0.2;
+        } else v.state = 'loose';
+      }
+    }
+    for (const v of this.voxels) {
+      if (v.state !== 'placed') continue;
+      for (const c of this.puzzle.children[v.i]) if (this.voxels[c].state !== 'placed' && this.stageOf[c] <= this.stage && !this.sockets.has(c)) this.addSocket(c);
+    }
+  }
+
+  advanceStage() {
+    this.stage++;
+    this.syncStage(true);
+    this.fx.confettiBurst(new THREE.Vector3(0, PEDESTAL_TOP + this.figureHeight * 0.6, 0), 2, 90);
+    [0, 1, 2].forEach(k => setTimeout(() => this.audio.star(k), 150 + k * 160));
+    this.events.stage?.(this.stage, this.stageCount);
+    this.events.kubo?.(this.stage === this.stageCount - 1
+      ? `Part ${this.stage} done! Here comes the last part — watch the sky!`
+      : `Part ${this.stage} of ${this.stageCount} done! More blocks are falling from the sky!`);
+    this.emitProgress();
+  }
+
+  // Nearest block that fits right now — only offered when the player seems stuck.
+  radarTarget() {
+    if (this.mode !== 'play' || this.sinceLink < 20 || this.pack.some(i => this.sockets.has(i))) return null;
+    let best = null, bd = Infinity;
+    for (const v of this.voxels) {
+      if (v.state !== 'loose' || !this.sockets.has(v.i)) continue;
+      const d = v.mesh.position.distanceToSquared(this.player.pos);
+      if (d < bd) { bd = d; best = v.mesh.position; }
+    }
+    return best;
   }
 
   unload() {
@@ -244,7 +321,7 @@ export class Game {
     this.placedCount++;
     const sock = this.sockets.get(i);
     if (sock) this.removeSocket(sock);
-    for (const c of this.puzzle.children[i]) if (this.voxels[c].state !== 'placed') this.addSocket(c);
+    for (const c of this.puzzle.children[i]) if (this.voxels[c].state !== 'placed' && this.stageOf[c] <= this.stage) this.addSocket(c);
     this.structureColliders.push(new THREE.Box3().setFromCenterAndSize(v.target, new THREE.Vector3(S, S, S)));
     this.refreshColliders();
     this.emitPack();
@@ -263,7 +340,11 @@ export class Game {
       this.events.vibrate?.(18);
       this.emitProgress();
       this.linkOrder.push(i);
+      this.sinceLink = 0;
+      const fr = this.placedCount / this.voxels.length;
+      while (this.splits.length < 3 && fr >= (this.splits.length + 1) * 0.25) this.splits.push(Math.round(this.elapsed * 10) / 10);
       this.events.link?.(this, i);
+      if (this.placedCount < this.voxels.length && this.stage < this.stageCount - 1 && this.stageCleared(this.stage)) this.advanceStage();
       if (this.placedCount === this.voxels.length) this.complete();
       else this.events.saveSession?.(this.sessionData());
     }
@@ -453,7 +534,8 @@ export class Game {
     this.fx.clearBeam();
     this.camFrom = { pos: this.camera.position.clone(), quat: this.camera.quaternion.clone() };
     this.orbitAngle = Math.atan2(this.camera.position.x, this.camera.position.z);
-    this.events.complete?.({ time: this.elapsed, hints: this.hintsUsed });
+    this.splits.push(Math.round(this.elapsed * 10) / 10);
+    this.events.complete?.({ time: this.elapsed, hints: this.hintsUsed, splits: this.splits.slice() });
   }
 
   // ---------- per-frame ----------
@@ -554,6 +636,7 @@ export class Game {
     this.sway.x += (look.x * 1.5 - this.sway.x) * Math.min(1, dt * 10);
     this.sway.y += (look.y * 1.5 - this.sway.y) * Math.min(1, dt * 10);
     this.elapsed += dt;
+    this.sinceLink += dt;
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
     if (this.tutorial === 1 && this.elapsed > 3) this.tutorial = 2;
 
@@ -622,8 +705,10 @@ export class Game {
         continue;
       }
       m.visible = true;
+      if (v.state === 'waiting') { m.visible = false; continue; }
       if (v.state === 'flying' || v.state === 'dropping') {
         const a = v.anim;
+        if (a.delay > 0) { a.delay -= dt; m.position.copy(a.from); continue; }
         a.t += dt / a.dur;
         const k = Math.min(1, a.t);
         const e = v.state === 'flying' ? ease(k) : k;
@@ -634,9 +719,12 @@ export class Game {
         if (a.t >= 1) {
           if (v.state === 'flying') this.place(v.i);
           else {
+            const quiet = v.anim.quiet;
             v.state = 'loose'; v.anim = null; m.position.copy(v.rest.pos); m.castShadow = true;
-            this.audio.thud();
-            this.fx.burst(new THREE.Vector3(m.position.x, m.position.y - S / 2, m.position.z), 0xffffff, 6, 1.5);
+            if (!quiet) {
+              this.audio.thud();
+              this.fx.burst(new THREE.Vector3(m.position.x, m.position.y - S / 2, m.position.z), 0xffffff, 6, 1.5);
+            }
           }
         }
         continue;
@@ -652,7 +740,12 @@ export class Game {
       // loose
       const hovered = this.focus && this.focus.kind === 'loose' && this.focus.i === v.i && !this.focus.far;
       v.highlight += ((hovered ? 1 : 0) - v.highlight) * Math.min(1, dt * 14);
-      v.mat.emissive.setScalar(v.highlight * (0.18 + 0.06 * Math.sin(this.t * 8)));
+      // blocks that fit right now glint when you're near
+      const fitsNow = this.mode === 'play' && this.sockets.has(v.i) && m.position.distanceToSquared(this.player.pos) < 81;
+      v.glint = (v.glint || 0) + ((fitsNow ? 1 : 0) - (v.glint || 0)) * Math.min(1, dt * 3);
+      const tw = Math.max(0, Math.sin(this.t * 2.6 + v.i * 1.7));
+      v.mat.emissive.setScalar(Math.max(v.highlight * (0.18 + 0.06 * Math.sin(this.t * 8)), v.glint * tw * tw * 0.16));
+      if (v.glint > 0.5 && Math.random() < dt * 1.4) this.fx.sparkle(m.position);
       if (v.hop > 0) {
         v.hop = Math.max(0, v.hop - dt);
         m.position.y = v.rest.pos.y + Math.abs(Math.sin(v.hop * 6)) * 0.35 * Math.min(1, v.hop);
@@ -703,7 +796,7 @@ export class Game {
   }
 
   sessionData() {
-    return { id: this.level.id, seed: this.runSeed, placed: this.linkOrder.slice(), elapsed: Math.round(this.elapsed), hints: this.hintsUsed, n: this.voxels.length, done: this.placedCount };
+    return { id: this.level.id, seed: this.runSeed, placed: this.linkOrder.slice(), elapsed: Math.round(this.elapsed), hints: this.hintsUsed, n: this.voxels.length, done: this.placedCount, splits: this.splits.slice() };
   }
 
   openSocketNumbers() { return [...this.sockets.values()].map(s => s.num).sort((a, b) => a - b); }

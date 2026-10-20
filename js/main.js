@@ -82,6 +82,7 @@ const game = new Game({
     progress: (n, total, level) => {
       $('lvl-name').textContent = level.kind || isDone(level.id) ? level.name : 'Mystery figure';
       $('count').textContent = `${n} / ${total}`;
+      $('stage').textContent = game.stageCount > 1 ? `Part ${game.stage + 1}/${game.stageCount}` : '';
       $('bar-fill').style.width = `${(n / total) * 100}%`;
       renderNeeds();
     },
@@ -93,7 +94,8 @@ const game = new Game({
     complete: stats => onComplete(stats),
     introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); },
     pause: () => pause(),
-    saveSession: data => { save.session = data; persist(); },
+    stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
+    saveSession: data => { if (!game.level.kind) { save.session = data; persist(); } },
     tick: g => { tickHud(g); ctx.hooks.tick.forEach(f => f(g)); },
     link: (g, i) => ctx.hooks.link.forEach(f => f(g, i)),
   },
@@ -239,6 +241,8 @@ function tickHud(g) {
   const far = g.player.pos.length() > 7;
   placeEdge($('edge-home'), homePos, far && g.pack.some(i => g.sockets.has(i)));
   placeEdge($('edge-hint'), fx.beamTarget?.position ?? homePos, !!fx.beamTarget);
+  const radar = g.radarTarget();
+  placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
 }
 
 // ---------- flow ----------
@@ -310,7 +314,12 @@ function talk(lines, done) {
     audio.click();
     start();
   };
-  const key = e => { if (['Space', 'Enter', 'KeyE'].includes(e.code)) { e.preventDefault(); advance(); } };
+  const key = e => {
+    if (['Space', 'Enter', 'KeyE'].includes(e.code)) { e.preventDefault(); advance(); }
+    if (e.code === 'Escape') { e.preventDefault(); skip(e); }
+  };
+  const skip = e => { e?.stopPropagation(); clearInterval(timer); li = lines.length - 1; shown = plain; advance(); };
+  $('talk-skip').onclick = skip;
   $('screen-talk').addEventListener('click', advance);
   addEventListener('keydown', key);
   pushOverlay('screen-talk');
@@ -392,7 +401,9 @@ function onComplete(stats) {
   save.stars[lvl.id] = { done: true, fast: !!(prev.fast || run.fast), clean: !!(prev.clean || run.clean) };
   const prevBest = save.best[lvl.id];
   const isBest = !prevBest || stats.time < prevBest;
-  if (isBest) save.best[lvl.id] = stats.time;
+  save.splits = save.splits || {};
+  const prevSplits = save.splits[lvl.id];
+  if (isBest) { save.best[lvl.id] = stats.time; save.splits[lvl.id] = stats.splits; }
   const oldUnlocked = save.unlocked;
   save.unlocked = Math.max(save.unlocked, Math.min(LEVELS.length, idx + 2));
   pendingUnlock = save.unlocked > oldUnlocked ? { from: idx, to: save.unlocked - 1 } : null;
@@ -402,9 +413,20 @@ function onComplete(stats) {
   setTimeout(() => showComplete({
     name: lvl.name, img: thumbs[idx], reveal: firstClear, time: stats.time, par, hints: stats.hints,
     stars: [run.done, run.fast, run.clean], best: isBest && !firstClear ? 'New best!' : '', say: lvl.outro,
+    splits: stats.splits, prevSplits,
     nextLabel: finale ? 'Epilogue' : 'Continue', onNext: finale ? showEnding : openMap, onMap: openMap,
     onRetry: () => { pendingUnlock = null; startLevel(lvl); },
   }), 2600);
+}
+
+// 25% / 50% / 75% / done times, with the difference to the previous best run.
+function splitsHtml(sp, prev) {
+  return ['¼', '½', '¾', '✓'].map((label, k) => {
+    if (sp[k] === undefined) return '';
+    const d = prev && prev[k] !== undefined ? sp[k] - prev[k] : null;
+    const delta = d === null ? '' : `<em class="${d <= 0 ? 'up' : 'down'}">${d <= 0 ? '−' : '+'}${fmt(Math.abs(d))}</em>`;
+    return `<span><small>${label}</small>${fmt(sp[k])}${delta}</span>`;
+  }).join('');
 }
 
 // Results panel, shared by campaign, daily and custom figures.
@@ -427,6 +449,7 @@ function showComplete(o) {
   const svgs = $('complete-stars').children;
   st.forEach((on, k) => { if (on) setTimeout(() => { svgs[k].classList.add('on'); audio.star(k); }, 500 + k * 280); });
   $('next-label').textContent = o.nextLabel || 'Continue';
+  $('complete-splits').innerHTML = o.splits ? splitsHtml(o.splits, o.prevSplits) : '';
   completeActions = o;
   setBase('screen-complete');
 }
@@ -740,7 +763,7 @@ const ctx = {
   LEVELS, CHAPTERS, expandLevel, parTime,
   get app() { return app; }, set app(v) { app = v; },
   get base() { return base; }, overlays,
-  setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete,
+  setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete, splitsHtml,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [], settings: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures

@@ -50,7 +50,7 @@
   <div class="hud-top">
     <button class="btn icon" id="btn-pause" aria-label="Pause"><svg><use href="#i-pause"/></svg></button>
     <div class="progress tag">
-      <div class="progress-row"><b id="lvl-name">Sprout</b><span id="count">1 / 6</span></div>
+      <div class="progress-row"><b id="lvl-name">Sprout</b><i id="stage" class="stage"></i><span id="count">1 / 6</span></div>
       <div class="bar"><i id="bar-fill"></i></div>
     </div>
     <button class="btn icon sun" id="btn-hint" aria-label="Hint"><svg><use href="#i-bulb"/></svg><i class="cd" id="hint-cd"></i></button>
@@ -64,6 +64,7 @@
   <div id="tooltip" class="tooltip"></div>
   <div id="edge-home" class="edge"><svg><use href="#i-arrow"/></svg></div>
   <div id="edge-hint" class="edge hintc"><svg><use href="#i-arrow"/></svg></div>
+  <div id="edge-radar" class="edge radar"><svg><use href="#i-arrow"/></svg></div>
 
   <div class="pack-wrap">
     <div class="pack-tip" id="pack-tip"></div>
@@ -128,6 +129,7 @@
 </div>
 
 <div id="screen-talk" class="screen talk">
+  <button class="btn small talk-skip" id="talk-skip">Skip<svg><use href="#i-next"/></svg></button>
   <div class="talk-box" id="talk-box">
     <div class="kubo big"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i><i class="cheek l"></i><i class="cheek r"></i></div>
     <div class="talk-body">
@@ -180,6 +182,7 @@
       <div class="stat"><svg><use href="#i-clock"/></svg><b id="complete-time">0:00</b><small id="complete-par">par 1:00</small></div>
       <div class="stat"><svg><use href="#i-bulb"/></svg><b id="complete-hints">0</b><small>hints</small></div>
     </div>
+    <div class="splits" id="complete-splits"></div>
     <div class="newbest" id="complete-best">New best!</div>
     <div class="say"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p id="complete-say"></p></div>
     <div class="row">

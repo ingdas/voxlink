@@ -84,6 +84,14 @@ export class FX {
     this.rings.push(ring);
   }
 
+  sparkle(pos) {
+    const v = new THREE.Vector3((Math.random() - 0.5) * 0.3, 0.6 + Math.random() * 0.5, (Math.random() - 0.5) * 0.3);
+    this.bits.emit({
+      pos: this.tmp.copy(pos).add(new THREE.Vector3((Math.random() - 0.5) * 0.5, 0.15 + Math.random() * 0.3, (Math.random() - 0.5) * 0.5)),
+      vel: v, color: this.col.setHex(0xfff6c8), life: 0.8, size: 0.05, spin: 6, g: 0,
+    });
+  }
+
   confettiBurst(center, radius = 3, n = 200) {
     const palette = [0xff5d5d, 0xffd23f, 0x5fd068, 0x4cc9f0, 0x9b5de5, 0xff8fc7, 0xffffff];
     for (let i = 0; i < n; i++) {

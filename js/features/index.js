@@ -1,2 +1,4 @@
 // Optional feature modules. Each exports init(ctx) — see the ctx object in main.js.
-export default [];
+import * as daily from './daily.js';
+
+export default [daily];

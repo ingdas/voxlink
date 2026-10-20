@@ -315,6 +315,7 @@ CHAPTERS.forEach((ch, ci) => ch.levels.forEach((l, li) => {
 
 const cache = new Map();
 export function forgetLevel(id) { cache.delete(id); }
+export const figureOf = id => FIGURES[id];
 // Expand a level into a list of cells {ix,iy,iz,x,y,z,color} centred on x/z.
 export function expandLevel(level) {
   if (cache.has(level.id)) return cache.get(level.id);
