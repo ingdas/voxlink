@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Expres! {n} blocuri trimise",
   "kubo.express.desk": "<b>Kubo Expres</b> deblocat! Apasă <b>F</b> ca să trimiți direct la figură toate blocurile potrivite din rucsac — de oriunde.",
   "kubo.express.touch": "<b>Kubo Expres</b> deblocat! Atinge <b>avionul de hârtie</b> ca să trimiți direct la figură toate blocurile potrivite din rucsac — de oriunde.",
+  "workshop.cam.frame": "Arată toată figurina",
+  "workshop.cam.left": "Rotește la stânga",
+  "workshop.cam.right": "Rotește la dreapta",
+  "workshop.cam.top": "Vedere de sus",
 };

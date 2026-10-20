@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Express ! {n} blocs envoyés",
   "kubo.express.desk": "<b>Kubo Express</b> débloqué ! Appuie sur <b>F</b> pour envoyer directement à la figurine tous les blocs portés qui s’emboîtent, d’où que tu sois.",
   "kubo.express.touch": "<b>Kubo Express</b> débloqué ! Touche l’<b>avion en papier</b> pour envoyer directement à la figurine tous les blocs portés qui s’emboîtent, d’où que tu sois.",
+  "workshop.cam.frame": "Cadrer la figurine",
+  "workshop.cam.left": "Tourner à gauche",
+  "workshop.cam.right": "Tourner à droite",
+  "workshop.cam.top": "Vue de dessus",
 };

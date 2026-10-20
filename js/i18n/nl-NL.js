@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Express! {n} blokken verstuurd",
   "kubo.express.desk": "<b>Kubo Express</b> vrijgespeeld! Druk op <b>F</b> om alle passende blokken uit je rugzak meteen naar het figuur te sturen — van overal.",
   "kubo.express.touch": "<b>Kubo Express</b> vrijgespeeld! Tik op het <b>papieren vliegtuigje</b> om alle passende blokken uit je rugzak meteen naar het figuur te sturen — van overal.",
+  "workshop.cam.frame": "Hele figuur tonen",
+  "workshop.cam.left": "Naar links draaien",
+  "workshop.cam.right": "Naar rechts draaien",
+  "workshop.cam.top": "Bovenaanzicht",
 };

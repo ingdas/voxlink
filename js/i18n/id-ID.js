@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Ekspres! {n} balok terkirim",
   "kubo.express.desk": "<b>Kubo Ekspres</b> terbuka! Tekan <b>F</b> untuk mengirim semua balok cocok yang kamu bawa langsung ke patung — dari mana saja.",
   "kubo.express.touch": "<b>Kubo Ekspres</b> terbuka! Ketuk <b>pesawat kertas</b> untuk mengirim semua balok cocok yang kamu bawa langsung ke patung — dari mana saja.",
+  "workshop.cam.frame": "Tampilkan seluruh figur",
+  "workshop.cam.left": "Putar ke kiri",
+  "workshop.cam.right": "Putar ke kanan",
+  "workshop.cam.top": "Tampak atas",
 };

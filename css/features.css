@@ -305,6 +305,11 @@ body.mobile .garden-keys { display: none !important; }
 .ws-tool .ws-dot { position: absolute; inset-inline-end: 6px; top: 6px; width: 13px; height: 13px; border-radius: 50%; background: var(--c); border: 2.5px solid var(--ink); }
 #ws-mirror.on { background: var(--lilac); transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
 #ws-clear.armed { background: var(--coral); }
+/* view buttons: frame, quarter turns, top view (right edge) */
+.ws-view { position: absolute; right: calc(14px + var(--sar)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; }
+.btn.ws-cam { width: 56px; height: 56px; border-radius: 18px; }
+.btn.ws-cam svg { width: 30px; height: 30px; stroke-width: 2.4; }
+.btn.ws-cam.on { background: var(--sun); transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
 
 .ws-bottom { position: absolute; left: calc(96px + var(--sal)); right: calc(12px + var(--sar)); bottom: calc(14px + var(--sab)); display: flex; justify-content: center; pointer-events: none; }
 .ws-palette {
@@ -355,6 +360,9 @@ body.mobile .garden-keys { display: none !important; }
   .ws-tools { top: calc(76px + var(--sat)); transform: none; gap: 7px; left: calc(10px + var(--sal)); }
   .btn.ws-tool { width: 60px; height: 50px; font-size: 9.5px; border-radius: 14px; --lift: 4px; }
   .btn.ws-tool svg { width: 23px; height: 23px; }
+  .ws-view { top: calc(76px + var(--sat)); transform: none; gap: 7px; right: calc(10px + var(--sar)); }
+  .btn.ws-cam { width: 50px; height: 50px; border-radius: 14px; --lift: 4px; }
+  .btn.ws-cam svg { width: 26px; height: 26px; }
   .ws-top { top: calc(8px + var(--sat)); gap: 8px; }
   .ws-top .btn.icon { width: 46px; height: 46px; }
   .ws-top .btn.icon svg { width: 22px; height: 22px; }
@@ -397,6 +405,9 @@ body.mobile .garden-keys { display: none !important; }
   .ws-status { top: calc(136px + var(--sat)); max-width: calc(100vw - 32px); font-size: 14px; }
   .ws-tools { top: auto; bottom: calc(116px + var(--sab)); left: 50%; transform: translateX(-50%); flex-direction: row; gap: 8px; }
   .btn.ws-tool { width: 62px; height: 58px; }
+  .ws-view { gap: 8px; right: calc(10px + var(--sar)); }
+  .btn.ws-cam { width: 50px; height: 50px; border-radius: 15px; --lift: 4px; }
+  .btn.ws-cam svg { width: 26px; height: 26px; }
   .ws-bottom { left: calc(12px + var(--sal)); right: calc(12px + var(--sar)); bottom: calc(12px + var(--sab)); }
   .ws-palette { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; padding: 7px; width: 100%; }
   .ws-sw { width: 100%; height: auto; aspect-ratio: 1; border-radius: 9px; border-width: 2.5px; }

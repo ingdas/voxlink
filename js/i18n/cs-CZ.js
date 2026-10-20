@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Expres! Odeslané kostky: {n}",
   "kubo.express.desk": "<b>Kubo Expres</b> odemčen! Zmáčkni <b>F</b> a všechny pasující kostky z batohu poletí rovnou k figurce — odkudkoli.",
   "kubo.express.touch": "<b>Kubo Expres</b> odemčen! Ťukni na <b>papírové letadýlko</b> a všechny pasující kostky z batohu poletí rovnou k figurce — odkudkoli.",
+  "workshop.cam.frame": "Zobrazit celou figurku",
+  "workshop.cam.left": "Otočit doleva",
+  "workshop.cam.right": "Otočit doprava",
+  "workshop.cam.top": "Pohled shora",
 };

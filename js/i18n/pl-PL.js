@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Ekspres! Wysłane klocki: {n}",
   "kubo.express.desk": "Odblokowano <b>Kubo Ekspres</b>! Naciśnij <b>F</b>, a wszystkie pasujące klocki z plecaka polecą prosto do figury — skądkolwiek.",
   "kubo.express.touch": "Odblokowano <b>Kubo Ekspres</b>! Stuknij <b>papierowy samolocik</b>, a wszystkie pasujące klocki z plecaka polecą prosto do figury — skądkolwiek.",
+  "workshop.cam.frame": "Pokaż całą figurkę",
+  "workshop.cam.left": "Obróć w lewo",
+  "workshop.cam.right": "Obróć w prawo",
+  "workshop.cam.top": "Widok z góry",
 };

@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Express! {n} blocchi spediti",
   "kubo.express.desk": "<b>Kubo Express</b> sbloccato! Premi <b>F</b> per spedire alla figura tutti i blocchi che porti e che si incastrano, da qualsiasi punto.",
   "kubo.express.touch": "<b>Kubo Express</b> sbloccato! Tocca l’<b>aeroplanino di carta</b> per spedire alla figura tutti i blocchi che porti e che si incastrano, da qualsiasi punto.",
+  "workshop.cam.frame": "Inquadra la figura",
+  "workshop.cam.left": "Ruota a sinistra",
+  "workshop.cam.right": "Ruota a destra",
+  "workshop.cam.top": "Vista dall'alto",
 };

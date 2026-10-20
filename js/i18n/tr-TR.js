@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Ekspres! Gönderilen blok: {n}",
   "kubo.express.desk": "<b>Kubo Ekspres</b> açıldı! Çantandaki uyan tüm blokları her yerden doğrudan figüre göndermek için <b>F</b>’ye bas.",
   "kubo.express.touch": "<b>Kubo Ekspres</b> açıldı! Çantandaki uyan tüm blokları her yerden doğrudan figüre göndermek için <b>kâğıt uçağa</b> dokun.",
+  "workshop.cam.frame": "Tüm figürü göster",
+  "workshop.cam.left": "Sola döndür",
+  "workshop.cam.right": "Sağa döndür",
+  "workshop.cam.top": "Üstten görünüm",
 };

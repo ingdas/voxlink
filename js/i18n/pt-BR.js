@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Expresso! {n} blocos enviados",
   "kubo.express.desk": "<b>Kubo Expresso</b> liberado! Aperte <b>F</b> para mandar direto para a figura todos os blocos que você carrega e que encaixam — de qualquer lugar.",
   "kubo.express.touch": "<b>Kubo Expresso</b> liberado! Toque no <b>aviãozinho de papel</b> para mandar direto para a figura todos os blocos que você carrega e que encaixam — de qualquer lugar.",
+  "workshop.cam.frame": "Enquadrar a figura",
+  "workshop.cam.left": "Girar para a esquerda",
+  "workshop.cam.right": "Girar para a direita",
+  "workshop.cam.top": "Vista de cima",
 };

@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo 특급배송! 블록 {n}개를 보냈어요",
   "kubo.express.desk": "<b>Kubo 특급배송</b>이 열렸어요! <b>F</b>를 누르면 들고 있는 맞는 블록이 어디서든 조각상으로 바로 날아가요.",
   "kubo.express.touch": "<b>Kubo 특급배송</b>이 열렸어요! <b>종이비행기</b>를 누르면 들고 있는 맞는 블록이 어디서든 조각상으로 바로 날아가요.",
+  "workshop.cam.frame": "조각상 전체 보기",
+  "workshop.cam.left": "왼쪽으로 돌리기",
+  "workshop.cam.right": "오른쪽으로 돌리기",
+  "workshop.cam.top": "위에서 보기",
 };

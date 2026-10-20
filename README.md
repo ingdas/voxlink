@@ -36,6 +36,17 @@ Opening `index.html` straight from disk won't work, because browsers block ES mo
 
 Keys can be rebound in Settings.
 
+Workshop editor:
+
+| | Desktop | Mobile |
+|---|---|---|
+| Place / erase / paint | Click (tools: 1/B, 2/E, 3/P; M mirror; Ctrl+Z / Ctrl+Y) | Tap |
+| Turn the view | Drag, or arrows / WASD (Shift+Left/Right turns 90°) | Drag with one finger |
+| Zoom | Wheel (toward the cursor), PageUp/PageDown, +/- | Pinch |
+| Move the view | Right-, middle- or Shift-drag | Two-finger drag (twist to turn) |
+| Frame figure / top view | F (twice: reset angle), T, or the buttons on the right | Buttons on the right, double-tap empty space |
+| Focus on a block | Middle-click, Alt+click, or hold | Hold |
+
 ## How it plays
 
 - Floating **bubbles** on the figure show which numbers are open right now.
@@ -70,6 +81,8 @@ fly / no-clip, unlock everything, and see FPS. Toggle it with the backtick key.
 - `js/main.js`: app flow, HUD, world map, dialogue, saves, and the `ctx` object for features
 - `js/features/*.js`: optional features plugged in through `init(ctx)` (daily, garden, photo,
   workshop, puzzler, accessibility, language picker, debug)
+- `js/features/workshop-cam.js`: the Workshop editor's orbit camera (inertia, zoom to cursor,
+  framing, spring arm)
 - `js/i18n.js`, `js/i18n/`: translations and locale detection
 - `js/audio.js`: synthesized sound effects and generative music
 - `lib/three.module.min.js`: bundled three.js r186

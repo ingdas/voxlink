@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo特急便！ ブロックを{n}こ おくった",
   "kubo.express.desk": "<b>Kubo特急便</b>がつかえるよ！ <b>F</b>をおすと、もっているぴったりブロックが どこからでもフィギュアへ とんでいくよ。",
   "kubo.express.touch": "<b>Kubo特急便</b>がつかえるよ！ <b>紙ひこうき</b>をタップすると、もっているぴったりブロックが どこからでもフィギュアへ とんでいくよ。",
+  "workshop.cam.frame": "フィギュア全体を表示",
+  "workshop.cam.left": "左に回す",
+  "workshop.cam.right": "右に回す",
+  "workshop.cam.top": "真上から見る",
 };

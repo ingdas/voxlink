@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo-pikalähetys! Palikoita lähetetty: {n}",
   "kubo.express.desk": "<b>Kubo-pikalähetys</b> avattu! Paina <b>F</b>, niin kaikki sopivat palikat repustasi lentävät suoraan hahmoon – mistä tahansa.",
   "kubo.express.touch": "<b>Kubo-pikalähetys</b> avattu! Napauta <b>paperilennokkia</b>, niin kaikki sopivat palikat repustasi lentävät suoraan hahmoon – mistä tahansa.",
+  "workshop.cam.frame": "Näytä koko hahmo",
+  "workshop.cam.left": "Käännä vasemmalle",
+  "workshop.cam.right": "Käännä oikealle",
+  "workshop.cam.top": "Näkymä ylhäältä",
 };

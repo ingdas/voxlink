@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "¡Kubo Exprés! {n} bloques enviados",
   "kubo.express.desk": "¡<b>Kubo Exprés</b> desbloqueado! Pulsa <b>F</b> para enviar a la figura todos los bloques que lleves y encajen, desde cualquier sitio.",
   "kubo.express.touch": "¡<b>Kubo Exprés</b> desbloqueado! Toca el <b>avión de papel</b> para enviar a la figura todos los bloques que lleves y encajen, desde cualquier sitio.",
+  "workshop.cam.frame": "Encuadrar la figura",
+  "workshop.cam.left": "Girar a la izquierda",
+  "workshop.cam.right": "Girar a la derecha",
+  "workshop.cam.top": "Vista cenital",
 };

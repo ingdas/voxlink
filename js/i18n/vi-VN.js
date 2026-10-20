@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Tốc Hành! Đã gửi {n} khối",
   "kubo.express.desk": "Đã mở <b>Kubo Tốc Hành</b>! Nhấn <b>F</b> để gửi mọi khối vừa đang mang thẳng tới tượng — từ bất cứ đâu.",
   "kubo.express.touch": "Đã mở <b>Kubo Tốc Hành</b>! Chạm <b>máy bay giấy</b> để gửi mọi khối vừa đang mang thẳng tới tượng — từ bất cứ đâu.",
+  "workshop.cam.frame": "Xem toàn bộ tượng",
+  "workshop.cam.left": "Xoay trái",
+  "workshop.cam.right": "Xoay phải",
+  "workshop.cam.top": "Nhìn từ trên xuống",
 };

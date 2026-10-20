@@ -6,6 +6,7 @@ import { S } from '../voxels.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from '../render.js';
 import { THEMES } from '../world.js';
 import { t } from '../i18n.js';
+import { createEditorCam } from './workshop-cam.js';
 
 const KEYS = Object.keys(PALETTE); // share-code colour index (append-only order)
 const UI_ORDER = 'roylgGcuUvVpbBtwisnk'.split('').filter(c => c in PALETTE);
@@ -33,6 +34,10 @@ const ICONS = `
 <symbol id="i-share" viewBox="0 0 24 24"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.7 10.7l6.6-3.9M8.7 13.3l6.6 3.9"/></symbol>
 <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4.6L15.6 4.8a2 2 0 0 1 2.8 0l.8.8a2 2 0 0 1 0 2.8L8.6 19 4 20zM13.6 6.8l3.6 3.6"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5.5 15V6.5a2 2 0 0 1 2-2H15"/></symbol>
+<symbol id="i-frame" viewBox="0 0 24 24"><path d="M3.5 8.5v-5h5M15.5 3.5h5v5M20.5 15.5v5h-5M8.5 20.5h-5v-5M12 7.6l3.8 2.1v4.6L12 16.4l-3.8-2.1V9.7zM8.2 9.7 12 11.8l3.8-2.1M12 11.8v4.6"/></symbol>
+<symbol id="i-turn-l" viewBox="0 0 24 24"><path d="M12 3l4 2.3v4.6L12 12.2 8 9.9V5.3zM8 5.3l4 2.3 4-2.3M12 7.6v4.6M5 12.6C3.7 13.3 3 14.1 3 15c0 2.5 4 4.5 9 4.5s9-2 9-4.5c0-.9-.7-1.7-2-2.4M14 17.3 11.5 19.5l2.5 2.2"/></symbol>
+<symbol id="i-turn-r" viewBox="0 0 24 24"><path d="M12 3l4 2.3v4.6L12 12.2 8 9.9V5.3zM8 5.3l4 2.3 4-2.3M12 7.6v4.6M5 12.6C3.7 13.3 3 14.1 3 15c0 2.5 4 4.5 9 4.5s9-2 9-4.5c0-.9-.7-1.7-2-2.4M10 17.3l2.5 2.2-2.5 2.2"/></symbol>
+<symbol id="i-top" viewBox="0 0 24 24"><path d="M12 2.8v6.4M9.2 6.6 12 9.4l2.8-2.8M3.5 15.2 12 11.4l8.5 3.8L12 19zM3.5 15.2v1.6L12 20.8l8.5-4v-1.6"/></symbol>
 <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="4.5" rx="1.2"/><path d="M5 12.5V20h14v-7.5M12 8v12M12 8C10 4 6.5 4.5 7.5 6.8 8.2 8 12 8 12 8zM12 8c2-4 5.5-3.5 4.5-1.2C15.8 8 12 8 12 8z"/></symbol>`;
 
 // ---------------------------------------------------------------- share codes
@@ -184,6 +189,10 @@ export function init(ctx) {
   document.querySelector('svg defs')?.insertAdjacentHTML('beforeend', ICONS);
   const sw = c => `<button class="ws-sw" data-c="${c}" style="--c:${hex(PALETTE[c])}" aria-label="${attr(t('workshop.colour', { c }))}"></button>`;
   const tool = (id, icon, label) => `<button class="btn ws-tool" data-tool="${id}" aria-label="${attr(label)}" title="${attr(label)}"><svg><use href="#i-${icon}"/></svg><span>${label}</span></button>`;
+  const camBtn = (id, icon, key) => {
+    const label = t(`workshop.cam.${id}`);
+    return `<button class="btn icon ws-cam" id="ws-cam-${id}" aria-label="${attr(label)}" title="${attr(mobile ? label : `${label} (${key})`)}"><svg><use href="#i-${icon}"/></svg></button>`;
+  };
   document.body.insertAdjacentHTML('beforeend', `
 <div id="screen-ws" class="screen dim">
   <div class="panel ws-gallery">
@@ -217,6 +226,9 @@ export function init(ctx) {
     ${tool('add', 'build', t('workshop.tool.build'))}${tool('erase', 'eraser', t('workshop.tool.erase'))}${tool('paint', 'brush', t('workshop.tool.paint')).replace('<span>', '<i class="ws-dot"></i><span>')}
     <button class="btn ws-tool" id="ws-mirror" aria-label="${attr(t('workshop.tool.mirror'))}" title="${attr(t('workshop.tool.mirror'))}"><svg><use href="#i-mirror"/></svg><span>${t('workshop.tool.mirror')}</span></button>
     <button class="btn ws-tool" id="ws-clear" aria-label="${attr(t('workshop.tool.clear'))}" title="${attr(t('workshop.tool.clear'))}"><svg><use href="#i-trash"/></svg><span>${t('workshop.tool.clear')}</span></button>
+  </div>
+  <div class="ws-view" id="ws-view">
+    ${camBtn('frame', 'frame', 'F')}${camBtn('left', 'turn-l', '⇧←')}${camBtn('right', 'turn-r', '⇧→')}${camBtn('top', 'top', 'T')}
   </div>
   <div class="ws-bottom"><div class="ws-palette" id="ws-palette">${UI_ORDER.map(sw).join('')}</div></div>
 </div>
@@ -641,42 +653,62 @@ export function init(ctx) {
   mirrorPlane.visible = false;
   es.add(mirrorPlane);
 
-  // ---------- orbit camera ----------
-  const orbit = { yaw: 0.6, pitch: 0.55, dist: 9, target: new THREE.Vector3(0, 1, 0) };
-  const goal = { yaw: 0.6, pitch: 0.55, dist: 9, target: new THREE.Vector3(0, 1, 0) };
-  function fitCamera(snap) {
-    let r = 4.4, cy = 0.6;
-    if (vox.size) {
-      const box = new THREE.Box3();
-      for (const m of meshes.values()) box.expandByPoint(m.position);
-      box.expandByScalar(S / 2);
-      const sph = box.getBoundingSphere(new THREE.Sphere());
-      r = Math.max(3.4, sph.radius);
-      cy = sph.center.y;
-      goal.target.set(sph.center.x, cy, sph.center.z);
-    } else goal.target.set(0, cy, 0);
-    const fov = THREE.MathUtils.degToRad(cam.fov) * Math.min(1, cam.aspect);
-    goal.dist = THREE.MathUtils.clamp(r / Math.sin(fov / 2) * 1.3, 4, 22);
-    if (snap) { Object.assign(orbit, { yaw: goal.yaw, pitch: goal.pitch, dist: goal.dist }); orbit.target.copy(goal.target); }
-  }
-  function updateCamera(dt) {
-    const k = 1 - Math.exp(-dt * 16);
-    orbit.yaw += (goal.yaw - orbit.yaw) * k;
-    orbit.pitch += (goal.pitch - orbit.pitch) * k;
-    orbit.dist += (goal.dist - orbit.dist) * k;
-    orbit.target.lerp(goal.target, k);
-    const cp = Math.cos(orbit.pitch);
-    cam.position.set(Math.sin(orbit.yaw) * cp, Math.sin(orbit.pitch), Math.cos(orbit.yaw) * cp).multiplyScalar(orbit.dist).add(orbit.target);
-    cam.lookAt(orbit.target);
-    sky.position.copy(cam.position);
-  }
-  function resize() {
-    cam.aspect = innerWidth / Math.max(1, innerHeight);
-    cam.fov = cam.aspect < 1 ? 58 : 42;
-    cam.updateProjectionMatrix();
-  }
-  addEventListener('resize', resize);
-  resize();
+  // height guide under the ghost: a footprint on whatever it would rest on, and a dashed drop line
+  // when it hangs in the air (placed against the side of a block)
+  const footMat = new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.2, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+  const footGeo = new THREE.PlaneGeometry(S * 0.96, S * 0.96).rotateX(-Math.PI / 2);
+  const footEdge = new THREE.EdgesGeometry(footGeo);
+  const dropMat = new THREE.LineDashedMaterial({ color: INK, transparent: true, opacity: 0.75, dashSize: 0.09, gapSize: 0.07, depthWrite: false });
+  const guides = [0, 1].map(() => {
+    const foot = new THREE.Mesh(footGeo, footMat);
+    foot.add(new THREE.LineSegments(footEdge, edgeMat));
+    const drop = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, -1, 0], 3)), dropMat);
+    for (const o of [foot, drop]) { o.traverse(q => q.layers.set(LAYER_OVERLAY)); o.visible = false; o.renderOrder = 2; es.add(o); }
+    return { foot, drop };
+  });
+  // focus ring (long-press / middle-click a block)
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.4, 40), new THREE.MeshBasicMaterial({ color: 0xffc93c, transparent: true, depthTest: false, depthWrite: false }));
+  ring.layers.set(LAYER_OVERLAY);
+  ring.visible = false;
+  ring.renderOrder = 5;
+  ring.userData.t = 1;
+  es.add(ring);
+  const pingRing = p => { ring.position.copy(p); ring.userData.t = 0; ring.visible = true; };
+
+  // ---------- orbit camera (js/features/workshop-cam.js) ----------
+  const figureBox = () => {
+    if (!vox.size) return null;
+    const box = new THREE.Box3();
+    for (const k of vox.keys()) { const [x, y, z] = k.split(',').map(Number); box.expandByPoint(new THREE.Vector3(x * S, y * S + S / 2, z * S)); }
+    return box.expandByScalar(S / 2);
+  };
+  let boxCache = null;
+  const freeRect = () => {
+    const W = innerWidth, H = innerHeight;
+    const r = { l: 0, t: 0, r: W, b: H };
+    const rect = id => { const el = $(id); const b = el?.getBoundingClientRect(); return b && b.width > 0 && b.height > 0 ? b : null; };
+    const topBar = rect('ws-top'), status = rect('ws-status'), pal = rect('ws-palette'), tools = document.querySelector('.ws-tools')?.getBoundingClientRect(), view = rect('ws-view');
+    if (topBar) r.t = Math.max(r.t, topBar.bottom);
+    if (status && status.top < H / 2) r.t = Math.max(r.t, status.bottom);
+    if (pal) r.b = Math.min(r.b, pal.top);
+    if (tools?.width) { if (tools.height > tools.width) r.l = Math.max(r.l, tools.right); else r.b = Math.min(r.b, tools.top); }
+    // the view column trims the right edge; on narrow screens trim both sides so the figure stays centred
+    if (view && view.height > view.width) {
+      r.r = Math.min(r.r, view.left);
+      if (view.width > W * 0.1) r.l = Math.max(r.l, W - view.left);
+    }
+    return { l: r.l + 6, t: r.t + 6, r: r.r - 6, b: r.b - 6 };
+  };
+  const camCtl = createEditorCam({
+    cam, half: P / 2, freeRect,
+    bounds: () => (boxCache ||= figureBox()),
+    solidAt: (x, y, z) => y >= 0 && vox.has(keyOf(Math.round(x / S), Math.floor(y / S), Math.round(z / S))),
+    hitPoint: (cx, cy) => pick(cx, cy)?.point || null,
+    onChange: () => $('ws-cam-top')?.classList.toggle('on', camCtl.top),
+  });
+  ctx.wsCam = camCtl; // for debugging / tests
+  addEventListener('resize', () => camCtl.resize());
+  camCtl.resize();
 
   // ================================================================ editor: state
   let entry = null; // the figure being edited (entry.isNew until it holds a block)
@@ -733,14 +765,15 @@ export function init(ctx) {
     if (e.voxels.length) color = e.voxels[e.voxels.length - 1].c;
     setTool('add');
     renderPalette();
-    goal.yaw = 0.6; goal.pitch = vox.size ? 0.55 : 0.68;
-    fitCamera(true);
     ctx.app = 'editor';
     ctx.input.enabled = false;
     $('ws-toast').classList.remove('show');
     ctx.setBase('screen-ws-edit');
     hideGhost();
     refreshState();
+    camCtl.clearKeys();
+    camCtl.resize();
+    camCtl.frame({ home: true, snap: true });
   }
 
   function setTool(mode) {
@@ -756,6 +789,7 @@ export function init(ctx) {
   }
 
   function refreshState() {
+    boxCache = null;
     comp = components(vox);
     for (const [k, m] of meshes) {
       m.userData.loose = comp.count > 1 && !comp.main.has(k);
@@ -792,28 +826,58 @@ export function init(ctx) {
   }
   function flash(msg, kind = 'warn') { flashT = performance.now() + 2200; showStatus(msg, kind); clearTimeout(flash.t); flash.t = setTimeout(() => { flashT = 0; showStatus(); }, 2200); }
 
-  // ---------- picking ----------
+  // ---------- picking: exact voxel-grid ray walk (ignores pop / bob animations), then the plate ----------
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   function pick(cx, cy) {
     ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, cam);
-    const hits = ray.intersectObjects([...meshes.values(), plate], false);
-    for (const h of hits) {
-      if (h.object === plate) {
-        if (h.face.normal.y < 0.5) return null;
-        const x = Math.round(h.point.x / S), z = Math.round(h.point.z / S);
-        return inRange(x, 0, z) ? { hit: null, place: [x, 0, z] } : null;
+    const o = ray.ray.origin, d = ray.ray.direction;
+    // cell space: cell (i, j, k) spans [i, i+1) x [j, j+1) x [k, k+1) in (x/S + .5, y/S, z/S + .5)
+    const O = [o.x / S + 0.5, o.y / S, o.z / S + 0.5], D = [d.x / S, d.y / S, d.z / S];
+    const lo = [-EXT, 0, -EXT], hi = [EXT + 1, HMAX, EXT + 1];
+    let t0 = 0, t1 = Infinity, axis0 = -1;
+    for (let a = 0; a < 3; a++) {
+      if (Math.abs(D[a]) < 1e-9) { if (O[a] < lo[a] || O[a] > hi[a]) { t1 = -1; break; } continue; }
+      let ta = (lo[a] - O[a]) / D[a], tb = (hi[a] - O[a]) / D[a];
+      if (ta > tb) [ta, tb] = [tb, ta];
+      if (ta > t0) { t0 = ta; axis0 = a; }
+      t1 = Math.min(t1, tb);
+    }
+    if (t1 > t0 && vox.size) {
+      const at = t0 + 1e-6;
+      const cell = [0, 1, 2].map(a => THREE.MathUtils.clamp(Math.floor(O[a] + D[a] * at), lo[a], hi[a] - 1));
+      const step = D.map(v => (v > 0 ? 1 : v < 0 ? -1 : 0));
+      const tMax = [0, 1, 2].map(a => (step[a] ? ((cell[a] + (step[a] > 0 ? 1 : 0)) - O[a]) / D[a] : Infinity));
+      const tDelta = D.map(v => (v ? Math.abs(1 / v) : Infinity));
+      let t = t0, axis = axis0;
+      for (let i = 0; i < 96; i++) {
+        if (vox.has(keyOf(cell[0], cell[1], cell[2]))) {
+          const n = [0, 0, 0];
+          if (axis >= 0) n[axis] = -step[axis];
+          const point = o.clone().addScaledVector(d, t);
+          return { hit: [...cell], place: axis >= 0 ? [cell[0] + n[0], cell[1] + n[1], cell[2] + n[2]] : null, point };
+        }
+        axis = tMax[0] < tMax[1] ? (tMax[0] < tMax[2] ? 0 : 2) : (tMax[1] < tMax[2] ? 1 : 2);
+        t = tMax[axis];
+        if (t > t1) break;
+        cell[axis] += step[axis];
+        tMax[axis] += tDelta[axis];
       }
-      const c = h.object.userData.cell, n = h.face.normal;
-      return { hit: c, place: [c[0] + Math.round(n.x), c[1] + Math.round(n.y), c[2] + Math.round(n.z)] };
+    }
+    if (d.y < -1e-6) {
+      const tp = -o.y / d.y;
+      if (tp > 0) {
+        const point = o.clone().addScaledVector(d, tp);
+        const x = Math.round(point.x / S), z = Math.round(point.z / S);
+        if (inRange(x, 0, z)) return { hit: null, place: [x, 0, z], point };
+      }
     }
     return null;
   }
   const withMirror = ([x, y, z]) => (mirror && x !== 0 ? [[x, y, z], [-x, y, z]] : [[x, y, z]]);
 
-  function apply(cx, cy) {
-    const p = pick(cx, cy);
-    if (!p) return;
+  function apply(p) {
+    if (!p || (toolMode === 'add' && !p.place)) return;
     const before = snap();
     if (toolMode === 'add') {
       const cells = withMirror(p.place).filter(([x, y, z]) => inRange(x, y, z) && !vox.has(keyOf(x, y, z)));
@@ -836,16 +900,19 @@ export function init(ctx) {
     updateHover();
   }
 
-  // ---------- hover ghost (mouse only) ----------
+  // ---------- hover ghost (mouse hover, or under a finger until it starts dragging) ----------
   let hoverXY = null;
-  function hideGhost() { ghosts.forEach(g => { g.visible = false; }); }
+  function hideGhost() {
+    ghosts.forEach(g => { g.visible = false; });
+    guides.forEach(g => { g.foot.visible = g.drop.visible = false; });
+  }
   function updateHover() {
     hideGhost();
-    if (!hoverXY || drag) return;
+    if (!hoverXY || (drag && drag.mode !== 'tap' && drag.mode !== 'held')) return;
     const p = pick(hoverXY[0], hoverXY[1]);
     if (!p) return;
     let cells;
-    if (toolMode === 'add') cells = inRange(...p.place) ? withMirror(p.place).filter(c => !vox.has(keyOf(...c))) : [];
+    if (toolMode === 'add') cells = p.place && inRange(...p.place) ? withMirror(p.place).filter(c => !vox.has(keyOf(...c))) : [];
     else cells = p.hit ? withMirror(p.hit).filter(c => vox.has(keyOf(...c))) : [];
     ghostMat.color.setHex(toolMode === 'erase' ? 0xff4d6d : PALETTE[color]);
     ghostMat.opacity = toolMode === 'erase' ? 0.55 : 0.6;
@@ -855,44 +922,81 @@ export function init(ctx) {
       g.position.set(x * S, y * S + S / 2, z * S);
       g.scale.setScalar(s * (i ? 0.98 : 1));
       g.visible = true;
+      if (toolMode !== 'add') return;
+      // what would this block rest on? (the plate, or the top of the column below it)
+      let below = -1;
+      for (let yy = y - 1; yy >= 0; yy--) if (vox.has(keyOf(x, yy, z))) { below = yy; break; }
+      const floor = (below + 1) * S, gd = guides[i];
+      gd.foot.position.set(x * S, floor + 0.004, z * S);
+      gd.foot.visible = true;
+      if (y * S - floor > 0.01) {
+        const pos = gd.drop.geometry.attributes.position;
+        pos.setXYZ(0, x * S, y * S, z * S);
+        pos.setXYZ(1, x * S, floor, z * S);
+        pos.needsUpdate = true;
+        gd.drop.computeLineDistances();
+        gd.drop.visible = true;
+      }
     });
   }
 
-  // ---------- gestures: tap = tool, drag = orbit, right/shift drag or two fingers = pan, wheel/pinch = zoom ----------
+  // ---------- gestures ----------
+  // mouse: left drag orbits (with inertia), right / middle / shift drag pans, wheel zooms toward the cursor,
+  //        click = tool, double-click empty space = frame, middle-click / alt-click / hold a block = focus it
+  // touch: one finger orbits, two fingers pinch-zoom + pan + twist together, tap = tool, hold = focus,
+  //        double-tap empty space = frame. A tap that only stops a spinning view never builds.
   const stage = $('ws-stage');
   const pts = new Map();
-  let drag = null; // { mode: 'tap'|'orbit'|'pan'|'pinch', ... }
-  const clampGoal = () => {
-    goal.pitch = THREE.MathUtils.clamp(goal.pitch, 0.08, 1.48);
-    goal.dist = THREE.MathUtils.clamp(goal.dist, 3, 24);
-    goal.target.x = THREE.MathUtils.clamp(goal.target.x, -P / 2, P / 2);
-    goal.target.z = THREE.MathUtils.clamp(goal.target.z, -P / 2, P / 2);
-    goal.target.y = THREE.MathUtils.clamp(goal.target.y, 0, HMAX * S);
-  };
-  const panBy = (dx, dy) => {
-    const k = goal.dist * 0.0016;
-    const right = new THREE.Vector3(Math.cos(goal.yaw), 0, -Math.sin(goal.yaw));
-    goal.target.addScaledVector(right, -dx * k);
-    goal.target.y += dy * k;
-    clampGoal();
-  };
+  let drag = null; // { mode: 'tap'|'held'|'orbit'|'pan'|'pinch'|'none', ... }
+  let holdT = 0, lastEmpty = null;
   const pinchInfo = () => {
     const [a, b] = [...pts.values()];
-    return { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    return { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, ang: Math.atan2(b.y - a.y, b.x - a.x) };
   };
+  const focusAt = (x, y) => {
+    const p = pick(x, y);
+    if (!p) return false;
+    const at = p.hit ? new THREE.Vector3(p.hit[0] * S, p.hit[1] * S + S / 2, p.hit[2] * S) : p.point;
+    camCtl.focus(at);
+    pingRing(at);
+    audio.tone({ f: 620, f2: 880, type: 'sine', dur: 0.08, vol: 0.08 });
+    return true;
+  };
+  function tapAt(x, y) {
+    const p = pick(x, y);
+    if (!p) { // double-tap / double-click on empty space frames the whole figure
+      const t = performance.now();
+      if (lastEmpty && t - lastEmpty.t < 420 && Math.hypot(x - lastEmpty.x, y - lastEmpty.y) < 40) { lastEmpty = null; camCtl.frame(); audio.click(); }
+      else lastEmpty = { t, x, y };
+      return;
+    }
+    lastEmpty = null;
+    apply(p);
+  }
   stage.addEventListener('pointerdown', e => {
     e.preventDefault();
     document.activeElement?.blur?.();
     audio.unlock();
+    camCtl.poke();
     stage.setPointerCapture?.(e.pointerId);
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    clearTimeout(holdT);
     if (pts.size === 1) {
-      drag = { mode: 'tap', sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, at: performance.now(), pan: e.button === 2 || e.button === 1 || e.shiftKey, touch: e.pointerType !== 'mouse' };
-      hideGhost();
+      const touch = e.pointerType !== 'mouse';
+      const spinning = camCtl.stop();
+      drag = {
+        mode: 'tap', sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, at: performance.now(), touch, button: e.button,
+        pan: e.button === 2 || e.button === 1 || e.shiftKey, noTap: spinning || e.button === 2,
+      };
+      if (touch) hoverXY = [e.clientX, e.clientY]; // preview the block under the finger
+      if (!spinning && e.button === 0) holdT = setTimeout(() => {
+        if (drag?.mode === 'tap' && pts.size === 1 && focusAt(drag.sx, drag.sy)) { drag.mode = 'held'; navigator.vibrate?.(12); updateHover(); }
+      }, 520);
     } else if (pts.size === 2) {
-      const p = pinchInfo();
-      drag = { mode: 'pinch', ...p };
+      if (drag?.mode === 'orbit') camCtl.endOrbit();
+      drag = { mode: 'pinch', ...pinchInfo(), twist: 0, twisting: false };
     } else drag = { mode: 'none' };
+    updateHover();
   });
   stage.addEventListener('pointermove', e => {
     if (e.pointerType === 'mouse') hoverXY = [e.clientX, e.clientY];
@@ -900,31 +1004,54 @@ export function init(ctx) {
     if (!pt) { if (e.pointerType === 'mouse') updateHover(); return; }
     pt.x = e.clientX; pt.y = e.clientY;
     if (!drag) return;
-    if (drag.mode === 'tap') {
+    camCtl.poke();
+    if (drag.mode === 'tap' || drag.mode === 'held') {
       const th = drag.touch ? 12 : 5;
-      if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > th) { drag.mode = drag.pan ? 'pan' : 'orbit'; stage.classList.add('drag'); }
+      if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > th) {
+        clearTimeout(holdT);
+        drag.mode = drag.pan ? 'pan' : 'orbit';
+        if (drag.mode === 'orbit') camCtl.beginOrbit();
+        stage.classList.add('drag');
+        if (drag.touch) hoverXY = null;
+        hideGhost();
+      }
     }
     if (drag.mode === 'orbit' || drag.mode === 'pan') {
       const dx = e.clientX - drag.lx, dy = e.clientY - drag.ly;
       drag.lx = e.clientX; drag.ly = e.clientY;
-      if (drag.mode === 'orbit') { goal.yaw -= dx * 0.0085; goal.pitch += dy * 0.0065; clampGoal(); }
-      else panBy(dx, dy);
+      if (drag.mode === 'orbit') camCtl.orbit(dx, dy);
+      else camCtl.pan(dx, dy);
     } else if (drag.mode === 'pinch' && pts.size === 2) {
       const p = pinchInfo();
-      if (p.d > 10 && drag.d > 10) goal.dist *= drag.d / p.d;
-      panBy(p.mx - drag.mx, p.my - drag.my);
-      Object.assign(drag, p);
-      clampGoal();
+      if (p.d > 10 && drag.d > 10) camCtl.zoomAt(p.mx, p.my, drag.d / p.d, 22);
+      camCtl.pan(p.mx - drag.mx, p.my - drag.my);
+      let da = p.ang - drag.ang;
+      da = Math.atan2(Math.sin(da), Math.cos(da));
+      drag.twist += da;
+      if (!drag.twisting && Math.abs(drag.twist) > 0.2) { drag.twisting = true; da = drag.twist; }
+      if (drag.twisting) camCtl.turn(da);
+      Object.assign(drag, { d: p.d, mx: p.mx, my: p.my, ang: p.ang });
     }
   });
   const endPointer = (e, cancel) => {
     if (!pts.has(e.pointerId)) return;
     pts.delete(e.pointerId);
-    if (drag?.mode === 'tap' && !cancel && pts.size === 0 && performance.now() - drag.at < 650 && (e.button === 0 || drag.touch)) apply(e.clientX, e.clientY);
-    if (pts.size === 0) { drag = null; stage.classList.remove('drag'); updateHover(); }
-    else if (pts.size === 1 && drag?.mode === 'pinch') {
+    clearTimeout(holdT);
+    camCtl.poke();
+    if (drag?.mode === 'tap' && !cancel && !drag.noTap && pts.size === 0 && performance.now() - drag.at < 650) {
+      if (drag.button === 1 || (e.altKey && !drag.touch)) focusAt(e.clientX, e.clientY);
+      else if (drag.button === 0 || drag.touch) tapAt(e.clientX, e.clientY);
+    }
+    if (drag?.mode === 'orbit' && pts.size === 0) camCtl.endOrbit();
+    if (pts.size === 0) {
+      drag = null;
+      stage.classList.remove('drag');
+      if (e.pointerType !== 'mouse') hoverXY = null;
+      updateHover();
+    } else if (pts.size === 1 && drag?.mode === 'pinch') {
       const [p] = [...pts.values()];
-      drag = { mode: 'orbit', lx: p.x, ly: p.y }; // remaining finger keeps orbiting, never taps
+      drag = { mode: 'orbit', lx: p.x, ly: p.y, touch: true }; // remaining finger keeps orbiting, never taps
+      camCtl.beginOrbit();
     }
   };
   stage.addEventListener('pointerup', e => endPointer(e, false));
@@ -932,10 +1059,19 @@ export function init(ctx) {
   stage.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !pts.size) { hoverXY = null; hideGhost(); } });
   stage.addEventListener('wheel', e => {
     e.preventDefault();
-    goal.dist *= Math.exp(e.deltaY * (e.deltaMode ? 0.05 : 0.0012));
-    clampGoal();
+    camCtl.poke();
+    // ctrl + wheel is a trackpad pinch: small deltas, so a stronger factor
+    const k = e.ctrlKey ? 0.012 : e.deltaMode ? 0.06 : 0.0016;
+    camCtl.zoomAt(e.clientX, e.clientY, Math.exp(THREE.MathUtils.clamp(e.deltaY, -240, 240) * k));
   }, { passive: false });
   stage.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ---------- view buttons ----------
+  const camClick = (id, fn) => { $(id).onclick = () => { fn(); audio.click(); }; };
+  camClick('ws-cam-frame', () => camCtl.frame({ home: camCtl.framed() }));
+  camClick('ws-cam-left', () => camCtl.rotateQuarter(1));
+  camClick('ws-cam-right', () => camCtl.rotateQuarter(-1));
+  camClick('ws-cam-top', () => camCtl.toggleTop());
 
   // ---------- toolbar ----------
   document.querySelectorAll('.ws-tool[data-tool]').forEach(b => { b.onclick = () => setTool(b.dataset.tool); });
@@ -1006,7 +1142,10 @@ export function init(ctx) {
     else if (e.code === 'Digit2' || e.code === 'KeyE') setTool('erase');
     else if (e.code === 'Digit3' || e.code === 'KeyP') setTool('paint');
     else if (e.code === 'KeyM') $('ws-mirror').click();
+    else if (camCtl.keyDown(e)) { e.preventDefault(); camCtl.poke(); }
   }, true);
+  addEventListener('keyup', e => camCtl.keyUp(e.code));
+  addEventListener('blur', () => camCtl.clearKeys());
 
   // ---------- per-frame (main loop hands rendering to us while app === 'editor') ----------
   let pulse = 0;
@@ -1022,7 +1161,18 @@ export function init(ctx) {
     for (const k in warnMats) warnMats[k].emissiveIntensity = w;
     if (comp.count > 1) for (const m of meshes.values()) if (m.userData.loose) m.position.y = m.userData.cell[1] * S + S / 2 + 0.05 + Math.sin(pulse * 4 + m.userData.cell[0]) * 0.05;
     edgeMat.opacity = 0.6 + 0.3 * Math.sin(pulse * 5);
-    updateCamera(dt);
+    if (ctx.overlays.length) camCtl.clearKeys();
+    // the ghost follows the view while the camera glides (inertia, keys, framing)
+    if (camCtl.update(dt) && hoverXY && (!drag || drag.mode === 'tap' || drag.mode === 'held')) updateHover();
+    sky.position.copy(cam.position);
+    if (ring.visible) {
+      ring.userData.t = Math.min(1, ring.userData.t + dt * 1.8);
+      const u = ring.userData.t;
+      ring.quaternion.copy(cam.quaternion);
+      ring.scale.setScalar(0.6 + u * 1.4);
+      ring.material.opacity = 1 - u;
+      if (u >= 1) ring.visible = false;
+    }
     ctx.renderer.render(es, cam);
   };
 }

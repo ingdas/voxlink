@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Expressz! Elküldött kockák: {n}",
   "kubo.express.desk": "<b>Kubo Expressz</b> feloldva! Nyomd meg az <b>F</b> gombot, és a hátizsák összes illő kockája egyenesen a figurához repül – bárhonnan.",
   "kubo.express.touch": "<b>Kubo Expressz</b> feloldva! Koppints a <b>papírrepülőre</b>, és a hátizsák összes illő kockája egyenesen a figurához repül – bárhonnan.",
+  "workshop.cam.frame": "Egész figura mutatása",
+  "workshop.cam.left": "Forgatás balra",
+  "workshop.cam.right": "Forgatás jobbra",
+  "workshop.cam.top": "Felülnézet",
 };

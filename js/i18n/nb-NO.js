@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo Ekspress! {n} klosser sendt",
   "kubo.express.desk": "<b>Kubo Ekspress</b> låst opp! Trykk <b>F</b> for å sende alle klossene i sekken som passer rett til figuren – uansett hvor du er.",
   "kubo.express.touch": "<b>Kubo Ekspress</b> låst opp! Trykk på <b>papirflyet</b> for å sende alle klossene i sekken som passer rett til figuren – uansett hvor du er.",
+  "workshop.cam.frame": "Vis hele figuren",
+  "workshop.cam.left": "Snu mot venstre",
+  "workshop.cam.right": "Snu mot høyre",
+  "workshop.cam.top": "Sett ovenfra",
 };

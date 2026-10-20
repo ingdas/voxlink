@@ -463,4 +463,8 @@ export default {
   "express.sent.other": "Kubo-Express! {n} Blöcke verschickt",
   "kubo.express.desk": "<b>Kubo-Express</b> freigeschaltet! Drück <b>F</b>, um alle passenden Blöcke im Rucksack direkt zur Figur zu schicken – von überall.",
   "kubo.express.touch": "<b>Kubo-Express</b> freigeschaltet! Tipp auf den <b>Papierflieger</b>, um alle passenden Blöcke im Rucksack direkt zur Figur zu schicken – von überall.",
+  "workshop.cam.frame": "Ganze Figur zeigen",
+  "workshop.cam.left": "Nach links drehen",
+  "workshop.cam.right": "Nach rechts drehen",
+  "workshop.cam.top": "Draufsicht",
 };
