@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Bạn nhận được <b>nam châm</b>! Chạm <b>nút nam châm</b> để hút mọi khối vừa ở gần.",
   "kubo.districts": "Tượng lớn đây! Các khối được chia vào các <b>khu</b> có cờ đánh số. <b>La bàn</b> chỉ nơi đang có khối vừa ngay lúc này.",
   "toast.chain": "Chuỗi ×{n}!",
+  "aria.express": "Kubo Tốc Hành",
+  "express.none": "Chưa có khối nào trong ba lô vừa",
+  "express.sent.one": "Kubo Tốc Hành! Đã gửi 1 khối",
+  "express.sent.other": "Kubo Tốc Hành! Đã gửi {n} khối",
+  "kubo.express.desk": "Đã mở <b>Kubo Tốc Hành</b>! Nhấn <b>F</b> để gửi mọi khối vừa đang mang thẳng tới tượng — từ bất cứ đâu.",
+  "kubo.express.touch": "Đã mở <b>Kubo Tốc Hành</b>! Chạm <b>máy bay giấy</b> để gửi mọi khối vừa đang mang thẳng tới tượng — từ bất cứ đâu.",
 };

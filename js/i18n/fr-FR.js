@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Tu as gagné un <b>aimant</b> ! Touche le <b>bouton aimant</b> pour attirer tous les blocs proches qui s’emboîtent.",
   "kubo.districts": "Une grande ! Ses blocs sont rangés par <b>quartiers</b> avec des drapeaux numérotés. La <b>boussole</b> montre où des blocs s’emboîtent en ce moment.",
   "toast.chain": "Chaîne ×{n} !",
+  "aria.express": "Kubo Express",
+  "express.none": "Rien dans ton sac ne s’emboîte encore",
+  "express.sent.one": "Kubo Express ! 1 bloc envoyé",
+  "express.sent.other": "Kubo Express ! {n} blocs envoyés",
+  "kubo.express.desk": "<b>Kubo Express</b> débloqué ! Appuie sur <b>F</b> pour envoyer directement à la figurine tous les blocs portés qui s’emboîtent, d’où que tu sois.",
+  "kubo.express.touch": "<b>Kubo Express</b> débloqué ! Touche l’<b>avion en papier</b> pour envoyer directement à la figurine tous les blocs portés qui s’emboîtent, d’où que tu sois.",
 };

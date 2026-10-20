@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Získal jsi <b>magnet</b>! Ťukni na <b>tlačítko magnetu</b> a přitáhneš všechny pasující kostky poblíž.",
   "kubo.districts": "Je velká! Kostky leží ve <b>čtvrtích</b> s očíslovanými vlajkami. <b>Kompas</b> ukazuje, kde teď jsou kostky, které pasují.",
   "toast.chain": "Řetěz ×{n}!",
+  "aria.express": "Kubo Expres",
+  "express.none": "V batohu zatím nic nepasuje",
+  "express.sent.one": "Kubo Expres! Odeslána 1 kostka",
+  "express.sent.other": "Kubo Expres! Odeslané kostky: {n}",
+  "kubo.express.desk": "<b>Kubo Expres</b> odemčen! Zmáčkni <b>F</b> a všechny pasující kostky z batohu poletí rovnou k figurce — odkudkoli.",
+  "kubo.express.touch": "<b>Kubo Expres</b> odemčen! Ťukni na <b>papírové letadýlko</b> a všechny pasující kostky z batohu poletí rovnou k figurce — odkudkoli.",
 };

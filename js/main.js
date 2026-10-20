@@ -87,6 +87,7 @@ const game = new Game({
       $('stage').textContent = game.stageCount > 1 ? t('hud.part', { k: game.stage + 1, n: game.stageCount }) : '';
       $('stage').style.background = '';
       renderMagnet(game.magnetCharges, false);
+      renderTool('btn-express', 'express-n', game.expressCharges ?? 0, false);
       $('bar-fill').style.width = `${(n / total) * 100}%`;
       renderNeeds();
     },
@@ -99,6 +100,7 @@ const game = new Game({
     introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); },
     pause: () => pause(),
     magnet: (n, gained) => renderMagnet(n, gained),
+    express: (n, gained) => renderTool('btn-express', 'express-n', n, gained),
     tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
     saveSession: data => { if (!game.level.kind) { save.session = data; persist(); } },
@@ -727,13 +729,15 @@ $('btn-quit').onclick = () => (game.level?.kind ? enterTitle() : openMap());
 $('btn-pause').onclick = () => pause();
 $('btn-hint').onclick = () => input.actions.push({ type: 'hint' });
 $('btn-magnet').onclick = () => input.actions.push({ type: 'magnet' });
-function renderMagnet(n, gained) {
-  const b = $('btn-magnet');
+$('btn-express').onclick = () => input.actions.push({ type: 'express' });
+function renderTool(btn, count, n, gained) {
+  const b = $(btn);
   b.classList.toggle('hidden', !(game.stageCount > 1));
   b.classList.toggle('empty', n <= 0);
-  $('magnet-n').textContent = n;
+  $(count).textContent = n;
   if (gained) b.animate([{ transform: 'scale(1.4) rotate(-10deg)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' });
 }
+const renderMagnet = (n, gained) => renderTool('btn-magnet', 'magnet-n', n, gained);
 $('btn-brief-back').onclick = () => popOverlay('screen-brief');
 $('btn-brief-go').onclick = () => startLevel(briefIdx, true);
 $('btn-brief-fresh').onclick = () => startLevel(briefIdx, false);

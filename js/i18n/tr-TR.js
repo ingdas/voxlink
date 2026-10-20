@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Bir <b>mıknatıs</b> kazandın! Yakındaki uyan tüm blokları çekmek için <b>mıknatıs düğmesine</b> dokun.",
   "kubo.districts": "Bu büyük! Blokları numaralı bayraklı <b>bölgelere</b> ayrılmış. <b>Pusula</b> şu an uyan blokların yerini gösterir.",
   "toast.chain": "Zincir ×{n}!",
+  "aria.express": "Kubo Ekspres",
+  "express.none": "Sırt çantandakilerden henüz uyan yok",
+  "express.sent.one": "Kubo Ekspres! 1 blok gönderildi",
+  "express.sent.other": "Kubo Ekspres! Gönderilen blok: {n}",
+  "kubo.express.desk": "<b>Kubo Ekspres</b> açıldı! Çantandaki uyan tüm blokları her yerden doğrudan figüre göndermek için <b>F</b>’ye bas.",
+  "kubo.express.touch": "<b>Kubo Ekspres</b> açıldı! Çantandaki uyan tüm blokları her yerden doğrudan figüre göndermek için <b>kâğıt uçağa</b> dokun.",
 };

@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Je hebt een <b>magneet</b>! Tik op de <b>magneetknop</b> om alle passende blokken in de buurt aan te trekken.",
   "kubo.districts": "Een grote! De blokken liggen verdeeld over <b>wijken</b> met genummerde vlaggen. Het <b>kompas</b> wijst waar nu blokken passen.",
   "toast.chain": "Ketting ×{n}!",
+  "aria.express": "Kubo Express",
+  "express.none": "Nog niets in je rugzak past",
+  "express.sent.one": "Kubo Express! 1 blok verstuurd",
+  "express.sent.other": "Kubo Express! {n} blokken verstuurd",
+  "kubo.express.desk": "<b>Kubo Express</b> vrijgespeeld! Druk op <b>F</b> om alle passende blokken uit je rugzak meteen naar het figuur te sturen — van overal.",
+  "kubo.express.touch": "<b>Kubo Express</b> vrijgespeeld! Tik op het <b>papieren vliegtuigje</b> om alle passende blokken uit je rugzak meteen naar het figuur te sturen — van overal.",
 };

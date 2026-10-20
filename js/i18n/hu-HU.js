@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Kaptál egy <b>mágnest</b>! Koppints a <b>mágnes gombra</b>, és magadhoz húzza a közeli illő kockákat.",
   "kubo.districts": "Ez egy nagy! A kockái <b>negyedekbe</b> vannak rendezve, számozott zászlókkal. Az <b>iránytű</b> mutatja, hol vannak most illő kockák.",
   "toast.chain": "Lánc ×{n}!",
+  "aria.express": "Kubo Expressz",
+  "express.none": "A hátizsákban még semmi sem illik",
+  "express.sent.one": "Kubo Expressz! 1 kocka elküldve",
+  "express.sent.other": "Kubo Expressz! Elküldött kockák: {n}",
+  "kubo.express.desk": "<b>Kubo Expressz</b> feloldva! Nyomd meg az <b>F</b> gombot, és a hátizsák összes illő kockája egyenesen a figurához repül – bárhonnan.",
+  "kubo.express.touch": "<b>Kubo Expressz</b> feloldva! Koppints a <b>papírrepülőre</b>, és a hátizsák összes illő kockája egyenesen a figurához repül – bárhonnan.",
 };

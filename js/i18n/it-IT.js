@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Hai guadagnato una <b>calamita</b>! Tocca il <b>pulsante calamita</b> per attirare tutti i blocchi vicini che si incastrano.",
   "kubo.districts": "Una figura grande! I blocchi sono divisi in <b>quartieri</b> con bandiere numerate. La <b>bussola</b> indica dove ci sono blocchi che si incastrano adesso.",
   "toast.chain": "Catena ×{n}!",
+  "aria.express": "Kubo Express",
+  "express.none": "Niente nello zaino si incastra ancora",
+  "express.sent.one": "Kubo Express! 1 blocco spedito",
+  "express.sent.other": "Kubo Express! {n} blocchi spediti",
+  "kubo.express.desk": "<b>Kubo Express</b> sbloccato! Premi <b>F</b> per spedire alla figura tutti i blocchi che porti e che si incastrano, da qualsiasi punto.",
+  "kubo.express.touch": "<b>Kubo Express</b> sbloccato! Tocca l’<b>aeroplanino di carta</b> per spedire alla figura tutti i blocchi che porti e che si incastrano, da qualsiasi punto.",
 };

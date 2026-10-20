@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Ai câștigat un <b>magnet</b>! Atinge <b>butonul magnet</b> ca să atragi toate blocurile potrivite din apropiere.",
   "kubo.districts": "E una mare! Blocurile ei sunt împărțite în <b>cartiere</b> cu steaguri numerotate. <b>Busola</b> arată unde sunt acum blocuri potrivite.",
   "toast.chain": "Lanț ×{n}!",
+  "aria.express": "Kubo Expres",
+  "express.none": "Nimic din rucsac nu se potrivește încă",
+  "express.sent.one": "Kubo Expres! 1 bloc trimis",
+  "express.sent.other": "Kubo Expres! {n} blocuri trimise",
+  "kubo.express.desk": "<b>Kubo Expres</b> deblocat! Apasă <b>F</b> ca să trimiți direct la figură toate blocurile potrivite din rucsac — de oriunde.",
+  "kubo.express.touch": "<b>Kubo Expres</b> deblocat! Atinge <b>avionul de hârtie</b> ca să trimiți direct la figură toate blocurile potrivite din rucsac — de oriunde.",
 };

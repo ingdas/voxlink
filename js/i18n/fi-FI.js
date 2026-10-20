@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Sait <b>magneetin</b>! Napauta <b>magneettinappia</b>, niin se vetää luoksesi kaikki lähellä olevat sopivat palikat.",
   "kubo.districts": "Iso hahmo! Palikat on jaettu <b>alueisiin</b>, joilla on numeroidut liput. <b>Kompassi</b> näyttää, missä sopivia palikoita on juuri nyt.",
   "toast.chain": "Ketju ×{n}!",
+  "aria.express": "Kubo-pikalähetys",
+  "express.none": "Mikään repun palikka ei vielä sovi",
+  "express.sent.one": "Kubo-pikalähetys! 1 palikka lähetetty",
+  "express.sent.other": "Kubo-pikalähetys! Palikoita lähetetty: {n}",
+  "kubo.express.desk": "<b>Kubo-pikalähetys</b> avattu! Paina <b>F</b>, niin kaikki sopivat palikat repustasi lentävät suoraan hahmoon – mistä tahansa.",
+  "kubo.express.touch": "<b>Kubo-pikalähetys</b> avattu! Napauta <b>paperilennokkia</b>, niin kaikki sopivat palikat repustasi lentävät suoraan hahmoon – mistä tahansa.",
 };

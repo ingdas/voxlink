@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Du har fået en <b>magnet</b>! Tryk på <b>magnetknappen</b> for at trække alle klodser i nærheden, der passer, til dig.",
   "kubo.districts": "En stor en! Klodserne ligger i <b>kvarterer</b> med nummererede flag. <b>Kompasset</b> viser, hvor der lige nu er klodser, der passer.",
   "toast.chain": "Kæde ×{n}!",
+  "aria.express": "Kubo Ekspres",
+  "express.none": "Intet i din rygsæk passer endnu",
+  "express.sent.one": "Kubo Ekspres! 1 klods sendt",
+  "express.sent.other": "Kubo Ekspres! {n} klodser sendt",
+  "kubo.express.desk": "<b>Kubo Ekspres</b> låst op! Tryk på <b>F</b> for at sende alle klodser i rygsækken, der passer, direkte til figuren – hvor du end er.",
+  "kubo.express.touch": "<b>Kubo Ekspres</b> låst op! Tryk på <b>papirflyveren</b> for at sende alle klodser i rygsækken, der passer, direkte til figuren – hvor du end er.",
 };

@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Você ganhou um <b>ímã</b>! Toque no <b>botão do ímã</b> para puxar todos os blocos por perto que encaixam.",
   "kubo.districts": "Essa é grande! Os blocos estão separados em <b>distritos</b> com bandeiras numeradas. A <b>bússola</b> mostra onde há blocos que encaixam agora.",
   "toast.chain": "Corrente ×{n}!",
+  "aria.express": "Kubo Expresso",
+  "express.none": "Nada na sua mochila encaixa ainda",
+  "express.sent.one": "Kubo Expresso! 1 bloco enviado",
+  "express.sent.other": "Kubo Expresso! {n} blocos enviados",
+  "kubo.express.desk": "<b>Kubo Expresso</b> liberado! Aperte <b>F</b> para mandar direto para a figura todos os blocos que você carrega e que encaixam — de qualquer lugar.",
+  "kubo.express.touch": "<b>Kubo Expresso</b> liberado! Toque no <b>aviãozinho de papel</b> para mandar direto para a figura todos os blocos que você carrega e que encaixam — de qualquer lugar.",
 };

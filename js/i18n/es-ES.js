@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "¡Has ganado un <b>imán</b>! Toca el <b>botón del imán</b> para atraer todos los bloques cercanos que encajan.",
   "kubo.districts": "¡Una figura grande! Sus bloques están repartidos en <b>distritos</b> con banderas numeradas. La <b>brújula</b> señala dónde encajan bloques ahora mismo.",
   "toast.chain": "¡Cadena ×{n}!",
+  "aria.express": "Kubo Exprés",
+  "express.none": "Aún no llevas nada que encaje",
+  "express.sent.one": "¡Kubo Exprés! 1 bloque enviado",
+  "express.sent.other": "¡Kubo Exprés! {n} bloques enviados",
+  "kubo.express.desk": "¡<b>Kubo Exprés</b> desbloqueado! Pulsa <b>F</b> para enviar a la figura todos los bloques que lleves y encajen, desde cualquier sitio.",
+  "kubo.express.touch": "¡<b>Kubo Exprés</b> desbloqueado! Toca el <b>avión de papel</b> para enviar a la figura todos los bloques que lleves y encajen, desde cualquier sitio.",
 };

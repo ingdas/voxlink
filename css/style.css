@@ -545,3 +545,7 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 .slot .nums { max-width: 62px; }
 .slot .nums .chip { padding: 0 3px; min-width: 20px; font-size: 11.5px; }
 @media (max-height: 500px), (max-width: 520px) { .slot { width: 62px; } }
+#btn-express .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
+#btn-express.empty { filter: saturate(.2); opacity: .7; }
+body.museum #btn-express { display: none !important; }
+@media (max-width: 520px) { .hud-tools { gap: 6px; } .hud-tools .btn.icon { width: 42px; height: 42px; } }

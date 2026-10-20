@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Du hast einen <b>Magneten</b>! Tipp auf den <b>Magnet-Knopf</b>, um alle passenden Blöcke in der Nähe anzuziehen.",
   "kubo.districts": "Eine große Figur! Ihre Blöcke liegen in <b>Bezirken</b> mit nummerierten Flaggen. Der <b>Kompass</b> zeigt, wo gerade Blöcke passen.",
   "toast.chain": "Kette ×{n}!",
+  "aria.express": "Kubo-Express",
+  "express.none": "Im Rucksack passt noch nichts",
+  "express.sent.one": "Kubo-Express! 1 Block verschickt",
+  "express.sent.other": "Kubo-Express! {n} Blöcke verschickt",
+  "kubo.express.desk": "<b>Kubo-Express</b> freigeschaltet! Drück <b>F</b>, um alle passenden Blöcke im Rucksack direkt zur Figur zu schicken – von überall.",
+  "kubo.express.touch": "<b>Kubo-Express</b> freigeschaltet! Tipp auf den <b>Papierflieger</b>, um alle passenden Blöcke im Rucksack direkt zur Figur zu schicken – von überall.",
 };

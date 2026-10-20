@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Kamu dapat <b>magnet</b>! Ketuk <b>tombol magnet</b> untuk menarik semua balok cocok di dekatmu.",
   "kubo.districts": "Patung besar! Baloknya dibagi ke <b>distrik</b> dengan bendera bernomor. <b>Kompas</b> menunjuk ke tempat balok yang cocok saat ini.",
   "toast.chain": "Rantai ×{n}!",
+  "aria.express": "Kubo Ekspres",
+  "express.none": "Belum ada isi tasmu yang cocok",
+  "express.sent.one": "Kubo Ekspres! 1 balok terkirim",
+  "express.sent.other": "Kubo Ekspres! {n} balok terkirim",
+  "kubo.express.desk": "<b>Kubo Ekspres</b> terbuka! Tekan <b>F</b> untuk mengirim semua balok cocok yang kamu bawa langsung ke patung — dari mana saja.",
+  "kubo.express.touch": "<b>Kubo Ekspres</b> terbuka! Ketuk <b>pesawat kertas</b> untuk mengirim semua balok cocok yang kamu bawa langsung ke patung — dari mana saja.",
 };

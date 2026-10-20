@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "Masz <b>magnes</b>! Stuknij <b>przycisk magnesu</b>, by przyciągnąć wszystkie pasujące klocki w pobliżu.",
   "kubo.districts": "Ale duża! Klocki leżą w <b>dzielnicach</b> z numerowanymi flagami. <b>Kompas</b> pokazuje, gdzie teraz są pasujące klocki.",
   "toast.chain": "Łańcuch ×{n}!",
+  "aria.express": "Kubo Ekspres",
+  "express.none": "Nic w plecaku jeszcze nie pasuje",
+  "express.sent.one": "Kubo Ekspres! Wysłano 1 klocek",
+  "express.sent.other": "Kubo Ekspres! Wysłane klocki: {n}",
+  "kubo.express.desk": "Odblokowano <b>Kubo Ekspres</b>! Naciśnij <b>F</b>, a wszystkie pasujące klocki z plecaka polecą prosto do figury — skądkolwiek.",
+  "kubo.express.touch": "Odblokowano <b>Kubo Ekspres</b>! Stuknij <b>papierowy samolocik</b>, a wszystkie pasujące klocki z plecaka polecą prosto do figury — skądkolwiek.",
 };

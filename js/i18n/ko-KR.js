@@ -457,4 +457,10 @@ export default {
   "kubo.magnet.touch": "<b>자석</b>을 얻었어요! <b>자석 버튼</b>을 누르면 근처의 맞는 블록을 모두 끌어와요.",
   "kubo.districts": "큰 조각상이에요! 블록은 번호 깃발이 있는 <b>구역</b>으로 나뉘어 있어요. <b>나침반</b>이 지금 맞는 블록이 있는 곳을 가리켜요.",
   "toast.chain": "연속 ×{n}!",
+  "aria.express": "Kubo 특급배송",
+  "express.none": "가방 속 블록이 아직 맞지 않아요",
+  "express.sent.one": "Kubo 특급배송! 블록 1개를 보냈어요",
+  "express.sent.other": "Kubo 특급배송! 블록 {n}개를 보냈어요",
+  "kubo.express.desk": "<b>Kubo 특급배송</b>이 열렸어요! <b>F</b>를 누르면 들고 있는 맞는 블록이 어디서든 조각상으로 바로 날아가요.",
+  "kubo.express.touch": "<b>Kubo 특급배송</b>이 열렸어요! <b>종이비행기</b>를 누르면 들고 있는 맞는 블록이 어디서든 조각상으로 바로 날아가요.",
 };

@@ -218,6 +218,9 @@ export class Game {
     this.magnetCharges = this.stageCount > 1 ? 1 : 0;
     this.magnetLinks = 0;
     this.magnetTold = false;
+    this.expressCharges = 0;
+    this.expressLinks = 0;
+    this.expressTold = false;
     this.elapsed = resume?.elapsed ?? 0;
     this.hintsUsed = resume?.hints ?? 0;
     this.splits = resume?.splits?.slice() ?? [];
@@ -558,6 +561,18 @@ export class Game {
     this.events.magnet?.(this.magnetCharges, false);
   }
 
+  // Kubo Express: every carried block that fits flies across the island to its bubble.
+  useExpress() {
+    if (this.mode !== 'play' || this.expressCharges <= 0) { this.audio.wrong(); return; }
+    const fits = this.pack.filter(i => this.sockets.has(i));
+    if (!fits.length) { this.audio.wrong(); this.events.toast?.(t('express.none')); return; }
+    this.expressCharges--;
+    fits.forEach((i, k) => this.chainQueue.push({ i, at: this.t + 0.05 + k * 0.15, express: true }));
+    this.audio.tone({ f: 400, f2: 1600, type: 'triangle', dur: 0.45, vol: 0.1, wet: 0.4 });
+    this.events.toast?.(t(fits.length === 1 ? 'express.sent.one' : 'express.sent.other', { n: fits.length }));
+    this.events.express?.(this.expressCharges, false);
+  }
+
   // Nearest block that fits right now — only offered when the player seems stuck.
   radarTarget() {
     if (this.mode !== 'play' || this.sinceLink < (this.puzzler ? 45 : 20) || this.hasFitInPack()) return null;
@@ -709,6 +724,14 @@ export class Game {
       }
       if (this.t - (this.lastLinkT ?? -9) > 1.2) this.chain = 0;
       this.lastLinkT = this.t;
+      if (this.stageCount > 1 && ++this.expressLinks >= 20) {
+        this.expressLinks = 0;
+        if (this.expressCharges < 2) {
+          this.expressCharges++;
+          this.events.express?.(this.expressCharges, true);
+          if (!this.expressTold) { this.expressTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.express.touch' : 'kubo.express.desk')); }
+        }
+      }
       if (this.stageCount > 1 && ++this.magnetLinks >= 12) {
         this.magnetLinks = 0;
         if (this.magnetCharges < 3) {
@@ -893,7 +916,7 @@ export class Game {
     this.pack.splice(this.slotOf(i), 1);
     if (this.active >= this.pack.length) this.active = Math.max(0, this.pack.length - 1);
     if (v.chunk !== undefined) this.launchChunk(i);
-    else this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), 0.34);
+    else this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), Math.min(1.6, 0.34 + v.mesh.position.distanceTo(v.target) * 0.03));
     this.ghost.visible = false;
     this.audio.tone({ f: 500, f2: 900, type: 'sine', dur: 0.2, vol: 0.08 });
     if (this.tutorial === 3) this.tutorial = 4;
@@ -1026,6 +1049,7 @@ export class Game {
       else if (a.type === 'drop') this.drop();
       else if (a.type === 'hint') this.hint();
       else if (a.type === 'magnet') this.useMagnet();
+      else if (a.type === 'express') this.useExpress();
       else if (a.type === 'pause') this.events.pause?.();
       else if (a.type === 'slot') this.selectSlot(a.k);
       else if (a.type === 'cycle') this.cycleSlot(a.d);
@@ -1047,11 +1071,11 @@ export class Game {
     this.elapsed += dt;
     this.sinceLink += dt;
     while (this.chainQueue.length && this.chainQueue[0].at <= this.t) {
-      const { i } = this.chainQueue.shift();
+      const { i, express } = this.chainQueue.shift();
       if (!this.pack.includes(i) || !this.sockets.has(i)) continue;
-      this.chain++;
+      if (!express) this.chain++;
       this.launch(i);
-      if (this.chain >= 2) this.events.toast?.(t('toast.chain', { n: this.chain + 1 }));
+      if (!express && this.chain >= 2) this.events.toast?.(t('toast.chain', { n: this.chain + 1 }));
     }
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
     if (this.tutorial === 1 && this.elapsed > 3) this.tutorial = 2;

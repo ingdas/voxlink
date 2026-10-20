@@ -51,3 +51,15 @@ by linking) pulls every block that fits right now within 10 m into the backpack.
 (`R = max(12 + 0.95·√n, footprint + 12)`). The backpack stays at 4: 6–8 slots only gain 5–8 %
 and crowd the HUD on phones. No floating number labels: the "fits now" glint already does the
 useful part, more visible numbers only add noise.
+
+## 2026-10-21 · Tools: chain links and Kubo Express
+
+- **Chain links.** Blocks in the backpack that belong directly on the block you just linked now fly
+  in by themselves, one after another with rising pitch ("Chain ×3!"). It removes repetitive aiming
+  and rewards collecting neighbouring numbers together.
+- **Kubo Express.** Linking from anywhere (no walk back to the figure) cut simulated play time by
+  33 % (Colossus), 19 % (Dragon) and 9 % (Windmill). Unlimited, it would remove the rhythm of
+  returning to watch the figure grow, so it is a limited tool: one charge per 20 links (max 2) on
+  figures with districts. It sends every carried block that fits to its bubble (key F / plane button).
+- Tools now: Hint (costs the no-hint star), Magnet (R, every 12 links), Kubo Express (F, every 20
+  links), plus the Keeper's updraft on tall figures.
