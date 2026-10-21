@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { LAYER_OVERLAY } from './render.js';
 
+const beamView = new THREE.Frustum(), beamM = new THREE.Matrix4(), beamBox = new THREE.Box3();
+
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _e = new THREE.Euler();
 
 class ParticlePool {
@@ -105,7 +107,8 @@ export class FX {
     }
   }
 
-  pointBeam(obj) { this.beamTarget = obj; this.beamTime = 4; this.beam.visible = true; }
+  // the light's 4 s only run once it's been in view (up to 10 s of waiting while you turn round to it)
+  pointBeam(obj) { this.beamTarget = obj; this.beamTime = 4; this.beamAge = 0; this.beamWait = 10; this.beam.visible = true; }
   clearBeam() { this.beamTarget = null; this.beamTime = 0; this.beam.visible = false; }
 
   update(dt, camera) {
@@ -121,10 +124,15 @@ export class FX {
       if (k >= 1) { this.scene.remove(r); r.material.dispose(); this.rings.splice(i, 1); }
     }
     if (this.beamTime > 0 && this.beamTarget) {
-      this.beamTime -= dt;
       const p = this.beamTarget.position;
       this.beam.position.set(p.x, p.y + 20, p.z);
-      const fade = Math.min(1, this.beamTime, (4 - this.beamTime) * 4);
+      this.beamAge += dt;
+      camera.updateMatrixWorld();
+      beamView.setFromProjectionMatrix(beamM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+      beamBox.min.set(p.x - 0.3, p.y, p.z - 0.3); beamBox.max.set(p.x + 0.3, p.y + 40, p.z + 0.3);
+      if (this.beamWait > 0 && !beamView.intersectsBox(beamBox)) this.beamWait -= dt;
+      else { this.beamWait = 0; this.beamTime -= dt; }
+      const fade = Math.min(1, this.beamTime, this.beamAge * 4);
       this.beam.material.opacity = 0.35 * fade * (0.8 + 0.2 * Math.sin(performance.now() * 0.01));
       if (this.beamTime <= 0) this.clearBeam();
     }

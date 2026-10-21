@@ -342,9 +342,11 @@ function placeEdge(el, pos, show) {
   if (!show) { el.classList.remove('on'); return; }
   edgeV.copy(pos).applyMatrix4(camera.matrixWorldInverse);
   const behind = edgeV.z > 0;
+  const side = edgeV.x >= 0 ? 1 : -1;
   edgeV.copy(pos).project(camera);
   let x = edgeV.x, y = edgeV.y;
-  if (behind) { x = -x; y = -y; }
+  // behind you: on the side edge you'd turn towards, pointing sideways (an arrow up or down only sends you looking at the sky or your feet)
+  if (behind) { x = side; y = 0; }
   const onScreen = !behind && Math.abs(x) < 0.92 && Math.abs(y) < 0.92;
   if (onScreen) { el.classList.remove('on'); return; }
   const ang = Math.atan2(y, x);
