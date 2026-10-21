@@ -1,6 +1,6 @@
 {
-  "name": "Voxlink",
-  "short_name": "Voxlink",
+  "name": "Kubo's Islands",
+  "short_name": "Kubo's Islands",
   "description": "Link the numbered blocks and build a 3D figure.",
   "start_url": "./",
   "display": "fullscreen",

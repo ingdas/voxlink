@@ -33,7 +33,7 @@ export default {
   "complete.hints": "hints",
   "ending.title": "The Archipelago is whole!",
   "ending.stars": "<b>{n}</b> stars collected",
-  "ending.thanks": "Thanks for playing Voxlink.",
+  "ending.thanks": "Thanks for playing Kubo's Islands.",
   "ending.back": "Back to the map",
   "hud.keys": "<span><kbd>WASD</kbd> move</span><span><kbd>Click</kbd> grab / link</span><span><kbd>Space</kbd> jump · <kbd>Shift</kbd> run</span><span><kbd>1-4</kbd> / <kbd>Wheel</kbd> pick slot</span><span><kbd>Right-click</kbd> drop · <kbd>H</kbd> hint</span>",
   "aria.pause": "Pause",

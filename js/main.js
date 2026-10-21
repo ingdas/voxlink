@@ -7,6 +7,7 @@ import { Game, PACK_SIZE } from './game.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { FX } from './fx.js';
+import { buildLogo } from './logo.js';
 import FEATURES from './features/index.js';
 import { t, setLocale, detectLocale, applyDom, listJoin } from './i18n.js';
 import { localizeContent } from './i18n-content.js';
@@ -45,6 +46,7 @@ addEventListener('unhandledrejection', e => {
 document.body.classList.toggle('mobile', mobile);
 
 // ---------- persistence ----------
+// storage keys (and the daily seed, window.__voxlink) keep the working title Voxlink: renaming them would wipe saves
 const SAVE_KEY = 'voxlink.v2';
 const save = Object.assign({ unlocked: 1, best: {}, stars: {}, seen: {}, settings: {} }, safeParse(localStorage.getItem(SAVE_KEY)));
 save.settings = Object.assign({ sens: 1, sfx: 0.8, music: 0.45, invert: false, outline: true, full: mobile }, save.settings);
@@ -58,18 +60,6 @@ const fmt = s => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s %
 const hex = c => `#${c.toString(16).padStart(6, '0')}`;
 
 // ---------- logo ----------
-function buildLogo(el) {
-  const colors = ['var(--sun)', 'var(--coral)', 'var(--mint)', 'var(--sky)', 'var(--lilac)', 'var(--sun)', 'var(--coral)'];
-  el.innerHTML = '';
-  'VOXLINK'.split('').forEach((ch, i) => {
-    const s = document.createElement('span');
-    s.style.setProperty('--c', colors[i]);
-    s.style.setProperty('--rot', `${[-6, 4, -3, 5, -4, 3, -5][i]}deg`);
-    s.style.setProperty('--d', `${i * 0.12}s`);
-    s.innerHTML = `${ch}<sup>${i + 1}</sup>`;
-    el.appendChild(s);
-  });
-}
 ['logo-loading', 'logo-title', 'logo-ending'].forEach(id => buildLogo($(id)));
 
 // ---------- screens: one base screen + a stack of overlays ----------

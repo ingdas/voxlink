@@ -1,4 +1,4 @@
-# Voxlink
+# Kubo's Islands
 
 A cozy first-person, cel-shaded voxel puzzle for desktop and mobile browsers.
 

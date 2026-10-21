@@ -9,7 +9,7 @@ export default {
   'photo.hint.orbitTouch': 'Drag to orbit · pinch to zoom',
   'photo.hint.orbitMouse': 'Drag to orbit · scroll to zoom',
   'photo.hint.frozen': 'View frozen · line up your shot',
-  'photo.shareText': '{name} · rebuilt in Voxlink',
+  'photo.shareText': "{name} · rebuilt in Kubo's Islands",
   'photo.myIsland': 'My island',
   'photo.shared': 'Shared!',
   'photo.saved': 'Photo saved!',

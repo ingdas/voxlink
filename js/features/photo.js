@@ -1,11 +1,10 @@
-// Photo mode: hides the UI, lets you orbit (or freezes) the view, frames it and snaps a PNG with a Voxlink watermark.
+// Photo mode: hides the UI, lets you orbit (or freezes) the view, frames it and snaps a PNG with a Kubo's Islands watermark.
 // Available from the in-level pause screen, the results panel, the C key while playing, and Kubo's Garden (ctx.photo.open).
 import { PEDESTAL_TOP } from '../world.js';
 import { t } from '../i18n.js';
+import { GAME_NAME, buildLogo } from '../logo.js';
 
 const INK = '#2a1f3d', PAPER = '#fff4e0';
-const LOGO_COLORS = ['#ffc93c', '#ff6b6b', '#3ddc97', '#4cc9f0', '#b693f5', '#ffc93c', '#ff6b6b'];
-const LOGO_ROT = [-6, 4, -3, 5, -4, 3, -5];
 const BAND = 14, BAND_R = 14; // frame band width / inner corner radius in CSS px (mirrored in features.css)
 const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
 
@@ -53,11 +52,10 @@ function buildDom() {
   el = document.createElement('div');
   el.id = 'screen-photo';
   el.className = 'screen photo';
-  const tiles = 'VOXLINK'.split('').map((ch, i) => `<span style="--c:${LOGO_COLORS[i]};--rot:${LOGO_ROT[i]}deg">${ch}</span>`).join('');
   el.innerHTML = `
     <div class="photo-frame"></div>
     <div class="photo-hint tag" id="photo-hint"></div>
-    <div class="photo-mark"><div class="photo-logo" id="photo-logo">${tiles}</div><div class="photo-name" id="photo-name"></div></div>
+    <div class="photo-mark"><div class="photo-logo" id="photo-logo"></div><div class="photo-name" id="photo-name"></div></div>
     <button class="photo-preview" id="photo-preview" aria-label="${t('photo.sharePhoto')}"><img alt=""><span>${t('photo.snapped')}</span></button>
     <div class="photo-note" id="photo-note"></div>
     <div class="photo-ctl">
@@ -67,6 +65,7 @@ function buildDom() {
     </div>
     <div class="photo-flash" id="photo-flash"></div>`;
   document.body.appendChild(el);
+  buildLogo($('photo-logo'), { badges: false });
   $('photo-close').onclick = () => close();
   $('photo-snap').onclick = () => snap();
   $('photo-share').onclick = () => share();
@@ -100,7 +99,7 @@ function open(o) {
     Object.assign(o.orbit, { yaw, pitch, dist, yawT: yaw, pitchT: Math.max(pitch, o.orbit.pitch0 ?? 0), distT: Math.max(dist, o.orbit.dist0 ?? 0) });
     applyOrbit(1);
   }
-  $('photo-name').textContent = o.name || 'Voxlink';
+  $('photo-name').textContent = o.name || GAME_NAME;
   document.fonts?.load(`700 40px ${FONTS}`, $('photo-name').textContent).catch(() => {}); // ready for the PNG's name tag
   const hint = $('photo-hint');
   hint.textContent = t(o.orbit ? (ctx.mobile ? 'photo.hint.orbitTouch' : 'photo.hint.orbitMouse') : 'photo.hint.frozen');
@@ -165,9 +164,9 @@ function openFromComplete() {
 }
 
 function shotName(level) {
-  if (!level) return 'Voxlink';
+  if (!level) return GAME_NAME;
   if (level.kind || ctx.save.stars[level.id]?.done) return level.name;
-  return ctx.CHAPTERS[level.chapter ?? 0]?.name || 'Voxlink';
+  return ctx.CHAPTERS[level.chapter ?? 0]?.name || GAME_NAME;
 }
 
 // ---------- per frame ----------
@@ -281,17 +280,23 @@ function decorate(g, W, H) {
 
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  // logo tiles
-  [...$('photo-logo').children].forEach((s, i) => {
+  // logo tiles (the apostrophe is plain ink between them)
+  $('photo-logo').querySelectorAll('span').forEach(s => {
     const b = s.getBoundingClientRect();
     const cx = (b.left + b.width / 2) * u, cy = (b.top + b.height / 2) * u;
     const w = s.offsetWidth * u, h = s.offsetHeight * u;
+    if (s.classList.contains('apos')) {
+      g.fillStyle = INK;
+      g.font = `700 ${parseFloat(getComputedStyle(s).fontSize) * u}px ${FONTS}`;
+      g.fillText(s.textContent, cx, cy);
+      return;
+    }
     g.save();
     g.translate(cx, cy);
-    g.rotate((LOGO_ROT[i] * Math.PI) / 180);
+    g.rotate((s.dataset.rot * Math.PI) / 180);
     g.fillStyle = INK;
     g.beginPath(); rr(g, -w / 2, -h / 2 + 3 * u, w, h, 5 * u); g.fill();
-    g.fillStyle = LOGO_COLORS[i];
+    g.fillStyle = s.dataset.c;
     g.beginPath(); rr(g, -w / 2, -h / 2, w, h, 5 * u); g.fill();
     g.lineWidth = 2.5 * u; g.strokeStyle = INK;
     g.beginPath(); rr(g, -w / 2 + 1.25 * u, -h / 2 + 1.25 * u, w - 2.5 * u, h - 2.5 * u, 4 * u); g.stroke();
@@ -369,11 +374,11 @@ async function share() {
   if (!state) return;
   const blob = lastBlob || await snap();
   if (!blob) return;
-  const name = (state?.name || 'voxlink').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const file = new File([blob], `voxlink-${name || 'photo'}.png`, { type: 'image/png' });
+  const name = (state?.name || 'photo').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const file = new File([blob], `kubos-islands-${name || 'photo'}.png`, { type: 'image/png' });
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'Voxlink', text: t('photo.shareText', { name: state?.name || t('photo.myIsland') }) });
+      await navigator.share({ files: [file], title: GAME_NAME, text: t('photo.shareText', { name: state?.name || t('photo.myIsland') }) });
       note(t('photo.shared'));
       return;
     } catch (e) {

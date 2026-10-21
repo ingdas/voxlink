@@ -112,7 +112,9 @@ body.high-contrast .slot .chip.ready { outline: 2px solid var(--ink); outline-of
 }
 .photo-hint.gone { opacity: 0; transform: translate(-50%, -8px); }
 .photo-mark { position: absolute; left: calc(30px + var(--sal)); bottom: calc(30px + var(--sab)); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none; }
-.photo-logo { display: flex; gap: 3px; }
+.photo-logo { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.photo-logo .logo-row { display: flex; gap: 3px; align-items: center; }
+.photo-logo span.apos { width: auto; height: 25px; margin: 0 -1px; background: none; border: 0; box-shadow: none; transform: none; font-size: 22px; color: var(--ink); place-items: start center; }
 .photo-logo span {
   width: 25px; height: 25px; display: grid; place-items: center; font-weight: 700; font-size: 16px; line-height: 1;
   background: var(--c); border: 2.5px solid var(--ink); border-radius: 5px; box-shadow: 0 3px 0 var(--ink); transform: rotate(var(--rot));

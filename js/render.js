@@ -153,7 +153,7 @@ export class Renderer {
     else if (this.tier.type !== THREE.UnsignedByteType) this.tier.type = THREE.UnsignedByteType;
     else if (!this.direct) this.direct = true;
     else return false;
-    console.warn(`[voxlink] graphics fallback (${reason}):`, this.direct ? 'direct rendering' : this.tier);
+    console.warn(`[kubo] graphics fallback (${reason}):`, this.direct ? 'direct rendering' : this.tier);
     if (!this.direct) this.makeTargets();
     else { this.colorRT.dispose(); this.normalRT.dispose(); } // unused from now on: free their GPU memory
     this.verifyFrames = 2;
