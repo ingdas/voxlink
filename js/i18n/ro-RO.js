@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Browserul tău n-a putut porni grafica 3D.",
   "error.reload": "Reîncarcă",
   "error.webglTip": "Verifică dacă accelerarea hardware / WebGL e pornită sau încearcă alt browser.",
+  "error.webglBlocked": "Grafica 3D e blocată acum în acest browser. După o eroare grafică, Chrome o blochează până la repornire: închide complet browserul (glisează-l), deschide-l din nou și reîncarcă.",
+  "settings.safeGfx": "Grafică sigură",
+  "settings.safeGfxNote": "3D mai simplu pentru telefoanele care se descurcă greu",
 };

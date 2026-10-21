@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Trình duyệt của bạn không khởi động được đồ họa 3D.",
   "error.reload": "Tải lại",
   "error.webglTip": "Hãy kiểm tra tăng tốc phần cứng / WebGL đã bật chưa, hoặc thử trình duyệt khác.",
+  "error.webglBlocked": "Đồ họa 3D đang bị chặn trong trình duyệt này. Sau khi đồ họa bị lỗi, Chrome sẽ chặn nó đến khi khởi động lại: đóng hẳn trình duyệt (vuốt để tắt), mở lại rồi tải lại trang.",
+  "settings.safeGfx": "Đồ họa an toàn",
+  "settings.safeGfxNote": "3D đơn giản hơn cho điện thoại yếu",
 };

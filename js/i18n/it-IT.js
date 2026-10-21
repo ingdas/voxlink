@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Il tuo browser non è riuscito ad avviare la grafica 3D.",
   "error.reload": "Ricarica",
   "error.webglTip": "Controlla che l’accelerazione hardware / WebGL sia attiva o prova un altro browser.",
+  "error.webglBlocked": "La grafica 3D è bloccata in questo browser in questo momento. Dopo un crash grafico Chrome la blocca fino al riavvio: chiudi del tutto il browser (scorri per chiuderlo), riaprilo e ricarica.",
+  "settings.safeGfx": "Grafica sicura",
+  "settings.safeGfxNote": "3D più semplice per i telefoni in difficoltà",
 };

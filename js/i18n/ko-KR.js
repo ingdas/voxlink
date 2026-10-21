@@ -472,4 +472,7 @@ export default {
   "error.webgl": "브라우저에서 3D 그래픽을 시작하지 못했어요.",
   "error.reload": "새로고침",
   "error.webglTip": "하드웨어 가속 / WebGL이 켜져 있는지 확인하거나 다른 브라우저를 사용해 보세요.",
+  "error.webglBlocked": "지금 이 브라우저에서 3D 그래픽이 차단되어 있어요. 그래픽 오류가 난 뒤에는 Chrome이 다시 시작할 때까지 막아 둬요: 브라우저를 완전히 닫고(밀어서 종료) 다시 연 뒤 새로고침해 주세요.",
+  "settings.safeGfx": "안전 그래픽",
+  "settings.safeGfxNote": "버거워하는 휴대폰을 위한 더 단순한 3D",
 };

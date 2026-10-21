@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Selaimesi ei pystynyt käynnistämään 3D-grafiikkaa.",
   "error.reload": "Lataa uudelleen",
   "error.webglTip": "Tarkista, että laitteistokiihdytys / WebGL on päällä, tai kokeile toista selainta.",
+  "error.webglBlocked": "3D-grafiikka on nyt estetty tässä selaimessa. Grafiikan kaatumisen jälkeen Chrome estää sen uudelleenkäynnistykseen asti: sulje selain kokonaan (pyyhkäise pois), avaa se uudelleen ja lataa sivu.",
+  "settings.safeGfx": "Turvallinen grafiikka",
+  "settings.safeGfxNote": "Kevyempi 3D puhelimille, joilla on vaikeuksia",
 };

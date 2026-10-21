@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Tvůj prohlížeč nedokázal spustit 3D grafiku.",
   "error.reload": "Načíst znovu",
   "error.webglTip": "Zkontroluj, že je zapnutá hardwarová akcelerace / WebGL, nebo zkus jiný prohlížeč.",
+  "error.webglBlocked": "3D grafika je teď v tomto prohlížeči zablokovaná. Po pádu grafiky ji Chrome blokuje až do restartu: prohlížeč úplně zavři (odsuň ho), znovu otevři a načti stránku.",
+  "settings.safeGfx": "Bezpečná grafika",
+  "settings.safeGfxNote": "Jednodušší 3D pro telefony, které nestíhají",
 };

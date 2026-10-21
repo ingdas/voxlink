@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Dein Browser konnte die 3D-Grafik nicht starten.",
   "error.reload": "Neu laden",
   "error.webglTip": "Prüfe, ob Hardwarebeschleunigung / WebGL aktiviert ist, oder probier einen anderen Browser.",
+  "error.webglBlocked": "3D-Grafik ist in diesem Browser gerade blockiert. Nach einem Grafikabsturz sperrt Chrome sie bis zum Neustart: Browser ganz schließen (wegwischen), neu öffnen und neu laden.",
+  "settings.safeGfx": "Sichere Grafik",
+  "settings.safeGfxNote": "Einfacheres 3D für Handys, die Probleme haben",
 };

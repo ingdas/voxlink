@@ -609,3 +609,4 @@ body.museum #btn-express { display: none !important; }
 }
 .pz-txt { min-width: 0; }
 .pz-txt small { display: block; white-space: normal; overflow-wrap: anywhere; }
+.set-note { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); }

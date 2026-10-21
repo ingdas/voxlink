@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Tarayıcın 3B grafikleri başlatamadı.",
   "error.reload": "Yeniden yükle",
   "error.webglTip": "Donanım hızlandırmanın / WebGL’in açık olduğundan emin ol ya da başka bir tarayıcı dene.",
+  "error.webglBlocked": "3B grafikler şu an bu tarayıcıda engelli. Bir grafik çökmesinden sonra Chrome yeniden başlatılana kadar onları engeller: tarayıcıyı tamamen kapat (kaydırıp kapat), yeniden aç ve sayfayı yenile.",
+  "settings.safeGfx": "Güvenli grafik",
+  "settings.safeGfxNote": "Zorlanan telefonlar için daha basit 3B",
 };

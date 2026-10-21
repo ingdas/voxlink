@@ -73,18 +73,20 @@ void main() {
 }`;
 
 export class Renderer {
-  constructor(canvas, { mobile }) {
+  // safe: no post-processing, no shadows, 1x resolution (used after a GPU crash or when chosen in Settings)
+  constructor(canvas, { mobile, safe = false }) {
+    this.safe = safe;
     this.mobile = mobile;
     const r = (this.gl = new THREE.WebGLRenderer({
       canvas, antialias: false, alpha: false, stencil: false, powerPreference: mobile ? 'default' : 'high-performance',
     }));
-    r.shadowMap.enabled = true;
+    r.shadowMap.enabled = !safe;
     r.shadowMap.type = THREE.PCFShadowMap;
     r.shadowMap.autoUpdate = false;
     r.setClearColor(0x000000, 1);
     // phones: lower resolution, plain 8-bit buffers and no MSAA (many mobile GPUs can't render to
     // multisampled half-float targets, which leaves the 3D view black)
-    this.maxDpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
+    this.maxDpr = this.dprCap();
     this.scale = 1;
     this.outlines = true;
     const ext = r.extensions;
@@ -94,7 +96,7 @@ export class Renderer {
       samples: mobile ? 0 : Math.min(4, r.capabilities.maxSamples || 0),
     };
     // last-resort mode: no post-processing (no ink outlines). WebGL1 devices always use it.
-    this.direct = !!window.__gfx?.legacy || r.capabilities.isWebGL2 === false;
+    this.direct = safe || !!window.__gfx?.legacy || r.capabilities.isWebGL2 === false;
     if (this.direct) { this.tier = { type: THREE.UnsignedByteType, samples: 0 }; this.verifyFrames = 0; }
     if (!this.direct) this.verifyFrames = 2;
     this.normalMat = new THREE.MeshNormalMaterial();
@@ -186,12 +188,14 @@ export class Renderer {
     return lit === 0;
   }
 
+  dprCap() { return Math.min(window.devicePixelRatio || 1, this.safe ? 1 : this.mobile ? 1.5 : 2); }
+
   get pixelRatio() { return this.maxDpr * this.scale; }
 
   setSize(w, h) {
     this.w = w; this.h = h;
     // browser zoom changes the device pixel ratio (and fires the resize that lands here)
-    this.maxDpr = Math.min(window.devicePixelRatio || 1, this.mobile ? 1.5 : 2);
+    this.maxDpr = this.dprCap();
     const pr = this.pixelRatio;
     this.gl.setPixelRatio(pr);
     this.gl.setSize(w, h, false);

@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Browsermu tidak bisa menjalankan grafis 3D.",
   "error.reload": "Muat ulang",
   "error.webglTip": "Pastikan akselerasi perangkat keras / WebGL aktif, atau coba browser lain.",
+  "error.webglBlocked": "Grafis 3D sedang diblokir di browser ini. Setelah grafis mogok, Chrome memblokirnya sampai dimulai ulang: tutup browser sepenuhnya (geser untuk menutup), buka lagi, lalu muat ulang.",
+  "settings.safeGfx": "Grafis aman",
+  "settings.safeGfxNote": "3D lebih sederhana untuk ponsel yang kewalahan",
 };

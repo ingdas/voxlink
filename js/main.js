@@ -18,7 +18,10 @@ const mobile = matchMedia('(pointer: coarse)').matches
   || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1); // iPadOS reports a Mac
 
 // Something broke: show it on screen instead of leaving a silent black page.
+let fatalKind = null;
 function showFatal(kind, detail) {
+  if (fatalKind === 'webgl' && kind !== 'webgl') return; // the specific graphics message wins
+  fatalKind = kind;
   let el = document.getElementById('fatal');
   if (!el) {
     el = document.createElement('div');
@@ -30,7 +33,7 @@ function showFatal(kind, detail) {
   el.innerHTML = `<div class="panel narrow"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div>
     <p>${kind === 'webgl' ? tx('error.webgl', 'Your browser could not start the 3D graphics.') : tx('error.generic', 'Oops — something went wrong.')}</p>
     <small>${String(detail || '').slice(0, 160).replace(/</g, '&lt;')}<br>WebGL2: ${window.__gfx?.webgl2 ? 'yes' : 'no'} · WebGL: ${window.__gfx?.webgl1 ? 'yes' : window.__gfx?.webgl2 ? '–' : 'no'} · ${(navigator.userAgent.match(/(iPhone OS [\d_]+|Android [\d.]+|Chrome\/\d+|Version\/[\d.]+ Mobile|Firefox\/\d+|SamsungBrowser\/[\d.]+)/g) || []).join(' ')}</small>
-    ${kind === 'webgl' ? `<small>${tx('error.webglTip', 'Check that hardware acceleration / WebGL is turned on, or try another browser.')}</small>` : ''}
+    ${kind === 'webgl' ? `<small>${tx(!window.__gfx?.webgl2 && !window.__gfx?.webgl1 ? 'error.webglBlocked' : 'error.webglTip', '')}</small>` : ''}
     <button class="btn mint" onclick="location.reload()">${tx('error.reload', 'Reload')}</button></div>`;
 }
 addEventListener('error', e => { if (e.message && !/ResizeObserver/.test(e.message)) showFatal('generic', e.message); });
@@ -87,14 +90,30 @@ document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click'
 
 // ---------- core ----------
 const canvas = $('c');
+// Crash guard: if the last visit never reached a few healthy seconds of 3D (the GPU crashed or the
+// tab was killed), start in safe graphics. A crashing page can make Chrome block WebGL for the site.
+const GFX_KEY = 'voxlink.gfx';
+const gfxState = (() => { try { return JSON.parse(localStorage.getItem(GFX_KEY)) || {}; } catch { return {}; } })();
+const saveGfx = () => { try { localStorage.setItem(GFX_KEY, JSON.stringify(gfxState)); } catch { /* private mode */ } };
+if (gfxState.booting && !gfxState.safe) { gfxState.safe = true; gfxState.auto = true; }
+gfxState.booting = Date.now();
+saveGfx();
 let renderer;
 try {
-  renderer = new Renderer(canvas, { mobile });
+  renderer = new Renderer(canvas, { mobile, safe: !!gfxState.safe || /[?&]safe\b/.test(location.search) });
 } catch (err) {
+  gfxState.booting = 0; saveGfx();
   showFatal('webgl', err?.message);
   throw err;
 }
-canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); showFatal('webgl', 'WebGL context lost'); });
+let healthy = 0; // seconds of rendered 3D frames this visit
+addEventListener('pagehide', () => { if (gfxState.booting) { gfxState.booting = 0; saveGfx(); } });
+canvas.addEventListener('webglcontextlost', e => {
+  e.preventDefault();
+  if (!gfxState.safe) { gfxState.safe = true; gfxState.auto = true; }
+  gfxState.booting = 0; saveGfx();
+  showFatal('webgl', 'WebGL context lost');
+});
 renderer.outlines = save.settings.outline;
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xffe3c4, 0.0085);
@@ -720,6 +739,13 @@ function bindSettings() {
   };
   toggle('set-invert', 'invert', v => { input.invertY = v; });
   toggle('set-outline', 'outline', v => { renderer.outlines = v; });
+  const safeBtn = $('set-safe');
+  safeBtn.classList.toggle('on', !!gfxState.safe);
+  safeBtn.onclick = () => {
+    gfxState.safe = !gfxState.safe; gfxState.auto = false; gfxState.booting = 0; saveGfx();
+    safeBtn.classList.toggle('on', gfxState.safe);
+    setTimeout(() => location.reload(), 250);
+  };
   const fsSupported = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
   if (!fsSupported) $('set-full').closest('.setting').classList.add('hidden');
   toggle('set-full', 'full', v => goFullscreen(v));
@@ -817,17 +843,18 @@ function frame(now) {
   if (app === 'paused' || app === 'loading' || app === 'menu') return;
   // a feature can own the frame for its own app state:
   // ctx.views[app] replaces update + render (workshop), ctx.modes[app] replaces game.update only (garden)
-  if (ctx.views[app]) { ctx.views[app](dt); renderer.adapt(dt); return; }
+  if (ctx.views[app]) { ctx.views[app](dt); renderer.adapt(dt); if (healthy < 6 && (healthy += dt) >= 6) { gfxState.booting = 0; saveGfx(); } return; }
   const mode = ctx.modes[app];
   if (mode) mode(dt); else game.update(dt);
   renderer.render(scene, camera);
   renderer.adapt(dt);
+  if (healthy < 6 && (healthy += dt) >= 6) { gfxState.booting = 0; saveGfx(); }
 }
 
 // ---------- feature context ----------
 // Feature modules (js/features/*.js) get this object in init(ctx) and hook in from there.
 const ctx = {
-  THREE, game, renderer, scene, camera, audio, input, fx, save, persist, mobile, $, fmt, hex,
+  THREE, game, renderer, scene, camera, audio, input, fx, save, persist, mobile, $, fmt, hex, gfxState, saveGfx,
   LEVELS, CHAPTERS, expandLevel, parTime,
   get app() { return app; }, set app(v) { app = v; },
   get base() { return base; }, overlays,

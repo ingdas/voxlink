@@ -472,4 +472,7 @@ export default {
   "error.webgl": "Nettleseren din klarte ikke å starte 3D-grafikken.",
   "error.reload": "Last inn på nytt",
   "error.webglTip": "Sjekk at maskinvareakselerasjon / WebGL er slått på, eller prøv en annen nettleser.",
+  "error.webglBlocked": "3D-grafikk er blokkert i denne nettleseren akkurat nå. Etter et grafikkkrasj blokkerer Chrome den til den startes på nytt: lukk nettleseren helt (sveip den bort), åpne den igjen og last inn på nytt.",
+  "settings.safeGfx": "Sikker grafikk",
+  "settings.safeGfxNote": "Enklere 3D for telefoner som sliter",
 };

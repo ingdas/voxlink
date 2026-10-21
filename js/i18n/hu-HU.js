@@ -472,4 +472,7 @@ export default {
   "error.webgl": "A böngésződ nem tudta elindítani a 3D grafikát.",
   "error.reload": "Újratöltés",
   "error.webglTip": "Ellenőrizd, hogy be van-e kapcsolva a hardveres gyorsítás / WebGL, vagy próbálj másik böngészőt.",
+  "error.webglBlocked": "A 3D grafika most le van tiltva ebben a böngészőben. Grafikus összeomlás után a Chrome újraindításig letiltja: zárd be teljesen a böngészőt (söpörd el), nyisd meg újra, és töltsd újra az oldalt.",
+  "settings.safeGfx": "Biztonságos grafika",
+  "settings.safeGfxNote": "Egyszerűbb 3D a gyengébb telefonokhoz",
 };
