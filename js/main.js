@@ -58,6 +58,7 @@ if ((save.campaign ?? 1) < 2) {
   const reached = OLD_ORDER.slice(0, save.unlocked).map(id => LEVELS.findIndex(l => l.id === id));
   save.unlocked = Math.max(1, ...reached.map(i => i + 1));
   save.campaign = 2;
+  if (save.seen?.prologue) save.seen.oldSave = true; // Kubo mentions the new figures when they're back
 }
 delete save.daily; delete save.dailyStreak; // the daily figure was removed
 // self-heal: figures can move in the campaign order (the Apple did); everything after a finished figure stays open
@@ -82,12 +83,17 @@ const escapeHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': 
 const OVERLAYS = new Set(['screen-settings', 'screen-talk']);
 let base = 'screen-loading';
 const overlays = [];
+// Screens that aren't showing (or sit under an overlay) are inert: no Tab stops, no screen reader, and a button
+// that kept focus can't be pressed again with Enter after its screen closed.
 function render() {
+  const top = overlays.length ? overlays[overlays.length - 1] : base;
   document.querySelectorAll('.screen').forEach(s => {
     const on = s.id === base || overlays.includes(s.id);
     s.classList.toggle('show', on);
+    s.inert = s.id !== top;
     s.style.zIndex = overlays.includes(s.id) ? 20 + overlays.indexOf(s.id) : 10;
   });
+  if (document.activeElement?.closest?.('.screen')?.inert) document.activeElement.blur();
 }
 function setBase(id) { base = id; overlays.length = 0; render(); }
 function pushOverlay(id) { if (!overlays.includes(id)) overlays.push(id); render(); }
@@ -155,7 +161,7 @@ const game = new Game({
     kubo: (msg, urgent) => kuboSays(msg, urgent),
     vibrate: p => { if (mobile && navigator.vibrate) navigator.vibrate(p); },
     complete: stats => onComplete(stats),
-    introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); },
+    introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); greetBack(); },
     pause: () => pause(),
     magnet: (n, gained) => renderMagnet(n, gained),
     express: (n, gained) => renderTool('btn-express', 'express-n', n, gained),
@@ -198,6 +204,20 @@ screen.orientation?.addEventListener?.('change', () => setTimeout(resize, 120));
 resize();
 
 // ---------- HUD ----------
+// The bubbles row and the toast sit under whatever the top HUD really measures (the goals row, long names in
+// some languages, UI size), so they never overlap it.
+{
+  const hud = $('hud'), prog = document.querySelector('.hud-top .progress'), pause = $('btn-pause');
+  const layout = () => {
+    const top = Math.max(prog.getBoundingClientRect().bottom, pause.getBoundingClientRect().bottom);
+    hud.style.setProperty('--hud-bottom', `${Math.round(top)}px`);
+    const n = $('needs').getBoundingClientRect();
+    hud.style.setProperty('--needs-bottom', `${Math.round(n.height ? n.bottom : top)}px`);
+  };
+  const ro = new ResizeObserver(layout);
+  [prog, $('needs'), document.querySelector('.hud-top')].forEach(el => ro.observe(el));
+  addEventListener('resize', layout);
+}
 const chip = (n, cls = '', label) => `<span class="chip ${cls} ${label ? 'sum' : n === 6 || n === 9 ? 'u' : ''}">${label ?? n}</span>`;
 let lastNeeds = '';
 function renderNeeds() {
@@ -292,14 +312,15 @@ const keycap = (label, on) => `<kbd class="ck${on ? ' on' : ''}">${String(label)
 function coachText(step) {
   if (step === 'done') return t('coach.done');
   const used = game.tutUsed || new Set();
-  const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', ...ctx.coachLabels?.() };
+  const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', interact: 'E', ...ctx.coachLabels?.() };
   const keys = !mobile && ctx.coachKeys?.();
   if (keys) {
     v.move = ['forward', 'left', 'back', 'right'].map(d => keycap(keys[d], used.has(d))).join('');
     v.jump = keycap(keys.jump, used.has('jump'));
     v.drop = `${keycap(keys.rightClick, used.has('drop'))} / ${keycap(keys.drop, used.has('drop'))}`;
     v.hint = keycap(keys.hint, used.has('hint'));
-    v.look = `${v.look} / ${keycap(keys.turnLeft, false)}${keycap(keys.turnRight, false)}`;
+    v.look = `${v.look} / ${['turnLeft', 'turnRight', 'lookUp', 'lookDown'].map(k => keycap(keys[k], false)).join('')}`;
+    v.interact = keycap(keys.interact, false);
   }
   let html = t(`coach.${step}.${mobile ? 'touch' : 'desk'}`, v);
   if (step === 'look' || step === 'move') html += `<span class="coach-bar"><i style="width:${Math.round(game.tutProgress() * 20) * 5}%"></i></span>`;
@@ -323,7 +344,10 @@ function placeEdge(el, pos, show) {
   x /= m; y /= m;
   const w = innerWidth, h = innerHeight, pad = 46;
   const px = THREE.MathUtils.clamp((x * 0.5 + 0.5) * w, pad, w - pad);
-  const py = THREE.MathUtils.clamp((-y * 0.5 + 0.5) * h, pad + 112, h - pad - 90); // clear of the top HUD and its bubbles row
+  // clear of the top HUD and its bubbles row, and above the backpack
+  const top = (parseFloat($('hud').style.getPropertyValue('--needs-bottom')) || 112) + 30;
+  const packTop = document.querySelector('.pack-wrap')?.getBoundingClientRect().top || h;
+  const py = THREE.MathUtils.clamp((-y * 0.5 + 0.5) * h, top, Math.min(h - pad - 90, packTop - 28));
   el.style.transform = `translate(${px}px, ${py}px)`;
   el.firstElementChild.style.transform = `rotate(${Math.PI / 2 - ang}rad)`;
   el.classList.add('on');
@@ -356,8 +380,11 @@ function tickHud(g) {
   placeEdge($('edge-next'), way ?? homePos, !!way && (tutTarget ? true : !g.pack.length && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 6));
   renderGoals(g);
   // on a finished island: rebuild it for stars (R, or the button)
-  const canRebuild = g.roaming && !g.level.kind && g.onIsland && g.mode === 'play' && isDone(g.level.id);
-  if (canRebuild !== rebuildShown) {
+  // (not with every star already earned, and not right after finishing it: first the way on)
+  if (!g.onIsland) rebuildHold = false;
+  const canRebuild = g.roaming && !g.level.kind && g.onIsland && g.mode === 'play' && isDone(g.level.id) && !rebuildHold && !!missingGoal(g.level);
+  if (rebuildShown === null && performance.now() - rebuildArmed < 5000) { /* the question is up */ }
+  else if (canRebuild !== rebuildShown) {
     rebuildShown = canRebuild;
     $('btn-rebuild').classList.toggle('show', canRebuild);
     if (canRebuild) $('rebuild-label').innerHTML = mobile ? t('hud.rebuild') : `<kbd>R</kbd> ${t('hud.rebuild')}`;
@@ -368,12 +395,18 @@ function tickHud(g) {
 
 // the goals while you build (par time and hints, each with its star: kept from before, still on, or lost);
 // while roaming, the progress pill shows the world instead
-let rebuildShown = false;
+let rebuildShown = false, rebuildHold = false, wasAway = false;
 let goalsKey = '', goalPar = { level: null, par: 0 };
 function renderGoals(g) {
   const lvl = g.level;
   let key = '', html = '';
-  if (g.roaming && !lvl.kind) {
+  // off the figure's island (the hub, a bridge): the world's progress, not a puzzle you can't see
+  const away = !lvl.kind && (g.roaming || (g.arch && !g.onIsland && g.mode === 'play'));
+  document.body.classList.toggle('offisland', away && !g.roaming);
+  // back on the island: the pill shows the figure again
+  if (!away && wasAway) g.emitProgress();
+  wasAway = away;
+  if (away) {
     const ch = CHAPTERS[lvl.chapter], done = ch.levels.filter(l => isDone(l.id)).length;
     key = `w${lvl.chapter}:${done}`;
     if (key !== goalsKey) {
@@ -384,11 +417,11 @@ function renderGoals(g) {
     }
   } else if ((!g.tutorial || g.tutorial === 'done') && !g.roaming && (g.mode === 'play' || g.mode === 'intro')) {
     if (goalPar.level !== lvl) goalPar = { level: lvl, par: parTime(lvl) };
-    const prev = lvl.kind ? {} : save.stars[lvl.id] || {}, par = goalPar.par, sec = Math.floor(g.elapsed);
+    const prev = lvl.kind ? {} : save.stars[lvl.id] || {}, par = goalPar.par, sec = Math.round(g.elapsed);
     const cls = (kept, ok) => (kept ? 'kept' : ok ? 'on' : 'off');
     key = `${sec}:${g.hintsUsed}:${par}:${prev.fast}:${prev.clean}`;
-    html = `<span class="g-time ${cls(prev.fast, g.elapsed <= par)}" title="${t('complete.star.fast')}"><svg><use href="#i-clock"/></svg><b>${fmt(sec)}</b><small>/ ${fmt(par)}</small><svg class="gs"><use href="#i-star"/></svg></span>`
-      + `<span class="g-hint ${cls(prev.clean, !g.hintsUsed)}" title="${t('complete.star.clean')}"><svg><use href="#i-bulb"/></svg><b>${g.hintsUsed}</b><svg class="gs"><use href="#i-star"/></svg></span>`;
+    html = `<span class="g-time ${cls(prev.fast, sec <= par)}" title="${t('complete.star.fast')}" aria-label="${t('a11y.goal.time', { t: fmt(sec), par: fmt(par) })}"><svg><use href="#i-clock"/></svg><b>${fmt(sec)}</b><small>/ ${fmt(par)}</small><svg class="gs"><use href="#i-star"/></svg></span>`
+      + `<span class="g-hint ${cls(prev.clean, !g.hintsUsed)}" title="${t('complete.star.clean')}" aria-label="${t('a11y.goal.hints', { n: g.hintsUsed })}"><svg><use href="#i-bulb"/></svg><b>${g.hintsUsed}</b><svg class="gs"><use href="#i-star"/></svg></span>`;
   }
   if (key === goalsKey) return;
   goalsKey = key;
@@ -412,8 +445,9 @@ function nextLevelIndex() {
 // under Continue: world · figure · blocks in (when half built)
 function continueLine() {
   const l = LEVELS[nextLevelIndex()], s = save.sessions[l.id];
-  const fig = isDone(l.id) ? l.name : t('hud.mystery');
-  return `${CHAPTERS[l.chapter].name} · ${fig}${s?.placed?.length ? ` · <bdi class="n">${s.placed.length} / ${expandLevel(l).cells.length}</bdi>` : ''}`;
+  const ch = CHAPTERS[l.chapter], fig = isDone(l.id) ? l.name : t('hud.mystery');
+  const blocks = s?.placed?.length ? ` · <svg class="ic"><use href="#i-cube"/></svg><bdi class="n">${s.done ?? s.placed.length} / ${s.n ?? expandLevel(l).cells.length}</bdi>` : '';
+  return `${ch.name} · ${fig} <bdi class="n">${l.indexInChapter + 1}/${ch.levels.length}</bdi>${blocks}`;
 }
 
 function showcase(idx) {
@@ -502,10 +536,11 @@ function startLevel(index, resume = false, arrive = 'island') {
   const lvl = levelOf(index);
   mapFromIsland = false;
   document.body.classList.remove('roaming');
-  const session = resume === true ? save.sessions[lvl.id] ?? null : resume || null;
-  // arriving at a finished figure (walking over, by portal, Continue): it stands built; replays are explicit
-  const built = resume === true && !lvl.kind && !session && isDone(lvl.id);
-  if (!session && !lvl.kind && !built) { delete save.sessions[lvl.id]; persist(); }
+  // arriving at a finished figure (walking over, by portal, Continue): it stands built (a rebuild you walked away
+  // from is dropped); replays are explicit
+  const built = resume === true && !lvl.kind && isDone(lvl.id);
+  const session = built ? null : resume === true ? save.sessions[lvl.id] ?? null : resume || null;
+  if (!session && !lvl.kind) { delete save.sessions[lvl.id]; persist(); }
   if (!lvl.kind) save.lastPlayed = lvl.id;
   if (arrive === 'keep') {
     game.load(lvl, session, { arrive, built });
@@ -584,9 +619,10 @@ function onComplete(stats) {
   ctx.hooks.complete.forEach(f => f(stats, lvl));
   if (lvl.kind) { setTimeout(() => ctx.completeHandlers[lvl.kind]?.(stats, lvl), 2600); return; }
   const par = parTime(lvl);
-  const run = { done: true, fast: stats.time <= par, clean: stats.hints === 0 };
+  const run = { done: true, fast: Math.round(stats.time) <= par, clean: stats.hints === 0 }; // whole seconds, as shown
   const prev = save.stars[lvl.id] || {};
   const firstClear = !prev.done;
+  const ch0 = CHAPTERS[lvl.chapter], worldStarsBefore = ch0.levels.reduce((n, l) => n + starsOf(l.id), 0), starsBefore = totalStars();
   save.stars[lvl.id] = { done: true, fast: !!(prev.fast || run.fast), clean: !!(prev.clean || run.clean) };
   const prevBest = save.best[lvl.id];
   const isBest = !prevBest || stats.time < prevBest;
@@ -604,7 +640,15 @@ function onComplete(stats) {
   // the last figure of a world: a world-complete card, and straight on to the next world
   const ch = CHAPTERS[lvl.chapter], nextCh = CHAPTERS[lvl.chapter + 1];
   const worldDone = firstClear && ch.levels.every(l => isDone(l.id));
-  const world = worldDone ? { name: ch.name, thumbs: ch.levels.map(l => thumbs[l.index]), stars: ch.levels.reduce((n, l) => n + starsOf(l.id), 0), total: ch.levels.length * 3 } : null;
+  const worldStars = ch.levels.reduce((n, l) => n + starsOf(l.id), 0), worldMax = ch.levels.length * 3;
+  // the card also marks a world's last missing star (its crown) and the very last of all 150
+  const crowned = worldStars === worldMax && worldStarsBefore < worldMax;
+  const allStars = totalStars() === LEVELS.length * 3 && starsBefore < LEVELS.length * 3;
+  const world = worldDone || crowned || allStars ? {
+    name: ch.name, thumbs: ch.levels.map(l => thumbs[l.index]), stars: allStars ? totalStars() : worldStars, total: allStars ? LEVELS.length * 3 : worldMax,
+    title: allStars ? t('complete.allStars', { n: LEVELS.length * 3 }) : crowned && !worldDone ? t('complete.worldCrown', { world: ch.name }) : t('complete.worldDone', { world: ch.name }),
+    crown: crowned || allStars,
+  } : null;
   const onward = worldDone && !finale && nextCh && chapterUnlocked(lvl.chapter + 1);
   // a friend's gift that arrived before the first figure: Kubo hands it over now
   const giftName = idx === 0 && firstClear ? ctx.gift?.pending() : null;
@@ -618,9 +662,9 @@ function onComplete(stats) {
     stars: [run.done, run.fast, run.clean], prevStars: [!!prev.done, !!prev.fast, !!prev.clean],
     best: isBest && !firstClear ? t('complete.newBest') : '', world,
     say: giftName ? t('workshop.gift.kubo', { name: escapeHtml(giftName) }) : lvl.outro,
-    splits: stats.splits, prevSplits,
-    nextLabel: giftName ? t('workshop.gift.open') : finale ? t('complete.epilogue') : onward ? t('complete.nextWorld', { world: nextCh.name }) : t('complete.walkOn'),
-    onNext: giftName ? openGift : finale ? showEnding : onward ? (pendingUnlock ? openMap : () => enterWorld(lvl.chapter + 1)) : walkOn, onMap: openMap,
+    splits: stats.splits, prevSplits, blocks: idx === 0 ? 0 : game.voxels.length,
+    nextLabel: giftName ? t('workshop.gift.open') : finale || allStars ? t('complete.epilogue') : onward ? t('complete.nextWorld', { world: nextCh.name }) : t('complete.walkOn'),
+    onNext: giftName ? openGift : finale || allStars ? showEnding : onward ? (pendingUnlock ? openMap : () => enterWorld(lvl.chapter + 1)) : walkOn, onMap: openMap,
     onRetry: () => { pendingUnlock = null; startLevel(lvl); },
   }), 2600);
 }
@@ -643,8 +687,8 @@ function showComplete(o) {
   $('complete-name').textContent = o.name;
   $('complete-time').textContent = fmt(o.time);
   // the time against par
-  const dp = o.par ? o.time - o.par : 0;
-  $('complete-par').innerHTML = o.par ? `${t('complete.par', { t: fmt(o.par) })} <em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em>` : (o.parText || t('complete.time'));
+  const dp = o.par ? Math.round(o.time) - o.par : 0;
+  $('complete-par').innerHTML = o.par ? `${t('complete.par', { t: fmt(o.par) })} <bdi dir="ltr"><em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em></bdi>` : (o.parText || t('complete.time'));
   $('complete-hints').textContent = o.hints;
   $('complete-img').src = o.img || '';
   $('complete-thumb').classList.toggle('reveal', !!o.reveal);
@@ -654,16 +698,18 @@ function showComplete(o) {
   $('complete-say').closest('.say').style.display = o.say ? '' : 'none';
   // labelled stars: earned this run (pop in), kept from an earlier run (pale), newly earned (marked)
   const st = o.stars || [], labels = [t('complete.star.done'), t('complete.star.fast'), t('complete.star.clean')];
-  $('complete-stars').innerHTML = st.map((on, k) => `<span class="cs ${o.prevStars?.[k] && !on ? 'kept' : ''}"><svg><use href="#i-star"/></svg><small>${labels[k]}</small>${on && o.prevStars && !o.prevStars[k] ? `<em>${t('complete.star.new')}</em>` : ''}</span>`).join('');
+  const starSay = (on, k) => t(on ? 'a11y.star.earned' : o.prevStars?.[k] ? 'a11y.star.kept' : 'a11y.star.missed', { star: labels[k] });
+  $('complete-stars').innerHTML = st.map((on, k) => `<span class="cs ${o.prevStars?.[k] && !on ? 'kept' : ''}" role="img" aria-label="${escapeHtml(starSay(on, k))}"><svg><use href="#i-star"/></svg><small>${labels[k]}</small>${on && o.prevStars && !o.prevStars[k] ? `<em>${t('complete.star.new')}</em>` : ''}</span>`).join('');
   const svgs = $('complete-stars').querySelectorAll('svg');
   // a world finished: its five figures and its stars
   const w = o.world;
-  $('complete-world').innerHTML = w ? `<b>${t('complete.worldDone', { world: w.name })}</b><div class="wd-figs">${w.thumbs.map(s => `<img src="${s}" alt="">`).join('')}</div><span><svg><use href="#i-star"/></svg> <bdi class="n">${w.stars} / ${w.total}</bdi></span>` : '';
+  $('complete-world').innerHTML = w ? `<b>${w.crown ? '<svg class="wd-crown"><use href="#i-star"/></svg> ' : ''}${w.title}</b><div class="wd-figs">${w.thumbs.map(s => `<img src="${s}" alt="">`).join('')}</div><span><svg><use href="#i-star"/></svg> <bdi class="n">${w.stars} / ${w.total}</bdi></span>` : '';
   $('complete-world').style.display = w ? '' : 'none';
   $('complete-world').closest('.panel').classList.toggle('has-world', !!w);
   st.forEach((on, k) => { if (on) setTimeout(() => { svgs[k].classList.add('on'); audio.star(k); }, 500 + k * 280); });
   $('next-label').textContent = o.nextLabel || t('complete.continue');
-  $('complete-splits').innerHTML = o.splits ? splitsHtml(o.splits, o.prevSplits) : '';
+  // quarter splits only mean something on bigger figures (and not on the tutorial's, whose clock starts late)
+  $('complete-splits').innerHTML = o.splits && (o.blocks ?? 99) >= 20 ? splitsHtml(o.splits, o.prevSplits) : '';
   $('btn-c-share').style.display = o.onShare ? '' : 'none';
   completeActions = o;
   setBase('screen-complete');
@@ -706,7 +752,10 @@ function buildMap() {
     const unlocking = pendingUnlock && c === pendingUnlock.to;
     // pips: done (sun), all three stars (gold ring), half built (half filled)
     const pips = ch.levels.map(l => `<i class="${isDone(l.id) ? `on${starsOf(l.id) === 3 ? ' s3' : ''}` : save.sessions[l.id] ? 'half' : ''}"></i>`).join('');
-    html += `<button class="node world ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${c === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" data-c="${c}" style="left:${x}px;top:${y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
+    // what the world holds, for screen readers and as a tooltip: every figure with its stars (★ earned, ☆ missing)
+    const figLines = ch.levels.filter(l => l.index < save.unlocked).map(l => (isDone(l.id) ? `${l.name} ${'★'.repeat(starsOf(l.id))}${'☆'.repeat(3 - starsOf(l.id))}` : t('hud.mystery')));
+    const label = `${t('map.chapter', { n: c + 1 })}: ${ch.name}. ${locked ? t('map.locked') : `${done} / ${ch.levels.length} · ★ ${st} / ${ch.levels.length * 3}`}`;
+    html += `<button class="node world ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${c === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" aria-label="${escapeHtml(label)}" title="${escapeHtml(locked ? label : [label, ...figLines].join('\n'))}" data-c="${c}" style="left:${x}px;top:${y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
       <div class="island">${locked ? '<svg><use href="#i-lock"/></svg>' : `<img src="${thumbs[fig.index] || ''}" alt="">${solved ? '' : '<span class="q">?</span>'}`}<span class="num">${c + 1}</span>${crowned ? '<span class="crown"><svg><use href="#i-star"/></svg></span>' : ''}</div>
       ${locked ? '' : `<div class="pips">${pips}</div>`}
       <div class="name">${locked ? '???' : `<bdi class="n">${done} / ${ch.levels.length}</bdi>`}</div></button>`;
@@ -724,7 +773,8 @@ function buildMap() {
   }
   html += `<svg class="map-path" style="width:${W}px;height:${H}px" viewBox="0 0 ${W} ${H}"><path class="bed" d="${bed}"/>${open}${doneP}</svg>`;
   const kp = pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[cur];
-  html += `<div class="map-kubo" id="map-kubo" style="left:${kp.x}px;top:${kp.y}px"><div class="kubo"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div></div>`;
+  const hat = ctx.kuboHat?.();
+  html += `<div class="map-kubo" id="map-kubo" style="left:${kp.x}px;top:${kp.y}px"><div class="kubo">${hat ? `<i class="hat hat-${hat.id}">${ctx.hatSvg(hat.id)}</i>` : ''}<i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div></div>`;
   inner.innerHTML = html;
   inner.querySelectorAll('.map-path .draw').forEach(p => p.style.setProperty('--len', p.getTotalLength()));
   inner.querySelectorAll('.node').forEach(b => b.addEventListener('click', () => {
@@ -733,6 +783,9 @@ function buildMap() {
     enterWorld(c);
   }));
   $('map-stars').textContent = `${totalStars()} / ${LEVELS.length * 3}`;
+  $('map-stars').closest('.star-total').classList.toggle('all', totalStars() === LEVELS.length * 3);
+  // the ending can be watched again once the Colossus stands
+  $('btn-map-ending').style.display = isDone(LEVELS[LEVELS.length - 1].id) ? '' : 'none';
 }
 
 function openMap() {
@@ -747,8 +800,12 @@ function openMap() {
   setBase('screen-map');
   buildMap();
   const scroll = $('map-scroll');
-  const focus = pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[LEVELS[nextLevelIndex()].chapter];
-  scroll.scrollTop = focus.y - scroll.clientHeight * 0.55;
+  // frame the current world a little low, so the next one up shows under the header; for the unlock walk, frame
+  // both worlds when the screen is tall enough
+  const both = pendingUnlock && scroll.clientHeight > BAND_H + 200;
+  const focusY = both ? (mapPos[pendingUnlock.from].y + mapPos[pendingUnlock.to].y) / 2 - 40
+    : (pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[LEVELS[nextLevelIndex()].chapter]).y;
+  scroll.scrollTop = focusY - scroll.clientHeight * (both ? 0.5 : 0.62);
   if (pendingUnlock) {
     const { to } = pendingUnlock;
     pendingUnlock = null;
@@ -757,7 +814,7 @@ function openMap() {
       if (!k) return;
       k.style.left = `${mapPos[to].x}px`;
       k.style.top = `${mapPos[to].y}px`;
-      scroll.scrollTo({ top: mapPos[to].y - scroll.clientHeight * 0.55, behavior: 'smooth' });
+      if (!both) scroll.scrollTo({ top: mapPos[to].y - scroll.clientHeight * 0.62, behavior: 'smooth' });
       audio.tone({ f: 600, f2: 900, type: 'triangle', dur: 0.25, vol: 0.12 });
     }, 500);
     setTimeout(() => { audio.star(1); }, 1250);
@@ -804,32 +861,50 @@ function backToIsland() {
 // first steps onto a figure's island this visit: welcome back (first island of a session), its intro line the
 // first time ever, then the goals; on a finished island, what's left to earn there
 let welcomeBack = false;
+// the first time you're back in a world this visit (Continue): right away, wherever you arrive
+function greetBack() {
+  if (!welcomeBack || game.tutorial || game.level.kind) return;
+  welcomeBack = false;
+  const half = !game.roaming && game.linkOrder?.length;
+  kuboSays(half ? t('kubo.welcomeBackFig', { n: game.placedCount, total: game.voxels.length }) : t('kubo.welcomeBack'));
+  // saves from before the 50 figures: new figures washed up on islands they had already passed
+  if (save.seen.oldSave && !save.seen.oldSaveTold) { save.seen.oldSaveTold = true; persist(); kuboSays(t('kubo.newFigures')); }
+}
+// what a rebuild would still earn: "beat 2:15", "use no hints" or both
+const missingGoal = l => {
+  const st = save.stars[l.id] || {}, par = `<b>${fmt(parTime(l))}</b>`;
+  return !st.fast && !st.clean ? t('kubo.goal.both', { par }) : !st.fast ? t('kubo.goal.fast', { par }) : !st.clean ? t('kubo.goal.clean') : '';
+};
 function onArrive(l) {
   if (l.kind || game.tutorial) return;
   const lines = [];
-  if (welcomeBack) {
-    welcomeBack = false;
-    const s = save.sessions[l.id];
-    if (s?.placed?.length) lines.push(t('kubo.welcomeBackFig', { fig: `<b>${l.name}</b>`, n: s.placed.length, total: game.voxels.length }));
-    else lines.push(t('kubo.welcomeBack'));
-  }
   if (!save.seen[`fig.${l.id}`]) { save.seen[`fig.${l.id}`] = true; persist(); lines.push(l.intro); }
   if (game.roaming) {
-    const st = save.stars[l.id] || {};
-    if (!(st.fast && st.clean)) lines.push(t(mobile ? 'kubo.rebuild.touch' : 'kubo.rebuild.desk', { par: `<b>${fmt(parTime(l))}</b>` }));
+    const goal = missingGoal(l);
+    if (goal) lines.push(t(mobile ? 'kubo.rebuild.touch' : 'kubo.rebuild.desk', { goal }));
   } else if (!save.seen[`goal.${l.id}`] && l !== LEVELS[0]) {
     save.seen[`goal.${l.id}`] = true; persist();
     lines.push(t('kubo.goals', { par: `<b>${fmt(parTime(l))}</b>` }));
   }
   lines.forEach(m => kuboSays(m));
 }
-// a fresh run on a finished figure, right where you stand (for the stars still missing)
+// a fresh run on a finished figure, right where you stand (for the stars still missing); it takes the figure
+// apart, so the first press asks (like the first hint)
+let rebuildArmed = -Infinity;
 function rebuild() {
   const l = game.level;
-  if (!game.roaming || l.kind || !isDone(l.id) || app !== 'playing' || !game.onIsland) return;
+  if (!game.roaming || l.kind || !isDone(l.id) || app !== 'playing' || !game.onIsland || !missingGoal(l)) return;
+  if (performance.now() - rebuildArmed > 5000) {
+    rebuildArmed = performance.now();
+    kuboSays(t(mobile ? 'kubo.rebuildSure.touch' : 'kubo.rebuildSure.desk'), true);
+    $('rebuild-label').textContent = t('settings.sure');
+    rebuildShown = null; // re-render the label when the question lapses
+    return;
+  }
+  rebuildArmed = -Infinity;
   startLevel(l.index, false, 'keep');
   audio.tone({ f: 520, f2: 780, type: 'triangle', dur: 0.2, vol: 0.1 });
-  kuboSays(t('kubo.rebuildGo', { par: `<b>${fmt(parTime(l))}</b>` }), true);
+  kuboSays(t('kubo.rebuildGo', { goal: missingGoal(l) }), true);
 }
 // after the results panel: back onto the island, the way to the next figure lit
 function walkOn() {
@@ -839,6 +914,7 @@ function walkOn() {
   $('hud').classList.remove('off');
   app = 'intro';
   game.walkOn();
+  rebuildHold = true;
   if (!mobile) input.requestLock();
   const lvl = game.level, nextCh = CHAPTERS[lvl.chapter + 1];
   const openFig = CHAPTERS[lvl.chapter].levels.some(l => l !== lvl && !isDone(l.id) && l.index < save.unlocked);
@@ -860,7 +936,7 @@ function playPrologue() {
 function showEnding() {
   ctx.cinema.finale(() => talk(ENDING, () => {
     $('ending-grid').innerHTML = thumbs.map((t, i) => `<img src="${t}" style="animation-delay:${i * 0.06}s" alt="">`).join('');
-    $('ending-stars').innerHTML = t('ending.stars', { n: totalStars() });
+    $('ending-stars').innerHTML = t('ending.stars', { n: totalStars(), total: LEVELS.length * 3 });
     setBase('screen-ending');
   }));
 }
@@ -969,15 +1045,16 @@ function goFullscreen(on) {
 document.addEventListener('pointerdown', e => {
   if (e.target.closest('.btn, .node, .toggle')) { audio.unlock(); audio.click(); }
 }, true);
-$('btn-play').onclick = () => {
+const continueGame = (greet = true) => {
   audio.unlock();
   if (!save.seen.prologue) { playPrologue(); return; }
   const i = nextLevelIndex();
   // straight onto a half-built figure's island; otherwise into its world by the portal
-  if (save.sessions[LEVELS[i].id] && save.seen[CHAPTERS[LEVELS[i].chapter].id]) { welcomeBack = true; startLevel(i, true, 'island'); return; }
-  welcomeBack = true;
+  welcomeBack = greet;
+  if (save.sessions[LEVELS[i].id] && save.seen[CHAPTERS[LEVELS[i].chapter].id]) { startLevel(i, true, 'island'); return; }
   enterWorld(LEVELS[i].chapter);
 };
+$('btn-play').onclick = () => continueGame();
 $('btn-map').onclick = () => openMap();
 $('btn-map-back').onclick = () => (mapFromIsland ? backToIsland() : enterTitle());
 // a scroll cue while more settings sit below the fold
@@ -992,7 +1069,7 @@ $('btn-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-p-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-resume').onclick = () => resume();
 // restarting throws away the figure's saved run: ask for a second tap
-let restartArmed = 0;
+let restartArmed = -Infinity;
 $('btn-restart').onclick = () => {
   const label = $('btn-restart').querySelector('span');
   if (performance.now() - restartArmed > 2500) {
@@ -1001,7 +1078,7 @@ $('btn-restart').onclick = () => {
     setTimeout(() => { label.textContent = t('pause.restart'); }, 2500);
     return;
   }
-  restartArmed = 0;
+  restartArmed = -Infinity;
   label.textContent = t('pause.restart');
   startLevel(game.level);
 };
@@ -1025,6 +1102,7 @@ $('btn-c-retry').onclick = () => (completeActions.onRetry || (() => startLevel(g
 $('btn-next').onclick = () => (completeActions.onNext || openMap)();
 $('btn-c-share').onclick = () => completeActions.onShare?.();
 $('btn-ending-map').onclick = () => openMap();
+$('btn-map-ending').onclick = () => showEnding();
 const jump = $('btn-jump');
 jump.addEventListener('pointerdown', e => { e.preventDefault(); input.actions.push({ type: 'jump' }); input.jumpButtonHeld = true; jump.classList.add('pressed'); });
 const jumpUp = () => { input.jumpButtonHeld = false; jump.classList.remove('pressed'); };
@@ -1075,7 +1153,7 @@ const ctx = {
   get app() { return app; }, set app(v) { app = v; },
   get base() { return base; }, overlays,
   setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete, splitsHtml,
-  playPrologue, showEnding,
+  playPrologue, showEnding, continueGame,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [], frame: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures

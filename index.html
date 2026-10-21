@@ -32,6 +32,8 @@
     m.type = 'importmap';
     m.textContent = JSON.stringify({ imports: { three: legacy ? './lib/three-gl1.module.min.js' : './lib/three.module.min.js' } });
     document.currentScript.after(m);
+    // the in-game Reduced Motion setting applies from the loading screen on
+    try { if ((JSON.parse(localStorage.getItem('voxlink.v2')) || {}).settings.reduceMotion) document.documentElement.classList.add('calm'); } catch (e) {}
   })();
 </script>
 </head>
@@ -136,6 +138,7 @@
   <div class="map-top">
     <button class="btn icon" id="btn-map-back" aria-label="Back" data-i18n-aria="aria.back"><svg><use href="#i-home"/></svg></button>
     <div class="tag map-title" data-i18n="map.title">World Map</div>
+    <button class="btn small" id="btn-map-ending" style="display:none"><svg><use href="#i-play"/></svg><span data-i18n="complete.epilogue">Epilogue</span></button>
     <div class="tag star-total"><svg><use href="#i-star"/></svg><span id="map-stars">0 / 48</span></div>
   </div>
 </div>

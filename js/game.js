@@ -877,11 +877,20 @@ export class Game {
     hits.sort((a, b) => a.d - b.d);
     let h = hits[0];
     const blockD = hits.find(k => k.kind === 'block')?.d ?? Infinity;
+    // a loose block within reach can be grabbed even past scenery in the way (a block on a hay bale, seen from below)
+    const looseHit = hits.find(k => k.kind === 'loose');
+    if (h?.kind === 'block' && looseHit && looseHit.d <= LOOSE_RANGE) h = looseHit;
+    const sx = x ?? innerWidth / 2, sy = y ?? innerHeight / 2;
     // forgiving aim: snap to a nearby bubble / block on screen
     if (!h || h.kind === 'block') {
-      const sx = x ?? innerWidth / 2, sy = y ?? innerHeight / 2;
       const near = this.screenSnap(sx, sy, x === undefined ? 26 : 44, blockD);
       if (near) h = near;
+    }
+    // a bubble you can fill right now beats nearer things you can't use there (a face of the figure, a bubble for
+    // a block you don't carry), even behind the figure: hidden bubbles show through it as ghosts
+    if (this.pack.length && (!h || h.kind === 'block' || (h.kind === 'socket' && !this.carrying(h.child)))) {
+      const fit = this.screenSnap(sx, sy, x === undefined ? 34 : 52, Infinity, true);
+      if (fit) h = fit;
     }
     if (!h || h.kind === 'block') return null;
     if (h.kind === 'loose' && h.d > LOOSE_RANGE) return { ...h, far: true };
@@ -889,20 +898,21 @@ export class Game {
     return h;
   }
 
-  screenSnap(sx, sy, radius, maxD) {
+  // fitOnly: only bubbles a carried block fits
+  screenSnap(sx, sy, radius, maxD, fitOnly = false) {
     let best = null, bestD = radius;
     const v = new THREE.Vector3();
-    const test = (pos, make) => {
+    const test = (pos, make, reach = 0) => {
       const dist = pos.distanceTo(this.camera.position);
-      if (dist > maxD + 0.5) return;
+      if (dist > Math.max(maxD + 0.5, reach)) return;
       v.copy(pos).project(this.camera);
       if (v.z > 1 || v.z < -1) return;
       const px = (v.x * 0.5 + 0.5) * innerWidth, py = (-v.y * 0.5 + 0.5) * innerHeight;
       const d = Math.hypot(px - sx, py - sy);
       if (d < bestD) { bestD = d; best = make(dist); }
     };
-    for (const s of this.sockets.values()) test(s.sprite.position, d => ({ kind: 'socket', child: s.child, d }));
-    for (const vx of this.voxels) if (vx.state === 'loose') test(vx.mesh.position, d => ({ kind: 'loose', i: vx.i, d }));
+    for (const s of this.sockets.values()) if (!fitOnly || this.carrying(s.child)) test(s.sprite.position, d => ({ kind: 'socket', child: s.child, d }));
+    if (!fitOnly) for (const vx of this.voxels) if (vx.state === 'loose') test(vx.mesh.position, d => ({ kind: 'loose', i: vx.i, d }), LOOSE_RANGE);
     return best;
   }
 
@@ -1055,6 +1065,7 @@ export class Game {
       this.events.kubo?.(t('kubo.hintWarn'), true);
       return;
     }
+    if (this.t - this.hintWarnT < 6) this.events.kubo?.(t('kubo.hintGo'), true); // the warning was answered
     this.hintCooldown = this.hintMax;
     if (!practice) this.hintsUsed++;
     this.audio.hint();
@@ -1219,7 +1230,7 @@ export class Game {
     }
     const r = Math.hypot(this.player.pos.x, this.player.pos.z);
     const lift = this.liftR && r < this.liftR ? { maxY: this.liftTop } : null;
-    if (this.liftR && !this.liftTold && this.onIsland && (lift || this.islandT > 8)) { this.liftTold = true; this.events.tipOnce?.('lift', t(this.input.mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
+    if (this.liftR && !this.liftTold && !this.roaming && this.onIsland && (lift || this.islandT > 8)) { this.liftTold = true; this.events.tipOnce?.('lift', t(this.input.mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
     const px = this.player.pos.x, pz = this.player.pos.z;
     this.player.update(dt, this.input, look, this.colliders, this.world, lift);
     if (this.tutorial) this.updateTutorial(dt, look, Math.hypot(this.player.pos.x - px, this.player.pos.z - pz));

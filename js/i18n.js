@@ -67,7 +67,7 @@ export async function detectLocale(saved) {
 }
 
 // When embedded on CrazyGames, load their SDK and read user.systemInfo.locale (e.g. "pt-BR").
-function onCrazyGames() {
+export function onCrazyGames() {
   const hosts = [document.referrer, ...(location.ancestorOrigins ? [...location.ancestorOrigins] : [])].join(' ');
   return /crazygames\./i.test(hosts) || /crazygames\./i.test(location.hostname);
 }

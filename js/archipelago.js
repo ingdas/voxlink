@@ -248,7 +248,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       if (beacon.visible) {
         const { mark, beamMat } = beacon.userData;
         mark.position.y = beacon.userData.top + (api.calmMotion?.() ? 0 : Math.sin(t * 2.2) * 0.35);
-        beamMat.opacity = 0.28 + Math.sin(t * 1.6) * 0.08;
+        beamMat.opacity = api.calmMotion?.() ? 0.3 : 0.28 + Math.sin(t * 1.6) * 0.08;
       }
       for (const k of pieces) k.world.update(dt, t, c ? c.clone().sub(k.p) : null);
       // the sun's shadow follows you round the archipelago
@@ -334,8 +334,9 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       const half = pt !== active && pt.open && !isDone(pt.level) && isHalf(pt.level);
       if (half && !halves.has(pt)) {
         const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: halfTex, depthWrite: false, transparent: true, fog: false }));
-        s.scale.setScalar(1.6);
-        s.position.set(0, PEDESTAL_TOP + 2.2, 0);
+        // big enough to read across the water, and beside the beacon's beam rather than inside it
+        s.scale.setScalar(2.8);
+        s.position.set(2.4, PEDESTAL_TOP + 3.2, 0);
         s.renderOrder = 5;
         pt.world.group.add(s);
         halves.set(pt, s);

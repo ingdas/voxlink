@@ -2,13 +2,14 @@
 // His lines and the tutorial coach appear in a speech bubble above his head; when he has something to say
 // he drifts into view in front of you, otherwise he trails at your side. (Kubo's Garden keeps its own Kubo.)
 // The bubble stays inside the screen (its tail still points at him); when he's out of view, or with reduced
-// motion, it docks: above the backpack, or under the top HUD on short landscape screens.
+// motion, it docks just above the backpack. Touches pass through the bubble (the thumb stick and buttons under it
+// keep working); tapping the little Kubo in a docked bubble keeps the line up for another read.
 import { toon } from '../render.js';
 
 let ctx, THREE;
 let kubo = null; // { group, body, eyes, mouth, pos, ... }
 let bubble, box, bubbleText, live;
-let bark = '', barkLeft = 0, barkAge = 9, coachHtml = '', nudgeT = 0;
+let bark = '', barkLeft = 0, barkAge = 9, coachHtml = '', nudgeT = 0, hold = false, lastLevel = null, lastCoach = '';
 let shown = false, lastSeq = -1;
 const queue = []; // lines waiting their turn (each gets a fair read before the next)
 
@@ -28,9 +29,9 @@ export function init(c) {
   box = bubble.querySelector('.ks-box');
   bubbleText = bubble.querySelector('.ks-text');
   document.getElementById('hud').appendChild(bubble);
-  // tap the bubble to keep the line up a little longer (a re-read)
-  box.style.pointerEvents = 'auto';
-  box.addEventListener('pointerdown', e => { e.stopPropagation(); if (barkLeft > 0 || barkAge < 6) { barkLeft = readTime(bark); barkAge = Math.min(barkAge, 2); } });
+  // tap the little Kubo (docked bubble) to keep the line up for another full read; queued lines wait for it
+  const face = box.querySelector('.kubo.mini');
+  face.addEventListener('pointerdown', e => { e.stopPropagation(); if (bark && (barkLeft > 0 || barkAge < 6)) { barkLeft = readTime(bark); barkAge = 0; hold = true; } });
   // screen readers hear Kubo's lines too
   live = document.createElement('div');
   live.className = 'sr-only';
@@ -39,6 +40,8 @@ export function init(c) {
   ctx.companion = {
     // only on an island, playing (not in menus, cutscenes, the garden or the workshop)
     active: () => shown,
+    // clear the current line (it no longer applies)
+    hush() { barkLeft = 0; hold = false; },
     say(msg, urgent = false) {
       if (!urgent && barkLeft > 0 && barkAge < Math.min(4, readTime(bark) * 0.8)) {
         if (queue.length < 3 && !queue.some(q => q.msg === msg) && msg !== bark) queue.push({ msg, at: performance.now() });
@@ -46,18 +49,23 @@ export function init(c) {
       }
       speak(msg);
     },
-    coach(html) { coachHtml = html; },
+    coach(html) {
+      coachHtml = html;
+      // screen readers hear the tutorial steps too (once per step, not every progress tick)
+      const plain = html.replace(/<span class="coach-bar">.*?<\/span>/g, '').replace(/<[^>]+>/g, '').trim();
+      if (plain && plain !== lastCoach) { lastCoach = plain; live.textContent = plain; }
+    },
     // a control that isn't unlocked yet: shake the bubble, wiggle Kubo
     nudge() { nudgeT = 0.45; box.classList.remove('nudge'); void box.offsetWidth; box.classList.add('nudge'); },
   };
   ctx.hooks.frame.push((g, dt) => update(g, dt));
 }
 
-function speak(msg) { bark = msg; barkLeft = readTime(msg); barkAge = 0; live.textContent = msg.replace(/<[^>]+>/g, ''); }
+function speak(msg) { bark = msg; barkLeft = readTime(msg); barkAge = 0; hold = false; live.textContent = msg.replace(/<[^>]+>/g, ''); }
 
 function build() {
   const g = new THREE.Group();
-  const s = 0.66;
+  const s = 0.56;
   const body = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), toon(0xffc93c));
   body.castShadow = true;
   g.add(body);
@@ -93,16 +101,17 @@ function update(g, dt) {
   const still = document.body.classList.contains('reduce-motion');
 
   barkLeft -= dt; barkAge += dt;
-  // waiting lines go stale after a while (you've walked on)
+  // another island's lines don't carry over; waiting lines also go stale after a while (you've walked on)
+  if (g.level !== lastLevel) { lastLevel = g.level; queue.length = 0; }
   while (queue.length && performance.now() - queue[0].at > 9000) queue.shift();
-  if (queue.length && (barkLeft <= 0 || barkAge >= Math.min(4, readTime(bark) * 0.8))) speak(queue.shift().msg);
+  if (queue.length && (barkLeft <= 0 || (!hold && barkAge >= Math.min(4, readTime(bark) * 0.8)))) speak(queue.shift().msg);
   const pl = g.player;
   const talking = !!coachHtml || barkLeft > 0;
   // the scene shifted under us (walked onto another island): move along
   if (g.shiftSeq !== lastSeq) { if (g.shift && kubo.placed) kubo.pos.add(g.shift); lastSeq = g.shiftSeq; }
   // where to be: ahead of you and to the right while talking, beside you otherwise
   const fwd = forward(pl.yaw, new THREE.Vector3()), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
-  const desired = pl.pos.clone().addScaledVector(fwd, talking ? 3.4 : 0.3).addScaledVector(right, talking ? 2.3 : 1.9);
+  const desired = pl.pos.clone().addScaledVector(fwd, talking ? 4.2 : 0.6).addScaledVector(right, talking ? 2.7 : 2.3);
   // stay clear of the figure on its pedestal
   const fr = (g.footR || 3) + 0.8, dh = Math.hypot(desired.x, desired.z);
   if (dh < fr && Math.hypot(pl.pos.x, pl.pos.z) > fr) desired.multiplyScalar(fr / Math.max(dh, 0.01));
@@ -112,6 +121,9 @@ function update(g, dt) {
   const k = 1 - Math.exp(-dt * (talking ? 3.2 : 2.4));
   const before = kubo.pos.clone();
   kubo.pos.lerp(desired, k);
+  // never right in your face (or inside the camera)
+  const ax = kubo.pos.x - pl.pos.x, az = kubo.pos.z - pl.pos.z, ad = Math.hypot(ax, az);
+  if (ad < 1.8) { const s = 1.8 / Math.max(ad, 0.01); kubo.pos.x = pl.pos.x + ax * s; kubo.pos.z = pl.pos.z + az * s; }
   const speed = before.distanceTo(kubo.pos) / Math.max(dt, 1e-3);
 
   // bob, lean into the motion, look at you (calm with reduced motion)
@@ -147,7 +159,7 @@ function placeBubble(g, html, still) {
   const p = head.project(g.camera);
   const x = (p.x * 0.5 + 0.5) * W, y = (-p.y * 0.5 + 0.5) * H;
   const r = box.getBoundingClientRect(), bw = r.width || 300, bh = r.height || 60;
-  const topLimit = 108; // clear of the top HUD (progress pill, bubbles row)
+  const topLimit = (document.getElementById('needs')?.getBoundingClientRect().bottom || 108) + 8; // clear of the top HUD
   // pinned above his head when there's room for the whole box; otherwise docked
   const fits = !still && view.z < 0 && x > 20 && x < W - 20 && y - bh - 18 > topLimit && y < H - 40;
   bubble.classList.toggle('docked', !fits);
@@ -155,17 +167,14 @@ function placeBubble(g, html, still) {
     const cx = Math.min(W - bw / 2 - 10, Math.max(bw / 2 + 10, x));
     bubble.style.transform = `translate(${Math.round(cx)}px, ${Math.round(y)}px)`;
     box.style.setProperty('--tail', `${Math.round(Math.max(-bw / 2 + 22, Math.min(bw / 2 - 22, x - cx)))}px`);
-    bubble.classList.remove('dock-top');
   } else {
     bubble.style.transform = '';
     box.style.setProperty('--tail', '0px');
-    // short landscape screens: under the top HUD; otherwise just above the backpack
-    const top = H < 520 && W > H;
-    bubble.classList.toggle('dock-top', top);
-    if (!top) {
-      const pack = document.querySelector('.pack-wrap')?.getBoundingClientRect();
-      bubble.style.setProperty('--dock-bottom', `${Math.round(pack && pack.height ? H - pack.top + 12 : 150)}px`);
-    }
+    // just above the backpack (or the Rebuild button while roaming)
+    const pack = document.querySelector('.pack-wrap')?.getBoundingClientRect();
+    const reb = document.getElementById('btn-rebuild');
+    const under = reb?.classList.contains('show') ? reb.getBoundingClientRect() : pack;
+    bubble.style.setProperty('--dock-bottom', `${Math.round(under && under.height ? H - under.top + 12 : 150)}px`);
   }
 }
 

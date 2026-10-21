@@ -81,6 +81,7 @@ svg .fill, symbol .fill { fill: currentColor; }
   opacity: 0; pointer-events: none; transition: opacity .25s ease;
 }
 .screen.show { opacity: 1; pointer-events: auto; }
+.screen:not(.show) { visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; }
 .screen.dim { background: rgba(42, 31, 61, .5); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 .screen .panel { transform: translateY(18px) scale(.97); transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
 .screen.show .panel { transform: none; }
@@ -106,6 +107,7 @@ svg .fill, symbol .fill { fill: currentColor; }
 .loadbar i { background: linear-gradient(90deg, var(--sun) 0 40%, #ffe08a 50%, var(--sun) 60% 100%) 0 0 / 250% 100%; animation: loadshine 1.4s linear infinite; }
 @keyframes loadshine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 @media (prefers-reduced-motion: reduce) { .loadbar i { animation: none; } }
+.calm .loadbar i { animation: none; }
 
 /* ---------- Logo ---------- */
 .logo { display: flex; flex-direction: column; align-items: center; gap: .16em; font-size: clamp(30px, 7.5vw, 64px); }
@@ -471,11 +473,13 @@ body.mobile .slot .key { display: none; }
 .kubo-speech .ks-box.nudge { animation: coach-nudge .4s ease-in-out; }
 .kubo-speech .kubo.mini { display: none; }
 .kubo-speech.docked { left: 50%; top: auto; bottom: var(--dock-bottom, calc(150px + var(--sab))); transform: none !important; }
-.kubo-speech.docked.dock-top { top: calc(108px + var(--sat)); bottom: auto; }
-.kubo-speech.docked.dock-top .ks-box { bottom: auto; top: 0; }
 .kubo-speech.docked .ks-box { bottom: 0; display: flex; gap: 10px; align-items: center; text-align: start; }
 .kubo-speech.docked .ks-box::after { display: none; }
-.kubo-speech.docked .kubo.mini { display: block; flex: none; }
+.kubo-speech.docked .kubo.mini { display: block; flex: none; pointer-events: auto; cursor: pointer; }
+.kubo-speech .ks-box { pointer-events: none; }
+/* short landscape phones: a compact bubble above the backpack, clear of the view's centre */
+@media (max-height: 500px) { .kubo-speech .ks-box { font-size: 13.5px; padding: 6px 11px; max-width: min(300px, 52vw); } .kubo-speech.docked .kubo.mini { --s: 30px; } }
+@media (max-width: 520px) { .kubo-speech .ks-box { font-size: 14.5px; max-width: 78vw; } }
 .kubo-speech kbd.ck { color: var(--ink); background: #fff; border: 2px solid var(--ink); box-shadow: 0 2px 0 var(--ink); }
 .kubo-speech kbd.ck.on { background: var(--mint); border-width: 3px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -573,9 +577,10 @@ body.roaming :is(#needs, .pack-wrap, #btn-hint, #btn-magnet, #btn-express, #tool
 .brief-leave { display: inline-block; margin-top: 6px; font-style: normal; font-size: .9em; color: #b8433d; font-weight: 700; }
 /* world select: five pips per world */
 .node .pips { display: flex; gap: 4px; margin-top: 6px; }
-.node .pips i { width: 12px; height: 12px; border-radius: 50%; background: rgba(42, 31, 61, .25); border: 2px solid var(--ink); }
+.node .pips i { width: 16px; height: 16px; border-radius: 50%; background: rgba(42, 31, 61, .25); border: 2.5px solid var(--ink); display: grid; place-items: center; font-style: normal; }
 .node .pips i.on { background: var(--sun); }
 .node .pips i.s3 { background: #ffb400; box-shadow: 0 0 0 2px #fff3c4, 0 0 6px 2px rgba(255, 180, 0, .7); }
+.node .pips i.s3::after { content: '★'; font-size: 10px; line-height: 1; color: var(--paper); }
 .node .pips i.half { background: linear-gradient(90deg, var(--sun) 50%, rgba(42, 31, 61, .25) 50%); }
 [dir=rtl] .node .pips i.half { background: linear-gradient(-90deg, var(--sun) 50%, rgba(42, 31, 61, .25) 50%); }
 /* every star in a world: a crown on its island */
@@ -672,10 +677,14 @@ body.museum #btn-express { display: none !important; }
 .pz-txt small { display: block; white-space: normal; overflow-wrap: anywhere; }
 .set-note { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
 
-/* results buttons: the labels keep to one line (long German / Arabic words), the row wraps instead */
+/* results buttons: the way on gets its own full-width row (long labels like "On to Frost Isles" in German),
+   wrapping to two lines rather than cutting off; the small icon buttons sit underneath */
 .complete .row { flex-wrap: wrap; }
-.complete .row .btn.grow { min-width: 0; }
-.complete .row .btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.complete .row .btn.grow { flex: 1 0 100%; order: -1; min-width: 0; }
+.complete .row .btn.grow span { white-space: normal; text-wrap: balance; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+/* the figure's picture keeps its round shape however tight the panel gets (the panel scrolls instead) */
+.complete-thumb { flex: none; aspect-ratio: 1; }
+.complete-stars { flex: none; }
 /* Japanese wraps at phrase boundaries, not mid-word */
 :lang(ja) body { word-break: auto-phrase; }
 
@@ -686,7 +695,7 @@ body.museum #btn-express { display: none !important; }
 .goals svg { width: 15px; height: 15px; stroke: var(--ink); stroke-width: 2.2; fill: none; }
 .goals small { font-size: 12px; opacity: .7; }
 .goals svg.gs { width: 16px; height: 16px; stroke-width: 2; fill: var(--sun); }
-.goals .kept svg.gs { fill: #ffb400; }
+.goals .kept svg.gs { fill: #ffe8a8; } /* earned before: pale, as on the results panel */
 .goals .off svg.gs { fill: rgba(42, 31, 61, .18); }
 .goals .off b { text-decoration: line-through; opacity: .6; }
 #count .ic { width: 15px; height: 15px; vertical-align: -2px; margin-inline-end: 3px; stroke: var(--ink); stroke-width: 2.2; fill: none; }
@@ -705,7 +714,7 @@ body.mobile .rebuild { bottom: auto; top: calc(96px + var(--sat, 0px)); }
 .complete-stars .cs svg { transform: none; }
 .complete-stars .cs svg.on { animation-name: star-pop; }
 .complete-stars .cs.kept svg { fill: #ffe8a8; }
-.complete-stars .cs em { position: absolute; top: -6px; inset-inline-end: -4px; font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase; background: var(--coral); color: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 5px; rotate: 8deg; }
+.complete-stars .cs em { position: absolute; top: 24px; inset-inline-end: -8px; font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase; background: var(--coral); color: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 5px; rotate: 8deg; }
 #complete-par em { font-style: normal; font-weight: 700; }
 #complete-par em.up { color: #1f8a5b; } #complete-par em.down { color: #c0392b; }
 /* world complete card */
@@ -717,6 +726,41 @@ body.mobile .rebuild { bottom: auto; top: calc(96px + var(--sat, 0px)); }
 .world-done svg { width: 18px; height: 18px; fill: var(--sun); stroke: var(--ink); stroke-width: 2; }
 /* with the world card: no splits or Kubo line, and the way on gets its own row */
 .complete.has-world :is(.splits, .say) { display: none !important; }
-.complete.has-world .row .btn.grow { flex: 1 0 100%; order: -1; }
 .rebuild span { white-space: nowrap; }
 body.mobile .rebuild { font-size: 15px; min-height: 46px; padding: 8px 16px; }
+
+/* ---------- top HUD: rows stack under the measured HUD (see main.js) ---------- */
+#hud { --z: 1; }
+body.ui-scaled #hud { --z: var(--ui-hud, 1); }
+.needs { top: calc(var(--hud-bottom, 76px) / var(--z) + 8px); }
+.toast { top: calc(var(--needs-bottom, 124px) / var(--z) + 8px); }
+@media (max-height: 500px) { .needs { top: calc(var(--hud-bottom, 52px) / var(--z) + 5px); } .toast { top: calc(var(--needs-bottom, 90px) / var(--z) + 6px); } }
+/* narrow screens: the tools stack down the right edge, so the progress pill and every tool fit */
+@media (max-width: 520px) {
+  .hud-tools { flex-direction: column; gap: 8px; }
+  .hud-tools .btn.icon { width: 44px; height: 44px; }
+  .progress { width: auto; flex: 1; min-width: 0; }
+  .needs { max-width: calc(100vw - 132px); }
+}
+/* the Rebuild button: bottom centre (the backpack's spot while you roam), and it follows UI size */
+.rebuild { bottom: calc(22px + var(--sab)); }
+body.mobile .rebuild { top: auto; bottom: calc(24px + var(--sab)); }
+body.ui-scaled #hud .rebuild { zoom: var(--ui-hud, 1); }
+/* off the figure's island: no puzzle HUD for a figure you can't see */
+body.offisland :is(#needs, #goals, #btn-hint, #btn-magnet, #btn-express, #tooltip) { display: none !important; }
+/* walking about a finished figure: R means Rebuild, so the tools line steps aside */
+body.roaming #keys .tools-key { display: none; }
+.play-sub { background: rgba(42, 31, 61, .72); text-shadow: none; border-radius: 999px; padding: 4px 14px; }
+.play-sub .ic { width: 15px; height: 15px; vertical-align: -2px; margin-inline-end: 3px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+/* Kubo's hat on the world map */
+.kubo .hat { position: absolute; left: 50%; bottom: 92%; width: 62%; transform: translateX(-50%) rotate(6deg); display: block; line-height: 0; }
+.kubo .hat svg { width: 100%; height: auto; display: block; }
+/* every star collected */
+.star-total.all { background: #ffc93c; box-shadow: 0 0 0 3px #fff3c4, 0 4px 0 var(--ink); }
+#btn-map-ending { margin-inline-start: auto; }
+.splits small { font-size: 14px; line-height: 1; }
+.world-done svg.wd-crown { width: 20px; height: 20px; vertical-align: -3px; fill: #ffb400; }
+/* landscape pause grid: an odd last button spans both columns */
+#screen-pause .stack > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+/* a dialogue over the map: its Skip button takes the star counter's corner */
+body:has(#screen-talk.show) #screen-map .map-top > :not(#btn-map-back) { visibility: hidden; }

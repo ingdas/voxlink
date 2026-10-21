@@ -228,12 +228,19 @@ export function init(ctx) {
   // …and the single keys, so the coach can light each one up as it's used (none with a gamepad)
   ctx.coachKeys = () => (padMode ? null : {
     forward: L('forward'), left: L('left'), back: L('back'), right: L('right'), jump: L('jump'), drop: L('drop'), hint: L('hint'),
-    turnLeft: L('turnLeft'), turnRight: L('turnRight'),
+    turnLeft: L('turnLeft'), turnRight: L('turnRight'), lookUp: L('lookUp'), lookDown: L('lookDown'), interact: L('interact'),
     rightClick: t('access.key.rightClick'),
   });
   ctx.coachLabels = () => (padMode
-    ? { move: t('access.coach.leftStick'), look: t('access.coach.rightStick'), jump: 'A', drop: 'B', hint: 'Y' }
-    : { move: moveLabel(), look: t('access.coach.mouse'), jump: L('jump'), drop: `${t('access.key.rightClick')} / ${L('drop')}`, hint: L('hint') });
+    ? { move: t('access.coach.leftStick'), look: t('access.coach.rightStick'), jump: 'A', drop: 'B', hint: 'Y', interact: 'X' }
+    : { move: moveLabel(), look: t('access.coach.mouse'), jump: L('jump'), drop: `${t('access.key.rightClick')} / ${L('drop')}`, hint: L('hint'), interact: L('interact') });
+
+  // on/off switches tell screen readers their state
+  setTimeout(() => document.querySelectorAll('.toggle').forEach(b => {
+    const sync = () => b.setAttribute('aria-pressed', String(b.classList.contains('on')));
+    sync();
+    new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['class'] });
+  }), 0);
 
   // ---------- gamepad ----------
   let padMode = false;
@@ -337,7 +344,8 @@ export function init(ctx) {
     const tap = el => { ctx.audio.unlock(); ctx.audio.click(); el.click(); };
 
     if (pressed(0)) {
-      if (cur && cur.type !== 'range') tap(cur);
+      if (cur?.tagName === 'SELECT') { if (cur.dataset.pending) { delete cur.dataset.pending; cur.dispatchEvent(new Event('change', { bubbles: true })); } }
+      else if (cur && cur.type !== 'range') tap(cur);
       else if (!cur && primary) tap(primary);
       else if (!cur) focusEl(fallback());
       return;
@@ -348,6 +356,7 @@ export function init(ctx) {
       return;
     }
     if (pressed(1)) {
+      if (cur?.tagName === 'SELECT' && cur.dataset.pending) { delete cur.dataset.pending; cur.dispatchEvent(new Event('change', { bubbles: true })); return; }
       if (ctx.overlays.length) ctx.popOverlay();
       else if (id === 'screen-map') ctx.enterTitle();
       else if (id === 'screen-pause') ctx.resume();
@@ -366,12 +375,14 @@ export function init(ctx) {
     navNext = now + (dir === navDir ? 110 : 380);
     navDir = dir;
     if (!cur) return focusEl(fallback());
-    // a select (the language list): left / right step through its options
+    // a select (the language list): left / right step through its options; A (or moving on) applies the choice
+    // (changing the language reloads the page, so it can't apply on every step)
     if (cur.tagName === 'SELECT' && (dir === 'left' || dir === 'right')) {
       cur.selectedIndex = Math.max(0, Math.min(cur.options.length - 1, cur.selectedIndex + (dir === 'left' ? -1 : 1)));
-      cur.dispatchEvent(new Event('change', { bubbles: true }));
+      cur.dataset.pending = '1';
       return;
     }
+    if (cur.tagName === 'SELECT' && cur.dataset.pending) { delete cur.dataset.pending; cur.dispatchEvent(new Event('change', { bubbles: true })); return; }
     if (cur.type === 'range' && (dir === 'left' || dir === 'right')) {
       const s = +cur.step || 1;
       cur.value = +cur.value + (dir === 'left' ? -s : s);
@@ -394,9 +405,10 @@ export function init(ctx) {
       const along = vx * dx + vy * dy;
       if (along <= 4) continue;
       const ortho = Math.abs(dx ? vy : vx);
-      // overlapping on the cross axis counts as aligned
+      // overlapping on the cross axis counts as aligned (and always wins over a diagonal jump); among aligned ones
+      // the better-centred is next
       const overlap = dx ? (r.top < r0.bottom && r.bottom > r0.top) : (r.left < r0.right && r.right > r0.left);
-      const score = along + (overlap ? 0 : ortho * 2.5);
+      const score = along + (overlap ? ortho * 0.2 : ortho * 2.5 + 400);
       if (score < bestScore) { bestScore = score; best = el; }
     }
     return best || cur;

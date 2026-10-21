@@ -109,6 +109,8 @@ export default {
   'workshop.gift.fullPlay': 'Your workshop is full. Playing without saving',
   'workshop.gift.kept': '<b>{name}</b> is in your workshop',
   'workshop.gift.defaultName': 'Mystery gift',
+  'workshop.gift.makeRoom': 'Make room',
+  'workshop.gift.queued': 'Your workshop is full. Delete a figure and <b>{name}</b> moves right in.',
   'workshop.gift.waiting': 'A friend sent you <b>{name}</b>! It’s safe in your workshop: Kubo will hand it over after your first figure.',
   'workshop.gift.kubo': 'Oh! A parcel came for you: <b>{name}</b>, from a friend. Want to open it?',
   'workshop.gift.open': 'Open the gift',

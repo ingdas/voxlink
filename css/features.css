@@ -475,3 +475,9 @@ body:not(.has-tools) #keys .tools-key { display: none; }
 .ws-meta .ws-stars { gap: 0; }
 .ws-meta .ws-stars svg { width: 15px; height: 15px; fill: rgba(42, 31, 61, .2); stroke: var(--ink); stroke-width: 2; }
 .ws-meta .ws-stars svg.on { fill: var(--sun); }
+/* playtest 2 fixes */
+.ws-sheet .btn span { white-space: nowrap; }
+#ws-s-native { align-self: stretch; }
+.ws-toast { top: calc(84px + var(--sat)); } /* below the gallery / editor title bar */
+.setting .toggle { flex: none; }
+@media (max-width: 520px) { .ws-tools { bottom: calc(150px + var(--sab)); } }

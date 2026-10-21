@@ -5,7 +5,7 @@ import { PALETTE, PATTERN, forgetLevel } from '../levels.js';
 import { S, fixedPatternPatch } from '../voxels.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from '../render.js';
 import { THEMES } from '../world.js';
-import { t, crazyGamesSdk } from '../i18n.js';
+import { t, crazyGamesSdk, onCrazyGames } from '../i18n.js';
 import { createEditorCam } from './workshop-cam.js';
 
 const KEYS = Object.keys(PALETTE); // share-code colour index (append-only order)
@@ -65,8 +65,15 @@ function fromB64(s) {
   return bytes;
 }
 const checksum = bytes => bytes.reduce((h, b) => (h * 31 + b + 7) & 255, 113);
-// (drop a high surrogate left dangling by the cut, so an emoji at the limit doesn't become U+FFFD)
-const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 24).replace(/[\uD800-\uDBFF]$/, '');
+// Names are user text shown to other players: no control or direction-override characters (they could flip how
+// a name reads), cut at 24 characters without splitting an emoji. (Names are always shown escaped, so < > are fine.)
+const graphemes = s => (typeof Intl !== 'undefined' && Intl.Segmenter ? [...new Intl.Segmenter().segment(s)].map(x => x.segment) : [...s]);
+const cleanName = s => {
+  const g = graphemes(String(s || '').replace(/[\u0000-\u001f\u007f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim());
+  let out = '';
+  for (const c of g) { if (out.length + c.length > 24) break; out += c; }
+  return out.trim();
+};
 
 export function encodeFigure({ voxels, name, theme }) {
   const bytes = [];
@@ -269,6 +276,7 @@ export function init(ctx) {
       <button class="btn" id="ws-s-code"><svg><use href="#i-copy"/></svg><span>${t('workshop.code')}</span></button>
       <button class="btn mint grow" id="ws-s-copy"><svg><use href="#i-copy"/></svg><span>${t('workshop.copyLink')}</span></button>
     </div>
+    <button class="btn sky" id="ws-s-native"><svg><use href="#i-share"/></svg><span>${t('workshop.share')}</span></button>
   </div>
 </div>
 
@@ -331,6 +339,7 @@ export function init(ctx) {
     flushEditor();
     ctx.enterTitle();
     ctx.setBase('screen-ws');
+    tryQueued();
     renderGallery(highlightId);
   }
 
@@ -387,6 +396,7 @@ export function init(ctx) {
       delete save.sessions?.[entry.id];
       persist();
       audio.drop();
+      tryQueued();
       renderGallery();
     }
   });
@@ -460,7 +470,7 @@ export function init(ctx) {
     const isBest = !prev || stats.time < prev;
     if (entry && isBest) { entry.best = stats.time; }
     // stars on your own figures too (kept per figure)
-    const run = { done: true, fast: stats.time <= ctx.parTime(level), clean: stats.hints === 0 };
+    const run = { done: true, fast: Math.round(stats.time) <= ctx.parTime(level), clean: stats.hints === 0 };
     const was = entry?.stars || {};
     if (entry) entry.stars = { done: true, fast: !!(was.fast || run.fast), clean: !!(was.clean || run.clean) };
     delete save.sessions?.[level.id];
@@ -474,7 +484,8 @@ export function init(ctx) {
       onShare: entry && playable(entry.voxels) ? () => openShare(entry) : null,
       best: isBest && prev ? t('workshop.newBest') : '',
       say: t(`workshop.${gifted ? 'giftCheer' : 'cheer'}.${Math.floor(Math.random() * (gifted ? GIFT_CHEER_COUNT : CHEER_COUNT))}`),
-      nextLabel: t('workshop.title'), onNext: () => openGallery(entry?.id), onMap: () => ctx.enterTitle(),
+      // a friend's gift: back to your own islands afterwards; your own figure: back to the workshop
+      nextLabel: gifted ? t('complete.continue') : t('workshop.title'), onNext: gifted ? () => ctx.continueGame(false) : () => openGallery(entry?.id), onMap: () => ctx.enterTitle(),
       onRetry: () => { forgetLevel(level.id); ctx.startLevel(level); },
     });
   };
@@ -488,6 +499,8 @@ export function init(ctx) {
     const code = encodeFigure(entry);
     let link = '';
     try { link = cg?.game?.inviteLink?.({ fig: code }) || ''; } catch { /* fall back */ }
+    // inside CrazyGames without the SDK the page's own address is the game's file host: share the code only
+    if (!link && onCrazyGames()) return { code, link: '' };
     return { code, link: link || `${location.origin}${location.pathname}?fig=${code}` };
   }
   function openShare(entry) {
@@ -496,7 +509,10 @@ export function init(ctx) {
     const { link } = shareLink(entry);
     $('ws-s-img').src = thumbOf(entry);
     $('ws-s-name').textContent = entry.name;
-    $('ws-s-link').value = link;
+    $('ws-s-link').value = link || shareLink(entry).code;
+    $('ws-s-copy').style.display = link ? '' : 'none';
+    // phones: the system share sheet (copying stays as the fallback)
+    $('ws-s-native').style.display = link && navigator.share ? '' : 'none';
     $('ws-s-copy').querySelector('span').textContent = t('workshop.copyLink');
     $('ws-s-code').querySelector('span').textContent = t('workshop.code');
     ctx.pushOverlay('screen-ws-share');
@@ -513,59 +529,77 @@ export function init(ctx) {
     };
   };
   copyBtn('ws-s-copy', 'link', 'workshop.copyLink');
+  $('ws-s-native').onclick = async () => {
+    if (!shareEntry) return;
+    try { await navigator.share({ title: shareEntry.name, text: t('workshop.shareTag'), url: shareLink(shareEntry).link }); } catch { /* cancelled */ }
+  };
   copyBtn('ws-s-code', 'code', 'workshop.code');
 
   // ================================================================ ?fig= links (and CrazyGames invite links)
-  // A gift opened before the player has rebuilt their first figure is kept straight away (a short card says so)
-  // and offered by Kubo when the Sprout is done; later on it's shown on the title screen.
-  let gift = null;
+  // An incoming gift goes straight into the workshop, so it can't get lost. Before the player's first figure a
+  // short card says so and Kubo hands it over when the Sprout is done; later on the gift card shows on the title.
+  // With a full workshop the gift waits (save.giftQueue) and moves in as soon as a slot is free.
+  let gift = null, giftEntry = null;
   const firstRun = () => !save.stars[ctx.LEVELS[0].id]?.done;
   const giftCard = () => {
     $('ws-g-img').src = ctx.renderThumb(thumbCells(gift.voxels));
     $('ws-g-name').textContent = gift.name;
     $('ws-g-tag').textContent = plural('workshop.gift.tag', gift.voxels.length, { theme: themeName(THEME_IDS.includes(gift.theme) ? gift.theme : 'meadow') });
+    // kept already: the button opens the workshop; still waiting for room: it goes to make some
+    $('ws-g-save').querySelector('span').textContent = giftEntry ? t('workshop.title') : t('workshop.gift.makeRoom');
     ctx.pushOverlay('screen-ws-gift');
   };
+  const takeIn = g => { const r = addEntry(g); return r.entry || null; };
+  // a gift waiting for room moves in when there is some
+  function tryQueued() {
+    if (!save.giftQueue || list.length >= SLOTS) return;
+    const g = decodeFigure(save.giftQueue);
+    delete save.giftQueue; persist();
+    const e = g && playable(g.voxels) ? takeIn(g) : null;
+    if (e) { if (gift && sigOf(gift.voxels) === sigOf(e.voxels)) giftEntry = e; wsToast(t('workshop.gift.kept', { name: escapeHtml(e.name) })); }
+  }
   ctx.gift = {
     // the gift waiting after the first figure (its name), if any
     pending: () => (save.pendingGift && gift ? gift.name : null),
     open: () => { if (gift) { delete save.pendingGift; persist(); giftCard(); } },
   };
+  const afterLoading = fn => (ctx.base === 'screen-loading' ? setTimeout(() => afterLoading(fn), 200) : fn());
   (async () => {
     let code = new URLSearchParams(location.search).get('fig');
     if (!code) { const sdk = await crazyGamesSdk(); try { code = sdk?.game?.getInviteParam?.('fig') || null; } catch { /* none */ } }
     const fromSave = !code && save.pendingGift;
     if (fromSave) code = save.pendingGift;
-    if (!code) return;
+    if (!code) { tryQueued(); return; }
     try { const u = new URL(location.href); u.searchParams.delete('fig'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch { /* ignore */ }
     gift = decodeFigure(code);
     const ok = gift && playable(gift.voxels);
-    if (fromSave) { if (!ok) { delete save.pendingGift; persist(); } return; }
-    if (ok && firstRun()) {
-      // keep it now (so it can't get lost), tell them, and hand it over after the first figure
-      addEntry(gift);
-      save.pendingGift = code; persist();
-      const card = () => (ctx.base === 'screen-loading' ? setTimeout(card, 200) : wsToast(`<svg><use href="#i-gift"/></svg> ${t('workshop.gift.waiting', { name: escapeHtml(gift.name) })}`, 5200));
-      card();
+    if (!ok) {
+      delete save.pendingGift; persist();
+      // say so right away (not only once the title shows up)
+      if (!fromSave) afterLoading(() => wsToast(t('workshop.gift.broken'), 4200));
       return;
     }
-    const show = () => {
-      if (ctx.base !== 'screen-title') { setTimeout(show, 200); return; }
-      if (!ok) { wsToast(t('workshop.gift.broken')); return; }
-      giftCard();
-    };
+    giftEntry = takeIn(gift);
+    if (!giftEntry) { save.giftQueue = code; persist(); }
+    if (fromSave) return;
+    if (firstRun()) {
+      // tell them it's safe, and hand it over after the first figure
+      save.pendingGift = code; persist();
+      afterLoading(() => wsToast(`<svg><use href="#i-gift"/></svg> ${t('workshop.gift.waiting', { name: escapeHtml(gift.name) })}`, 5200));
+      return;
+    }
+    const show = () => { if (ctx.base !== 'screen-title') { setTimeout(show, 200); return; } giftCard(); };
     setTimeout(show, 300);
   })();
-  const keepGift = fullKey => {
-    const r = addEntry(gift);
-    if (r.full) { wsToast(t(fullKey)); return null; }
-    return r.entry;
-  };
   $('ws-g-no').onclick = () => ctx.popOverlay('screen-ws-gift');
-  $('ws-g-save').onclick = () => { const e = keepGift('workshop.toast.fullImport'); if (e) { audio.star(1); openGallery(e.id); wsToast(t('workshop.gift.kept', { name: escapeHtml(e.name) })); } else audio.wrong(); };
+  $('ws-g-save').onclick = () => {
+    if (giftEntry) { audio.star(1); openGallery(giftEntry.id); return; }
+    openGallery();
+    wsToast(t('workshop.gift.queued', { name: escapeHtml(gift.name) }), 4200);
+  };
   $('ws-g-play').onclick = () => {
-    const e = keepGift('workshop.gift.fullPlay');
-    if (e) { playEntry(e); return; }
+    if (giftEntry && list.includes(giftEntry)) { playEntry(giftEntry); return; }
+    wsToast(t('workshop.gift.fullPlay'));
     const lvl = levelFor({ ...gift, id: 'c-gift' });
     forgetLevel(lvl.id);
     ctx.startLevel(lvl);
@@ -1127,6 +1161,8 @@ export function init(ctx) {
     if (toolMode === 'erase') setTool('add');
     renderPalette();
     audio.tone({ f: 980, type: 'sine', dur: 0.05, vol: 0.06 });
+    // touch screens have no tooltips: name the colour
+    if (ctx.mobile) wsToast(t(`workshop.sw.${color}`), 1100);
     updateHover();
   });
   $('ws-mirror').onclick = () => {

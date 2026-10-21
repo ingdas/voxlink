@@ -369,12 +369,16 @@ class Garden {
       const ck = new THREE.Mesh(cheekGeo, pink); ck.position.set(sx * 0.48, -0.12, s / 2 + 0.01); k.add(ck);
     }
     const mouth = new THREE.Mesh(mouthGeo, ink); mouth.position.set(0, -0.2, s / 2 + 0.02); k.add(mouth);
+    // the hat he's earned with your stars (as on the islands)
+    const hat = ctx.kuboHat?.();
+    if (hat && ctx.makeKuboHat) { const h = ctx.makeKuboHat(hat.id, s); h.position.y = s / 2; k.add(h); }
     k.position.set(0, PEDESTAL_TOP + s / 2, 0);
     k.rotation.z = -0.07;
     this.kubo = k;
     this.kuboBaseY = k.position.y;
     this.group.add(k);
-    this.colliders.push(new THREE.Box3(new THREE.Vector3(-0.85, 0, -0.85), new THREE.Vector3(0.85, PEDESTAL_TOP + s + 0.1, 0.85)));
+    // roomy enough that walking into him never puts the camera inside him
+    this.colliders.push(new THREE.Box3(new THREE.Vector3(-1.25, 0, -1.25), new THREE.Vector3(1.25, PEDESTAL_TOP + s + 0.1, 1.25)));
     this.items.push({ kind: 'kubo', x: 0, z: 0, r: 1.6, center: new THREE.Vector3(0, 1.2, 0) });
   }
 

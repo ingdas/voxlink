@@ -59,15 +59,18 @@ Workshop editor:
 - Each figure has 3 stars: finish it, beat the par time, and use no hints. The goals sit under the
   progress bar while you build (time against par, hints used, each with its star); the first hint of a
   run asks for a second press, since it costs the no-hint star. The results label each star and mark new
-  ones. Par is per block still to build, a little longer on slow ground (snow, ice, the lagoon).
+  ones. Par is per block (the Storm figures' bigger head start is left out), a little longer on slow ground (snow, ice, the lagoon); times count in whole seconds, as shown.
 - Finished islands stay built: walking onto one (or arriving in a finished world) just lets you roam;
-  **Rebuild for stars** (R / button) starts a fresh, timed run. The clock only runs on the figure's own
+  **Rebuild for stars** (R / button, press twice: it takes the figure apart) starts a fresh, timed run for the
+  stars still missing; walking away from a rebuild drops it and the figure stands whole again. The clock only runs on the figure's own
   island, and not during the tutorial.
 - Continue goes back to the figure you last played (or a half-built one); the title shows where. Half-built
   figures show a half-filled pip on the world select and a marker over their island. Kubo welcomes you
   back, and finishing a world shows a world card and takes you on to the next one.
 - Star rewards: three-star figures get gold pedestals in Kubo's Garden and gold pips on the world select,
-  a world with every star gets a crown, and Kubo wears a hat from 25, 60, 100 and 150 stars
+  a world with every star gets a crown (and a moment on the results), Kubo wears a hat from 25, 60, 100 and 150 stars
+  (on the islands, in the Garden and on the map), the 150th star gets its own card, and the ending can be watched
+  again from the world map
   (`js/features/hats.js`).
 - Big figures are split into parts: every part has its own flagged district on the island, and a
   compass points to where blocks fit right now. All blocks are out from the start.
@@ -93,8 +96,9 @@ Workshop editor:
   figures), the Workshop (build and share your own figures; your own figures earn stars too),
   and Puzzler mode (link blocks anywhere, solve sums; best times kept separately).
 - Sharing: figure links use the CrazyGames SDK invite link (and `getInviteParam('fig')`) when embedded
-  there, otherwise `?fig=`. A new player who opens a gift link gets it saved right away and Kubo hands it
-  over after the Sprout. Your own figures' results have a Share button.
+  there, otherwise `?fig=`. Every incoming gift goes straight into the workshop (with a full workshop it waits and
+  moves in when a slot frees up); a new player gets a short card and Kubo hands it over after the Sprout. Your
+  own figures' results have a Share button, and the share sheet uses the system share sheet where there is one.
 
 ## Languages
 
