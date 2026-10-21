@@ -805,8 +805,9 @@ export class Game {
       this.player.resolvePenetration(this.colliders);
       const n = this.voxels.length, left = n - this.placedCount;
       const frac = this.placedCount / n;
+      // (not on the last link: the figure is done, the celebration speaks for itself)
       for (const [m, line] of [[0.25, t('kubo.q1')], [0.5, t('kubo.q2')], [0.75, t('kubo.q3')]]) {
-        if (n >= 16 && frac >= m && !this.barked.has(m)) { this.barked.add(m); this.events.kubo?.(line); }
+        if (n >= 16 && left > 0 && frac >= m && !this.barked.has(m)) { this.barked.add(m); this.events.kubo?.(line); }
       }
       if (n >= 16 && left === 3 && !this.barked.has('last')) { this.barked.add('last'); this.events.kubo?.(t('kubo.last3')); }
       this.fx.burst(v.target, v.cell.color, 24, 4);
@@ -1080,7 +1081,7 @@ export class Game {
   complete() {
     this.mode = 'celebrate';
     this.celebrateT = 0;
-    this.input.exitLock();
+    // (the pointer stays locked: campaign figures hand control straight back after the celebration)
     this.fx.clearBeam();
     this.camFrom = { pos: this.camera.position.clone(), quat: this.camera.quaternion.clone() };
     this.orbitAngle = Math.atan2(this.camera.position.x, this.camera.position.z);
@@ -1221,7 +1222,7 @@ export class Game {
       if (a.type === 'jump') { this.player.jumpBuffer = 0.14; if (this.tutorial === 'jump') { this.tutUsed.add('jump'); this.tutAdvance('grab', 0.5); } }
       else if (a.type === 'interact') this.interact(a.x, a.y);
       else if (a.type === 'drop') this.drop();
-      else if (a.type === 'hint') this.hint();
+      else if (a.type === 'hint') { if (!(this.roaming && this.events.roamAction?.())) this.hint(); }
       else if (a.type === 'magnet') { if (this.roaming) this.events.rebuild?.(); else this.useMagnet(); }
       else if (a.type === 'express') this.useExpress();
       else if (a.type === 'pause') this.events.pause?.();

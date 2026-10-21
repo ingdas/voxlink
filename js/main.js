@@ -177,6 +177,8 @@ const game = new Game({
     arrive: l => onArrive(l),
     // finished islands stand built: R (or the Rebuild button) starts a fresh run for the missing stars
     rebuild: () => rebuild(),
+    // Y on a gamepad (the hint button, unused while you roam): the results card's way on
+    roamAction: () => doneCardAction(),
     // the first hint of a run costs the no-hint star (unless it's already earned)
     hintCostsStar: () => !game.level.kind ? !save.stars[game.level.id]?.clean : true,
     tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
@@ -379,6 +381,7 @@ function tickHud(g) {
   const way = tutTarget || (g.mode === 'play' ? g.wayTarget?.() : null);
   placeEdge($('edge-next'), way ?? homePos, !!way && (tutTarget ? true : !g.pack.length && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 6));
   renderGoals(g);
+  if (doneCard && (g.level !== doneCard.level || performance.now() > doneCard.until || !g.roaming)) hideDoneCard();
   // on a finished island: rebuild it for stars (R, or the button)
   // (not with every star already earned, and not right after finishing it: first the way on)
   if (!g.onIsland) rebuildHold = false;
@@ -617,7 +620,8 @@ function onComplete(stats) {
   document.body.classList.remove('playing');
   const lvl = game.level, idx = game.levelIndex;
   ctx.hooks.complete.forEach(f => f(stats, lvl));
-  if (lvl.kind) { setTimeout(() => ctx.completeHandlers[lvl.kind]?.(stats, lvl), 2600); return; }
+  // workshop figures end on a results panel (Share, back to the Workshop)
+  if (lvl.kind) { input.exitLock(); setTimeout(() => ctx.completeHandlers[lvl.kind]?.(stats, lvl), 2600); return; }
   const par = parTime(lvl);
   const run = { done: true, fast: Math.round(stats.time) <= par, clean: stats.hints === 0 }; // whole seconds, as shown
   const prev = save.stars[lvl.id] || {};
@@ -652,21 +656,55 @@ function onComplete(stats) {
   const onward = worldDone && !finale && nextCh && chapterUnlocked(lvl.chapter + 1);
   // a friend's gift that arrived before the first figure: Kubo hands it over now
   const giftName = idx === 0 && firstClear ? ctx.gift?.pending() : null;
-  const openGift = () => {
-    ctx.gift.open();
-    completeActions.onNext = walkOn;
-    $('next-label').textContent = t('complete.walkOn');
-  };
-  setTimeout(() => showComplete({
-    name: lvl.name, img: thumbs[idx], reveal: firstClear, time: stats.time, par, hints: stats.hints,
+  // the gift card opens over the pause menu (its buttons need a pointer); Not now leads back to the game
+  const openGift = () => { pause(); ctx.gift.open(); };
+  // travel on: Kubo hops along the world map's path and you arrive in the next world
+  const toNextWorld = () => { pendingUnlock = pendingUnlock || { from: lvl.chapter, to: lvl.chapter + 1 }; openMap(); };
+  // no results panel: after the celebration you're straight back on the island with a results card in the HUD,
+  // and the way on (next world, the epilogue, a friend's gift) is one key away
+  const card = {
+    name: lvl.name, img: thumbs[idx], time: stats.time, par, hints: stats.hints,
     stars: [run.done, run.fast, run.clean], prevStars: [!!prev.done, !!prev.fast, !!prev.clean],
-    best: isBest && !firstClear ? t('complete.newBest') : '', world,
+    best: isBest && !firstClear, world,
     say: giftName ? t('workshop.gift.kubo', { name: escapeHtml(giftName) }) : lvl.outro,
-    splits: stats.splits, prevSplits, blocks: idx === 0 ? 0 : game.voxels.length,
-    nextLabel: giftName ? t('workshop.gift.open') : finale || allStars ? t('complete.epilogue') : onward ? t('complete.nextWorld', { world: nextCh.name }) : t('complete.walkOn'),
-    onNext: giftName ? openGift : finale || allStars ? showEnding : onward ? (pendingUnlock ? openMap : () => enterWorld(lvl.chapter + 1)) : walkOn, onMap: openMap,
-    onRetry: () => { pendingUnlock = null; startLevel(lvl); },
-  }), 2600);
+    action: giftName ? { label: t('workshop.gift.open'), run: openGift }
+      : finale || allStars ? { label: t('complete.epilogue'), run: showEnding }
+      : onward ? { label: t('complete.nextWorld', { world: nextCh.name }), run: toNextWorld } : null,
+  };
+  setTimeout(() => { walkOn(card); }, 2600);
+}
+
+// ---------- the results card (campaign figures) ----------
+// Sits in the HUD while you walk on: the figure, its three labelled stars (New / earned before), time against
+// par, hints, and the way on when there is one (Enter, a tap, or Y on a gamepad). It fades after a while, or
+// when you leave the island.
+let doneCard = null; // { level, until, action }
+function showDoneCard(o) {
+  const labels = [t('complete.star.done'), t('complete.star.fast'), t('complete.star.clean')];
+  const starSay = (on, k) => t(on ? 'a11y.star.earned' : o.prevStars[k] ? 'a11y.star.kept' : 'a11y.star.missed', { star: labels[k] });
+  const stars = o.stars.map((on, k) => `<span class="cs ${on ? 'on' : o.prevStars[k] ? 'kept' : ''}" role="img" aria-label="${escapeHtml(starSay(on, k))}"><svg><use href="#i-star"/></svg><small>${labels[k]}</small>${on && !o.prevStars[k] ? `<em>${t('complete.star.new')}</em>` : ''}</span>`).join('');
+  const dp = Math.round(o.time) - o.par;
+  const w = o.world;
+  const key = mobile ? '' : '<kbd>Enter</kbd> ';
+  $('done-card').innerHTML = `
+    <div class="dc-head"><img src="${o.img || ''}" alt=""><div><small>${t('complete.ribbon')}</small><b>${escapeHtml(o.name)}</b></div></div>
+    <div class="dc-stars">${stars}</div>
+    <div class="dc-stats"><span><svg><use href="#i-clock"/></svg><b>${fmt(o.time)}</b> <bdi dir="ltr"><em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em></bdi></span><span><svg><use href="#i-bulb"/></svg><b>${o.hints}</b></span>${o.best ? `<span class="dc-best">${t('complete.newBest')}</span>` : ''}</div>
+    ${w ? `<div class="dc-world"><b>${w.crown ? '<svg class="wd-crown"><use href="#i-star"/></svg> ' : ''}${w.title}</b><span><svg><use href="#i-star"/></svg> <bdi class="n">${w.stars} / ${w.total}</bdi></span></div>` : ''}
+    ${o.action ? `<button class="btn mint dc-go" id="dc-go">${key}<span>${escapeHtml(o.action.label)}</span><svg><use href="#i-next"/></svg></button>` : ''}`;
+  $('done-card').classList.add('show');
+  doneCard = { level: game.level, until: performance.now() + (o.action ? 40000 : 11000), action: o.action };
+  if (o.action) $('dc-go').onclick = () => doneCardAction();
+  // the stars pop in one by one
+  $('done-card').querySelectorAll('.cs.on svg').forEach((s, k) => setTimeout(() => { s.classList.add('pop'); audio.star(k); }, 300 + k * 260));
+}
+function hideDoneCard() { doneCard = null; $('done-card').classList.remove('show'); }
+function doneCardAction() {
+  if (!doneCard?.action || (app !== 'playing' && app !== 'intro')) return false;
+  const run = doneCard.action.run;
+  hideDoneCard();
+  run();
+  return true;
 }
 
 // 25% / 50% / 75% / done times, with the difference to the previous best run.
@@ -907,7 +945,7 @@ function rebuild() {
   kuboSays(t('kubo.rebuildGo', { goal: missingGoal(l) }), true);
 }
 // after the results panel: back onto the island, the way to the next figure lit
-function walkOn() {
+function walkOn(card = null) {
   setBase(null);
   document.body.classList.remove('celebrating');
   document.body.classList.add('roaming');
@@ -915,9 +953,10 @@ function walkOn() {
   app = 'intro';
   game.walkOn();
   rebuildHold = true;
-  if (!mobile) input.requestLock();
+  if (!mobile && !document.pointerLockElement) input.requestLock();
   const lvl = game.level, nextCh = CHAPTERS[lvl.chapter + 1];
   const openFig = CHAPTERS[lvl.chapter].levels.some(l => l !== lvl && !isDone(l.id) && l.index < save.unlocked);
+  if (card) { ctx.companion?.reset(); showDoneCard(card); if (card.say) kuboSays(card.say, true); if (card.action) return; }
   setTimeout(() => {
     if (openFig) kuboSays(t('way.next'));
     else if (nextCh && chapterUnlocked(lvl.chapter + 1)) kuboSays(t('way.nextWorld', { world: `<b>${nextCh.name}</b>` }));
@@ -1115,13 +1154,21 @@ document.addEventListener('dblclick', e => e.preventDefault());
 addEventListener('keydown', e => {
   if (overlays.includes('screen-talk')) return;
   if (e.code === 'Escape') {
-    if (overlays.length) { popOverlay(); return; }
+    if (overlays.length) {
+      const top = overlays[overlays.length - 1];
+      popOverlay();
+      // the gift card opened from the results card sits over the pause menu: closing it goes back to the game
+      if (top === 'screen-ws-gift' && app === 'paused') resume();
+      return;
+    }
     if (base === 'screen-map') { (mapFromIsland ? backToIsland : enterTitle)(); return; }
     if (app === 'paused' && !mobile) return; // browsers swallow this Esc for pointer lock anyway
   }
+  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && doneCard?.action && !overlays.length && !base && doneCardAction()) { e.preventDefault(); return; }
   if (e.code === 'Enter' || e.code === 'Space') {
     if (!overlays.length && base === 'screen-title') { e.preventDefault(); $('btn-play').click(); }
     else if (!overlays.length && base === 'screen-complete') { e.preventDefault(); $('btn-next').click(); }
+    else if (!overlays.length && base === 'screen-ending') { e.preventDefault(); $('btn-ending-map').click(); }
   }
 });
 

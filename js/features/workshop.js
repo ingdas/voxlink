@@ -548,6 +548,8 @@ export function init(ctx) {
     // kept already: the button opens the workshop; still waiting for room: it goes to make some
     $('ws-g-save').querySelector('span').textContent = giftEntry ? t('workshop.title') : t('workshop.gift.makeRoom');
     ctx.pushOverlay('screen-ws-gift');
+    // keyboard: Enter plays it straight away
+    setTimeout(() => { try { $('ws-g-play').focus({ focusVisible: true }); } catch { $('ws-g-play').focus(); } }, 60);
   };
   const takeIn = g => { const r = addEntry(g); return r.entry || null; };
   // a gift waiting for room moves in when there is some
@@ -591,7 +593,7 @@ export function init(ctx) {
     const show = () => { if (ctx.base !== 'screen-title') { setTimeout(show, 200); return; } giftCard(); };
     setTimeout(show, 300);
   })();
-  $('ws-g-no').onclick = () => ctx.popOverlay('screen-ws-gift');
+  $('ws-g-no').onclick = () => { ctx.popOverlay('screen-ws-gift'); if (ctx.app === 'paused') ctx.resume(); };
   $('ws-g-save').onclick = () => {
     if (giftEntry) { audio.star(1); openGallery(giftEntry.id); return; }
     openGallery();

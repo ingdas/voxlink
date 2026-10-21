@@ -58,8 +58,12 @@ Workshop editor:
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.
 - Each figure has 3 stars: finish it, beat the par time, and use no hints. The goals sit under the
   progress bar while you build (time against par, hints used, each with its star); the first hint of a
-  run asks for a second press, since it costs the no-hint star. The results label each star and mark new
-  ones. Par is per block (the Storm figures' bigger head start is left out), a little longer on slow ground (snow, ice, the lagoon); times count in whole seconds, as shown.
+  run asks for a second press, since it costs the no-hint star.
+- Finishing a figure has no results screen: the camera circles the figure, then you're straight back in control
+  with a results card in the HUD (labelled stars marked New, time against par, hints, the world's progress).
+  When there's a way on (the next world, the epilogue, a friend's gift) the card offers it on **Enter** (a tap
+  on phones, Y on a gamepad); otherwise it fades as you walk on. Workshop figures still end on a results panel
+  (Share, back to the Workshop). Par is per block (the Storm figures' bigger head start is left out), a little longer on slow ground (snow, ice, the lagoon); times count in whole seconds, as shown.
 - Finished islands stay built: walking onto one (or arriving in a finished world) just lets you roam;
   **Rebuild for stars** (R / button, press twice: it takes the figure apart) starts a fresh, timed run for the
   stars still missing; walking away from a rebuild drops it and the figure stands whole again. The clock only runs on the figure's own

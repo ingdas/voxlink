@@ -42,6 +42,8 @@ export function init(c) {
     active: () => shown,
     // clear the current line (it no longer applies)
     hush() { barkLeft = 0; hold = false; },
+    // a fresh start (a figure was just finished): drop whatever was waiting
+    reset() { barkLeft = 0; hold = false; queue.length = 0; },
     say(msg, urgent = false) {
       if (!urgent && barkLeft > 0 && barkAge < Math.min(4, readTime(bark) * 0.8)) {
         if (queue.length < 3 && !queue.some(q => q.msg === msg) && msg !== bark) queue.push({ msg, at: performance.now() });
@@ -174,7 +176,7 @@ function placeBubble(g, html, still) {
     const pack = document.querySelector('.pack-wrap')?.getBoundingClientRect();
     const reb = document.getElementById('btn-rebuild');
     const under = reb?.classList.contains('show') ? reb.getBoundingClientRect() : pack;
-    bubble.style.setProperty('--dock-bottom', `${Math.round(under && under.height ? H - under.top + 12 : 150)}px`);
+    bubble.style.setProperty('--dock-bottom', `${Math.round(under && under.height ? H - under.top + 12 : H < 520 ? 18 : 150)}px`);
   }
 }
 

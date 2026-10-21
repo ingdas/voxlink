@@ -764,3 +764,44 @@ body.roaming #keys .tools-key { display: none; }
 #screen-pause .stack > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 /* a dialogue over the map: its Skip button takes the star counter's corner */
 body:has(#screen-talk.show) #screen-map .map-top > :not(#btn-map-back) { visibility: hidden; }
+
+/* ---------- results card (campaign figures): in the HUD while you walk on ---------- */
+.done-card {
+  position: absolute; left: calc(14px + var(--sal)); top: calc(var(--hud-bottom, 80px) / var(--z) + 14px); width: min(300px, calc(100vw - 92px));
+  display: none; flex-direction: column; gap: 8px; padding: 10px 12px 12px; border-radius: 18px; pointer-events: none; font-weight: 600;
+  animation: dc-in .45s cubic-bezier(.3, 1.5, .5, 1) both;
+}
+.done-card.show { display: flex; }
+@keyframes dc-in { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
+body.reduce-motion .done-card { animation: none; }
+[dir=rtl] .done-card { left: auto; right: calc(14px + var(--sar)); }
+.dc-head { display: flex; align-items: center; gap: 10px; }
+.dc-head img { width: 52px; height: 52px; flex: none; object-fit: contain; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #fffaf0, var(--paper-2)); border: 2.5px solid var(--ink); }
+.dc-head small { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--coral); }
+.dc-head b { font-size: 18px; line-height: 1.15; }
+.dc-stars { display: flex; justify-content: space-around; gap: 4px; }
+.dc-stars .cs { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.dc-stars svg { width: 30px; height: 30px; stroke: var(--ink); stroke-width: 2; fill: rgba(42, 31, 61, .18); }
+.dc-stars .cs.kept svg { fill: #ffe8a8; }
+.dc-stars .cs.on svg.pop { fill: var(--sun); animation: star-pop .5s cubic-bezier(.3, 1.8, .5, 1) both; }
+body.reduce-motion .dc-stars .cs.on svg { fill: var(--sun); animation: none; }
+.dc-stars small { font-size: 11px; font-weight: 700; color: var(--ink-soft); text-align: center; line-height: 1.1; }
+.dc-stars em { position: absolute; top: 18px; inset-inline-end: -10px; font-style: normal; font-size: 9px; font-weight: 700; text-transform: uppercase; background: var(--coral); color: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 4px; rotate: 8deg; }
+.dc-stats { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 15px; }
+.dc-stats span { display: inline-flex; align-items: center; gap: 4px; }
+.dc-stats svg { width: 17px; height: 17px; stroke: var(--ink); stroke-width: 2.2; fill: none; }
+.dc-stats em { font-style: normal; font-weight: 700; } .dc-stats em.up { color: #1f8a5b; } .dc-stats em.down { color: #c0392b; }
+.dc-best { background: var(--sun); border: 2px solid var(--ink); border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 700; }
+.dc-world { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--paper-2); border: 2.5px solid var(--ink); border-radius: 12px; padding: 5px 9px; font-size: 14px; }
+.dc-world span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.dc-world svg { width: 15px; height: 15px; fill: var(--sun); stroke: var(--ink); stroke-width: 2; }
+.dc-go { pointer-events: auto; min-height: 46px; font-size: 16px; gap: 8px; justify-content: center; }
+.dc-go span { white-space: normal; text-wrap: balance; line-height: 1.15; }
+.dc-go kbd { font: inherit; font-size: 12px; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; padding: 0 6px; }
+body.ui-scaled #hud .done-card { zoom: var(--ui-hud, 1); }
+body.celebrating .done-card { display: none; }
+@media (max-height: 500px) {
+  .done-card { width: min(250px, 34vw); gap: 5px; padding: 7px 9px 9px; }
+  .dc-head img { width: 38px; height: 38px; } .dc-head b { font-size: 15px; }
+  .dc-stars svg { width: 24px; height: 24px; } .dc-stats { font-size: 13px; } .dc-go { min-height: 40px; font-size: 14px; }
+}
