@@ -1388,4 +1388,56 @@ function cliffs(W) {
   W.extras.push(() => leaves(W));
 }
 
-export const LAYOUTS = { classic, meadow, farm, frost, frostwood, reef, cove, starfall, moon, cliffs, storm };
+// ---------- hub: the small middle island of a world's archipelago, with the portal to other worlds ----------
+// Bridges (built by archipelago.js) leave from its north side; the portal stands on its south side.
+function hub(W) {
+  const { R, T, seed, rng } = W;
+  const isl = sdBlob(0, 0, R, seed, 0.5);
+  W.walkSd = isl; W.coastSd = isl; W.radiusAt = isl.radiusAt;
+  const lay = T.layout;
+  const floating = lay === 'starfall' || lay === 'moon';
+  if (floating) {
+    W.hasSea = false; W.voidY = -7; W.gravityScale = lay === 'moon' ? MOON_G : STAR_G;
+    W.floorAt = (x, z) => (isl(x, z) < 0.05 ? 0 : null);
+    W.ground(isl, { top: T.grass, side: T.cliff, depth: 3, taper: 1, jag: 0.5 });
+    put(W, GEO.cone(9), T.dirt, 0, -2.9 - R * 0.55, 0, { sx: R - 1, sy: R * 1.1, sz: R - 1, rx: Math.PI });
+  } else W.ground(isl, { top: T.grass, side: T.cliff, depth: Math.max(5, -W.seaY + 4), jag: 0.4 });
+  if (lay === 'storm' || lay === 'cliffs') { W.windDir = rng() * Math.PI * 2; gusts(W, { first: 6, len: 2.6, peak: lay === 'storm' ? 1.0 : 0.8, calm: [9, 7] }); }
+  // a round plaza of flagstones
+  for (let i = 0; i < 60; i++) {
+    const a = rng() * Math.PI * 2, r = 1 + rng() * 4.2;
+    put(W, GEO.box(), rng() < 0.5 ? 0xd9cfbd : 0xc9bea9, Math.cos(a) * r, 0.015, Math.sin(a) * r, { sx: 0.5 + rng() * 0.4, sy: 0.04, sz: 0.45 + rng() * 0.3, ry: rng(), kind: 'fx' });
+  }
+  // the portal: a stone ring standing on the south side, a swirl of light inside
+  const pz = R - 3.2;
+  W.portal = { x: 0, z: pz };
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI * 2, r = 1.55;
+    put(W, GEO.box(), k % 2 ? 0x9a96b4 : 0xb4b0cc, Math.cos(a) * r, 1.85 + Math.sin(a) * r, pz, { sx: 0.62, sy: 0.62, sz: 0.5, rz: a });
+  }
+  put(W, GEO.box(), 0x77728f, 0, 0.12, pz, { sx: 3.6, sy: 0.24, sz: 1.3 });
+  for (const s of [-1, 1]) W.box(s * 1.55 - 0.35, 0, pz - 0.3, s * 1.55 + 0.35, 3.4, pz + 0.3, { sound: 'stone' });
+  W.extras = W.extras || [];
+  W.extras.push(() => {
+    const mat = new THREE.MeshBasicMaterial({ color: 0x9cf5ff, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(1.25, 32), mat);
+    disc.position.set(0, 1.85, pz);
+    disc.layers.set(LAYER_FX);
+    W.group.add(disc);
+    W.updaters.push((dt, t) => { disc.rotation.z = t * 0.8; mat.opacity = 0.45 + Math.sin(t * 2.2) * 0.15; disc.scale.setScalar(1 + Math.sin(t * 1.7) * 0.04); });
+  });
+  W.obstacles.push({ x: 0, z: pz, r: 2.4 });
+  // lamps and the world's own trees round the rim
+  for (const a of [-0.6, 0.6, Math.PI - 0.5, Math.PI + 0.5]) {
+    const x = Math.sin(a) * 5.4, z = -Math.cos(a) * 5.4;
+    put(W, GEO.cyl(6), 0x5c5c6a, x, 1.1, z, { sx: 0.08, sy: 2.2, sz: 0.08 });
+    put(W, GEO.box(), 0xffd27a, x, 2.3, z, { sx: 0.32, sy: 0.38, sz: 0.32, kind: 'glow' });
+    W.box(x - 0.15, 0, z - 0.15, x + 0.15, 2.4, z + 0.15);
+  }
+  const trees = { meadow: 'round', farm: 'round', frost: 'pine', frostwood: 'pine', reef: 'palm', cove: 'palm', starfall: 'crystal', moon: 'crystal', cliffs: 'bent', storm: 'bent' }[lay] || 'round';
+  scatterProps(W, Math.round(R * 0.6), (x, z) => isl(x, z) < -1.2 && isl(x, z) > -3.5 && Math.abs(x) > 2.6 && !W.crowded(x, z, 2) && !W.blocked(x, z, 0.9, 0, 3), (x, z) => tree(W, trees, x, z, 0.7 + rng() * 0.4, 0), 12);
+  scatterProps(W, Math.round(R * 0.4), (x, z) => isl(x, z) < -0.8 && Math.hypot(x, z) > 5.5 && Math.abs(x) > 2.2 && !W.crowded(x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4, 0));
+  W.clouds = floating ? 0 : 16; W.cloudR = 100; W.cloudY = 18;
+}
+
+export const LAYOUTS = { hub, classic, meadow, farm, frost, frostwood, reef, cove, starfall, moon, cliffs, storm };

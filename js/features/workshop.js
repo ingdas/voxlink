@@ -384,7 +384,7 @@ export function init(ctx) {
       }
       list.splice(list.indexOf(entry), 1);
       thumbCache.delete(entry.id);
-      if (save.session?.id === entry.id) delete save.session;
+      delete save.sessions?.[entry.id];
       persist();
       audio.drop();
       renderGallery();
@@ -450,7 +450,7 @@ export function init(ctx) {
   function playEntry(entry) {
     flushEditor();
     forgetLevel(entry.id);
-    if (save.session?.id === entry.id) delete save.session;
+    delete save.sessions?.[entry.id];
     ctx.startLevel(levelFor(entry));
   }
 
@@ -459,7 +459,7 @@ export function init(ctx) {
     const prev = entry?.best || 0;
     const isBest = !prev || stats.time < prev;
     if (entry && isBest) { entry.best = stats.time; }
-    if (save.session?.id === level.id) delete save.session;
+    delete save.sessions?.[level.id];
     persist();
     const par = ctx.parTime(level);
     const gifted = entry ? entry.gift : true;

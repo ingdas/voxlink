@@ -60,6 +60,9 @@ if ((save.campaign ?? 1) < 2) {
   save.campaign = 2;
 }
 delete save.daily; delete save.dailyStreak; // the daily figure was removed
+// half-built figures: one saved run per figure (you can walk away from one and come back)
+save.sessions = save.sessions || {};
+if (save.session) { save.sessions[save.session.id] = save.session; delete save.session; }
 function safeParse(s) { try { return JSON.parse(s) || {}; } catch { return {}; } }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { /* private mode */ } }
 const starsOf = id => { const s = save.stars[id]; return s ? (s.done ? 1 : 0) + (s.fast ? 1 : 0) + (s.clean ? 1 : 0) : 0; };
@@ -73,7 +76,7 @@ const hex = c => `#${c.toString(16).padStart(6, '0')}`;
 ['logo-loading', 'logo-title', 'logo-ending'].forEach(id => buildLogo($(id)));
 
 // ---------- screens: one base screen + a stack of overlays ----------
-const OVERLAYS = new Set(['screen-brief', 'screen-settings', 'screen-talk']);
+const OVERLAYS = new Set(['screen-settings', 'screen-talk']);
 let base = 'screen-loading';
 const overlays = [];
 function render() {
@@ -152,12 +155,14 @@ const game = new Game({
     pause: () => pause(),
     magnet: (n, gained) => renderMagnet(n, gained),
     express: (n, gained) => renderTool('btn-express', 'express-n', n, gained),
-    waystones: level => waystonesFor(level),
-    waystone: d => openWaystone(d),
+    isOpen: l => l.index < save.unlocked,
+    isDone: l => isDone(l.id),
+    island: l => walkOnto(l),
+    portal: () => openPortal(),
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); },
     tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
-    saveSession: data => { if (!game.level.kind) { save.session = data; persist(); } },
+    saveSession: data => { if (!game.level.kind) { save.sessions[game.level.id] = data; persist(); } },
     tick: g => { tickHud(g); ctx.hooks.tick.forEach(f => f(g)); },
     link: (g, i) => ctx.hooks.link.forEach(f => f(g, i)),
   },
@@ -319,7 +324,6 @@ function tickHud(g) {
 
 // ---------- flow ----------
 function nextLevelIndex() {
-  if (save.session) { const k = LEVELS.findIndex(l => l.id === save.session.id); if (k >= 0) return k; }
   const i = LEVELS.findIndex((l, k) => k < save.unlocked && !isDone(l.id));
   return i < 0 ? Math.min(save.unlocked, LEVELS.length) - 1 : i;
 }
@@ -334,7 +338,7 @@ function showcase(idx) {
 function enterTitle() {
   audio.suspend(false);
   app = 'title';
-  briefFromIsland = false;
+  mapFromIsland = false;
   document.body.classList.remove('roaming');
   input.enabled = false;
   input.exitLock();
@@ -342,7 +346,7 @@ function enterTitle() {
   $('hud').classList.add('off');
   const idx = nextLevelIndex();
   if (game.levelIndex !== idx || game.mode !== 'showcase') showcase(idx);
-  $('play-label').textContent = t(save.session ? 'title.resume' : save.seen.prologue ? 'title.continue' : 'title.play');
+  $('play-label').textContent = t(save.seen.prologue ? 'title.continue' : 'title.play');
   setBase('screen-title');
 }
 
@@ -401,22 +405,32 @@ function talk(lines, done) {
 }
 
 const levelOf = x => (typeof x === 'object' ? x : LEVELS[x]);
-// index: campaign index or level object (custom figures). resume: true to continue a saved session
-function startLevel(index, resume = false) {
+// index: campaign index or level object (custom figures). resume: true to continue the figure's saved run.
+// arrive: 'island' (on the figure's island), 'hub' (by portal), 'keep' (walked onto its island: no camera move)
+function startLevel(index, resume = false, arrive = 'island') {
   audio.unlock();
   audio.suspend(false);
   const lvl = levelOf(index);
-  briefFromIsland = false;
+  mapFromIsland = false;
   document.body.classList.remove('roaming');
-  const session = resume === true ? (save.session?.id === lvl.id ? save.session : null) : resume || null;
-  if (!session && !lvl.kind) { delete save.session; persist(); }
+  const session = resume === true ? save.sessions[lvl.id] ?? null : resume || null;
+  if (!session && !lvl.kind) { delete save.sessions[lvl.id]; persist(); }
+  if (arrive === 'keep') {
+    game.load(lvl, session, { arrive });
+    lastNeeds = '';
+    renderNeeds();
+    renderFocus(null);
+    game.tutorial = null;
+    game.mode = 'play';
+    return;
+  }
   // the title showcase and the prologue already have this figure's island loaded and its blocks scattered
-  const keepCam = (app === 'title' || (app === 'cinema' && ctx.cinema?.ready === lvl)) && game.level === lvl && !session;
+  const keepCam = arrive === 'island' && (app === 'title' || (app === 'cinema' && ctx.cinema?.ready === lvl)) && game.level === lvl && !session;
   $('kubo-bark').classList.remove('show');
   if (!keepCam) {
-    game.load(lvl, session);
-    game.orbitAngle = 0.5;
-    game.updateOrbit(0, 0, 1);
+    const fromCam = game.world ? null : 1;
+    game.load(lvl, session, { arrive });
+    if (fromCam) { game.orbitAngle = 0.5; game.updateOrbit(0, 0, 1); }
   }
   input.reset();
   lastNeeds = '';
@@ -490,7 +504,7 @@ function onComplete(stats) {
   // the map animates Kubo to a newly opened world
   const newCh = LEVELS[save.unlocked - 1].chapter;
   pendingUnlock = save.unlocked > oldUnlocked && newCh !== lvl.chapter ? { from: lvl.chapter, to: newCh } : null;
-  delete save.session;
+  delete save.sessions[lvl.id];
   persist();
   const finale = idx === LEVELS.length - 1 && firstClear;
   setTimeout(() => showComplete({
@@ -539,7 +553,7 @@ function showComplete(o) {
 
 // ---------- world map ----------
 // A world select: one island per world, showing the figure you're on there. Inside a world you walk between
-// its figures on the islands themselves (waystones).
+// its figures across the bridges of its archipelago.
 let thumbs = [];
 const BAND_H = 360, TOP_PAD = 86, BOT_PAD = 70;
 const mapPos = []; // per chapter
@@ -594,7 +608,7 @@ function buildMap() {
   inner.querySelectorAll('.node').forEach(b => b.addEventListener('click', () => {
     const c = +b.dataset.c;
     if (!chapterUnlocked(c)) { audio.wrong(); b.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 250 }); return; }
-    selectLevel(firstOpenIn(c));
+    enterWorld(c);
   }));
   $('map-stars').textContent = `${totalStars()} / ${LEVELS.length * 3}`;
 }
@@ -602,7 +616,7 @@ function buildMap() {
 function openMap() {
   audio.suspend(false);
   app = 'menu';
-  briefFromIsland = false;
+  mapFromIsland = false;
   document.body.classList.remove('roaming');
   input.enabled = false;
   input.exitLock();
@@ -625,106 +639,59 @@ function openMap() {
       audio.tone({ f: 600, f2: 900, type: 'triangle', dur: 0.25, vol: 0.12 });
     }, 500);
     setTimeout(() => { audio.star(1); }, 1250);
-    setTimeout(() => { if (base === 'screen-map' && !overlays.length) selectLevel(firstOpenIn(to)); }, 2300);
+    setTimeout(() => { if (base === 'screen-map' && !overlays.length) enterWorld(to); }, 2300);
   }
-}
-
-function selectLevel(i) {
-  const l = LEVELS[i];
-  const ch = CHAPTERS[l.chapter];
-  if (l.chapter === 0 && !save.seen.prologue) return playPrologue(); // new players reaching the map first
-  if (!save.seen[ch.id]) {
-    save.seen[ch.id] = true;
-    if (l.chapter === 0) save.seen.prologue = true;
-    persist();
-    return talk(ch.intro, () => selectLevel(i));
-  }
-  openBrief(i);
-}
-
-let briefIdx = 0;
-function openBrief(i) {
-  briefIdx = i;
-  const l = LEVELS[i], ch = CHAPTERS[l.chapter];
-  const solved = isDone(l.id);
-  const s = save.stars[l.id] || {};
-  $('brief-chapter').textContent = l.boss ? t('brief.boss') : `${ch.name} · ${l.indexInChapter + 1}`;
-  $('brief-chapter').classList.toggle('boss', !!l.boss);
-  $('brief-img').src = thumbs[i] || '';
-  $('brief-thumb').classList.toggle('mystery', !solved);
-  $('brief-name').textContent = solved ? l.name : t('hud.mystery');
-  $('brief-tag').textContent = solved ? l.tag : t('brief.hint', { tag: l.tag });
-  const n = expandLevel(l).cells.length;
-  const best = save.best[l.id];
-  $('brief-stars').innerHTML = `
-    <div class="goal ${s.done ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.done')}<em>${t('brief.blocks', { n })}</em></div>
-    <div class="goal ${s.fast ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.fast', { t: fmt(parTime(l)) })}<em>${best ? t('brief.best', { t: fmt(best) }) : ''}</em></div>
-    <div class="goal ${s.clean ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.clean')}</div>
-    ${partsFor(n) > 1 ? `<div class="goal info"><svg><use href="#i-map"/></svg>${t('brief.parts', { n: partsFor(n) })}</div>` : ''}`;
-  // leaving a figure half built (from a waystone) loses its progress
-  const leaving = briefFromIsland && !game.roaming && game.level && game.level !== l && game.linkOrder?.length > 0;
-  $('brief-say').innerHTML = leaving ? `${l.intro}<br><em class="brief-leave">${t('brief.leave')}</em>` : l.intro;
-  const ses = save.session?.id === l.id ? save.session : null;
-  $('btn-brief-go').innerHTML = ses
-    ? `<svg><use href="#i-play"/></svg>${t('brief.resume', { k: ses.done, n: ses.n })}`
-    : `<svg><use href="#i-play"/></svg>${t('brief.start')}`;
-  $('btn-brief-fresh').classList.toggle('hidden', !ses);
-  pushOverlay('screen-brief');
 }
 
 // ---------- walking between figures ----------
-// Each island shows the world's other figures on waystones (and a gate to the next world): walk up to one to open it.
+// Each world is an archipelago: a hub island with the portal, and a bridge to every figure's island.
 const firstOpenIn = c => {
   const ls = CHAPTERS[c].levels.filter(l => l.index < save.unlocked);
   return (ls.find(l => !isDone(l.id)) || ls[0] || CHAPTERS[c].levels[0]).index;
 };
-function waystonesFor(level) {
-  if (level.kind || level.chapter === undefined) return [];
-  const ch = CHAPTERS[level.chapter];
-  const list = ch.levels.filter(l => l !== level).map(l => ({
-    kind: 'figure', id: l.id, index: l.index, num: l.index + 1, slot: l.indexInChapter - level.indexInChapter,
-    cells: expandLevel(l).cells, state: isDone(l.id) ? 'done' : l.index < save.unlocked ? 'open' : 'locked',
-  }));
-  const next = CHAPTERS[level.chapter + 1];
-  if (next) list.push({ kind: 'gate', id: `gate-${next.id}`, chapter: level.chapter + 1, label: next.name, state: next.levels[0].index < save.unlocked ? 'open' : 'locked' });
-  return list;
+// arriving in a world by portal: on the hub, with the figure you're up to ready on its island
+function enterWorld(c) {
+  const ch = CHAPTERS[c];
+  if (c === 0 && !save.seen.prologue) return playPrologue();
+  if (!save.seen[ch.id]) { save.seen[ch.id] = true; persist(); return talk(ch.intro, () => enterWorld(c)); }
+  startLevel(firstOpenIn(c), true, 'hub');
 }
-let briefFromIsland = false;
-function openWaystone(d) {
+// walked onto another figure's island: its puzzle takes over (the figure you left keeps its progress)
+function walkOnto(l) {
+  if (app !== 'playing') return;
+  startLevel(l.index, true, 'keep');
+  if (!save.seen[`fig.${l.id}`]) { save.seen[`fig.${l.id}`] = true; persist(); kuboSays(l.intro); }
+}
+// the portal on the hub opens the world select; leaving it brings you back to the island
+let mapFromIsland = false;
+function openPortal() {
   if (app !== 'playing' || overlays.length) return;
-  if (d.state === 'locked') { audio.wrong(); toast(t(d.kind === 'gate' ? 'way.gateLocked' : 'way.locked')); return; }
-  audio.click();
-  briefFromIsland = true;
-  app = 'menu';
-  input.enabled = false;
-  input.reset();
-  input.exitLock();
-  selectLevel(d.kind === 'gate' ? firstOpenIn(d.chapter) : d.index);
+  openMap();
+  mapFromIsland = true;
 }
-// the brief (or a chapter talk) opened from the island was closed without starting: walk on
-// (lock: re-capture the mouse; not after Esc, which browsers refuse right after leaving pointer lock)
-function backToIsland(lock = true) {
-  if (!briefFromIsland || overlays.length) return;
-  briefFromIsland = false;
+function backToIsland() {
+  mapFromIsland = false;
+  setBase(null);
+  $('hud').classList.remove('off');
   app = 'playing';
   input.enabled = true;
   document.body.classList.add('playing');
-  if (lock && !mobile) input.requestLock();
+  if (!mobile) input.requestLock();
 }
-// after the results panel: back onto the island, the next waystone lit
+// after the results panel: back onto the island, the way to the next figure lit
 function walkOn() {
   setBase(null);
   document.body.classList.remove('celebrating');
   document.body.classList.add('roaming');
   $('hud').classList.remove('off');
   app = 'intro';
-  game.walkOn(waystonesFor(game.level));
+  game.walkOn();
   if (!mobile) input.requestLock();
   const lvl = game.level, nextCh = CHAPTERS[lvl.chapter + 1];
   const openFig = CHAPTERS[lvl.chapter].levels.some(l => l !== lvl && !isDone(l.id) && l.index < save.unlocked);
   setTimeout(() => {
     if (openFig) kuboSays(t('way.next'));
-    else if (nextCh && nextCh.levels[0].index < save.unlocked) kuboSays(t('way.nextWorld', { world: `<b>${nextCh.name}</b>` }));
+    else if (nextCh && chapterUnlocked(lvl.chapter + 1)) kuboSays(t('way.nextWorld', { world: `<b>${nextCh.name}</b>` }));
   }, 1700);
 }
 
@@ -829,7 +796,7 @@ function bindSettings() {
   $('set-reset').onclick = () => {
     if (!armed) { armed = true; $('set-reset').textContent = t('settings.sure'); setTimeout(() => { armed = false; $('set-reset').textContent = t('settings.resetBtn'); }, 2500); return; }
     Object.assign(save, { unlocked: 1, best: {}, stars: {}, seen: {} });
-    delete save.session; delete save.splits; // a saved run could resume a now-locked figure
+    save.sessions = {}; delete save.splits; // a saved run could resume a now-locked figure
     persist();
     $('set-reset').textContent = t('settings.done');
     if (app === 'paused') return;
@@ -852,10 +819,10 @@ document.addEventListener('pointerdown', e => {
 $('btn-play').onclick = () => {
   audio.unlock();
   if (!save.seen.prologue) { playPrologue(); return; }
-  selectLevel(nextLevelIndex());
+  enterWorld(LEVELS[nextLevelIndex()].chapter);
 };
 $('btn-map').onclick = () => openMap();
-$('btn-map-back').onclick = () => enterTitle();
+$('btn-map-back').onclick = () => (mapFromIsland ? backToIsland() : enterTitle());
 $('btn-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-p-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-resume').onclick = () => resume();
@@ -873,9 +840,6 @@ function renderTool(btn, count, n, gained) {
   if (gained) b.animate([{ transform: 'scale(1.4) rotate(-10deg)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' });
 }
 const renderMagnet = (n, gained) => renderTool('btn-magnet', 'magnet-n', n, gained);
-$('btn-brief-back').onclick = () => { popOverlay('screen-brief'); backToIsland(); };
-$('btn-brief-go').onclick = () => startLevel(briefIdx, true);
-$('btn-brief-fresh').onclick = () => startLevel(briefIdx, false);
 $('btn-c-map').onclick = () => (completeActions.onMap || openMap)();
 $('btn-c-retry').onclick = () => (completeActions.onRetry || (() => startLevel(game.level)))();
 $('btn-next').onclick = () => (completeActions.onNext || openMap)();
@@ -892,13 +856,12 @@ document.addEventListener('dblclick', e => e.preventDefault());
 addEventListener('keydown', e => {
   if (overlays.includes('screen-talk')) return;
   if (e.code === 'Escape') {
-    if (overlays.length) { popOverlay(); backToIsland(false); return; }
-    if (base === 'screen-map') { enterTitle(); return; }
+    if (overlays.length) { popOverlay(); return; }
+    if (base === 'screen-map') { (mapFromIsland ? backToIsland : enterTitle)(); return; }
     if (app === 'paused' && !mobile) return; // browsers swallow this Esc for pointer lock anyway
   }
   if (e.code === 'Enter' || e.code === 'Space') {
-    if (overlays.at(-1) === 'screen-brief') { e.preventDefault(); $('btn-brief-go').click(); }
-    else if (!overlays.length && base === 'screen-title') { e.preventDefault(); $('btn-play').click(); }
+    if (!overlays.length && base === 'screen-title') { e.preventDefault(); $('btn-play').click(); }
     else if (!overlays.length && base === 'screen-complete') { e.preventDefault(); $('btn-next').click(); }
   }
 });

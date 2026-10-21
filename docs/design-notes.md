@@ -143,3 +143,25 @@ A generic level select broke the feeling of being on the islands, so you now wal
 - **Map → world select.** One island per world (the figure you're on there, five progress pips); the
   title's Play goes straight to your next figure's briefing.
 - Waystones are placed with the same free-ground test as loose blocks, which then keep clear of them.
+
+## 2026-10-21 · Archipelagos instead of waystones
+
+The waystones (every figure island showing the world's other figures in miniature) gave too much away and
+still felt like a menu. Each world is now one walkable archipelago (`js/archipelago.js`):
+
+- A small **hub island** with the world's portal on its south side; a causeway runs north to a boardwalk, and
+  a spur leads from it into the south side of each **figure island**, which sit in a row. The spur lands
+  where every island layout already keeps a clear path to the pedestal, so no island needed rotating.
+- **Only one figure island is active.** The whole archipelago is shifted so the active island sits at the
+  origin (what all the game's figure logic expects); walking onto another island just moves that shift and
+  loads its puzzle (1–12 ms), so the walk is continuous. Islands are built once per world (40–150 ms) as
+  "parts" without their own sky, sea or lights; the hub provides those, and the sun's shadow follows you.
+- **Blocks stay on their island**: while you carry any, the active island's shore holds you back, bridge
+  included ("drop them before you cross"). Dropped blocks always land on the active island.
+- **Every figure keeps its own saved run** (`save.sessions`), so you can leave a half-built figure.
+- **Locked islands** have a gate on their spur. **Teleporting** only happens between worlds, by the portal
+  (it opens the world select; Back returns you to the island).
+- The briefing screen is gone; a figure's intro line is Kubo's bark the first time you step onto its
+  island. The Puzzler toggle moved to Settings.
+
+Open question: rows are long in worlds with wide islands (Frost: 250 m end to end).

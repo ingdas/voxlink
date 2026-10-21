@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LEVELS, CHAPTERS, expandLevel, partsFor } from './levels.js';
 import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
+import { buildArchipelago } from './archipelago.js';
 import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, shuffle, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS, mergeFigure } from './voxels.js';
 import { Player } from './player.js';
 import { LAYER_OVERLAY, toon } from './render.js';
@@ -19,14 +20,20 @@ export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = 
 const ease = t => 1 - Math.pow(1 - t, 3);
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
 
-// dispose a mesh's material(s), leaving shared ones (the figure material, cached badge textures) alone
-const disposeMats = m => {
-  for (const mm of Array.isArray(m) ? m : m ? [m] : []) {
-    if (mm.userData.keep) continue;
-    if (mm.map && !mm.map.userData.cached) mm.map.dispose();
-    mm.dispose();
-  }
-};
+// a figure's island: keep scenery and loose blocks clear of the space the finished figure will occupy; size it
+// compactly (walking dominates play time, see docs/design-notes.md)
+function islandOf(level) {
+  const { cells } = expandLevel(level);
+  const footR = Math.max(3.2, ...cells.map(c => Math.hypot(c.x, c.z) * S + S));
+  return { footR, R: Math.max(12 + Math.sqrt(cells.length) * 0.95, footR + 12) };
+}
+function buildIsland(level, themeId, quality, part) {
+  const { footR, R } = islandOf(level);
+  return buildWorld({
+    rng: mulberry32(1000 + hashId(level.id) * 7919), radius: R, seed: (hashId(level.id) % 97) + 1, quality, clearR: footR, part,
+    theme: themeId, difficulty: Math.min(1, (level.chapter ?? 2) * 0.16 + (level.chapterProgress ?? 0.33) * 0.24),
+  });
+}
 const badgeCache = new Map();
 function badgeTexture(num, style) {
   const k = `${num}:${style}`;
@@ -145,9 +152,13 @@ export class Game {
   // ---------- level lifecycle ----------
   // resume: { seed, placed: [cell indices in link order], elapsed, hints }
   // level: campaign index, or a level object ({ id, name, voxels|figure, theme, kind, ... })
-  load(index, resume = null) {
-    this.unload();
+  // arrive: 'island' (start on the figure's island), 'hub' (by portal, on the middle island) or 'keep' (walked over:
+  // the player stays where they are while the scene shifts to the new island)
+  load(index, resume = null, { arrive = 'island' } = {}) {
     const level = typeof index === 'object' ? index : LEVELS[index];
+    const campaign = LEVELS.includes(level);
+    this.unloadPuzzle();
+    if (!campaign || this.arch?.chapter !== level.chapter) this.unloadWorld();
     const chapter = CHAPTERS[level.chapter ?? 0];
     const themeId = level.theme || chapter.theme;
     this.levelIndex = level.index ?? -1;
@@ -156,22 +167,37 @@ export class Game {
     this.cells = cells;
     this.runSeed = resume?.seed ?? ((Math.random() * 1e9) | 0);
     const rng = mulberry32(this.runSeed);
-    const layoutRng = mulberry32(1000 + hashId(level.id) * 7919);
     this.puzzle = generatePuzzle(cells, rng);
     // optional Puzzler mode (decided per load by a feature module; classic when unset)
     this.puzzler = !!this.puzzlerFor?.(level, resume);
     this.exprs = null;
     this.chunks = new Map(); // puzzler: id -> { id, members:Set, anchor, restPos, restQuat }
     this.nextChunk = 1;
-    // keep scenery and loose blocks clear of the space the finished figure will occupy
-    this.footR = Math.max(3.2, ...cells.map(c => Math.hypot(c.x, c.z) * S + S));
-    // island size: walking dominates play time (see docs/design-notes.md), so keep it as compact as is comfortable
-    const R = Math.max(12 + Math.sqrt(cells.length) * 0.95, this.footR + 12);
-    this.world = buildWorld({
-      rng: layoutRng, radius: R, seed: (hashId(level.id) % 97) + 1, quality: this.renderer.mobile ? 'low' : 'high', clearR: this.footR,
-      theme: themeId, difficulty: Math.min(1, (level.chapter ?? 2) * 0.16 + (level.chapterProgress ?? 0.33) * 0.24),
-    });
-    this.scene.add(this.world.group);
+    const isl = islandOf(level);
+    this.footR = isl.footR;
+    const R = isl.R;
+    let shift = null;
+    if (campaign) {
+      // the world's whole archipelago (built once per world), with this figure's island active
+      if (!this.arch) {
+        const quality = this.renderer.mobile ? 'low' : 'high';
+        this.figureMat = voxelMaterial(this.renderer.gl);
+        this.arch = buildArchipelago({
+          chapter: level.chapter, levels: chapter.levels, figureMaterial: this.figureMat,
+          makePart: l => ({ world: buildIsland(l, themeId, quality, true) }),
+          makeHub: seaY => buildWorld({ rng: mulberry32(4242 + level.chapter * 31), radius: 11, seed: 7 + level.chapter, quality, theme: themeId, layout: 'hub', seaY, pedestal: false }),
+          isOpen: l => this.events.isOpen?.(l) ?? true, isDone: l => !!this.events.isDone?.(l),
+        });
+        this.scene.add(this.arch.group);
+        this.world = this.arch.api;
+        this.world.restrict = () => this.pack.length > 0 && this.mode === 'play';
+        this.world.onBlocked = () => { if (this.t - (this.carryToldT ?? -9) > 3) { this.carryToldT = this.t; this.events.toast?.(t('way.carry')); } };
+      }
+      shift = this.arch.setActive(level);
+    } else {
+      this.world = buildIsland(level, themeId, this.renderer.mobile ? 'low' : 'high', false);
+      this.scene.add(this.world.group);
+    }
     this.world.onFlash = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.thunder(); };
     this.world.onGust = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.whoosh(); };
     this.audio.setWorld?.(themeId);
@@ -213,7 +239,6 @@ export class Game {
     this.computeStages();
     this.stage = 0;
     this.roaming = false;
-    this.buildWaystones(this.events.waystones?.(level) || []);
     this.scatter(rng, Math.min(0.5, 0.18 + (level.chapter ?? 2) * 0.04), !!resume?.id && !resume.v);
     if (this.levelIndex === 0) {
       // tutorial: put the first block right in front of the player
@@ -232,7 +257,10 @@ export class Game {
     }
     this.refreshColliders();
 
-    this.player.spawn(0, Math.min(R - 3, 9), 0);
+    if (arrive === 'keep' && shift && this.player.pos) { this.player.pos.add(shift); this.player.lastSafe.add(shift); }
+    else if (arrive === 'hub' && this.arch) { const a = this.arch.arrival(); this.player.spawn(a.x, a.z, a.yaw); }
+    else this.player.spawn(0, Math.min(R - 3, 9), 0);
+    this.switching = false; this.inPortal = this.arch ? this.arch.atPortal(this.player.pos.x, this.player.pos.z) : false;
     this.linkOrder = [];
     if (resume) {
       for (const i of resume.placed) if (this.voxels[i] && this.voxels[i].state !== 'placed' && this.voxels[this.puzzle.parent[i]]?.state === 'placed') this.place(i, true);
@@ -622,23 +650,31 @@ export class Game {
     return best;
   }
 
-  unload() {
+  unload() { this.unloadPuzzle(); this.unloadWorld(); }
+  unloadWorld() {
     if (!this.world) return;
     this.scene.remove(this.world.group);
     this.world.dispose();
+    this.figureMat?.dispose();
+    this.figureMat = null;
+    this.arch = null;
+    this.world = null;
+  }
+  // the figure's puzzle: its blocks, bubbles and part flags (the island stays)
+  unloadPuzzle() {
+    if (!this.voxels?.length) return;
     for (const v of this.voxels) { this.scene.remove(v.mesh); v.mesh.geometry.dispose(); v.mat.dispose(); }
     for (const s of [...this.sockets.values()]) this.removeSocket(s);
     this.mat.dispose();
     this.fx.clearBeam();
     this.liftFx?.dispose();
     this.liftFx = null;
-    this.clearWaystones();
     if (this.flagGroup) {
       this.scene.remove(this.flagGroup);
       this.flagGroup.traverse(o => { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose(); } });
       this.flagGroup = null;
     }
-    this.world = null;
+    this.voxels = [];
   }
 
   scatter(rng, topShare, legacyShuffle) {
@@ -673,7 +709,7 @@ export class Game {
           const r0 = Math.max(4, this.footR + 1.2);
           const r = r0 + Math.sqrt(rng()) * (w.R - 1 - r0);
           const x = Math.cos(th) * r, z = Math.sin(th) * r;
-          if (w.isFreeGround(x, z, tries < 300 ? 0.5 : 0) && !this.nearWaystone(x, z)) {
+          if (w.isFreeGround(x, z, tries < 300 ? 0.5 : 0)) {
             const y = w.groundY ? w.groundY(x, z) : 0;
             if (tries >= 340 || ok(x, z, y)) pos = new THREE.Vector3(x, y, z);
           }
@@ -1034,7 +1070,7 @@ export class Game {
 
     this.camera.updateMatrixWorld();
     this.updateVoxels(dt);
-    if (this.waystones?.length) this.updateWaystones(dt);
+    this.updateIslands();
     this.updateSockets(dt);
     this.fx.update(dt, this.camera);
   }
@@ -1183,142 +1219,31 @@ export class Game {
     this.events.tick?.(this);
   }
 
-  // ---------- waystones ----------
-  // The world's other figures stand on little pedestals around the island (plus a gate to the next world).
-  // Walking up to one asks main.js to open it. list: [{ kind: 'figure'|'gate', id, slot, state: 'done'|'open'|'locked',
-  // cells (figure), num (figure), label (gate) }]; slot orders them round the island from where you start.
-  buildWaystones(list) {
-    this.clearWaystones();
-    const w = this.world;
-    this.wayGroup = new THREE.Group();
-    this.scene.add(this.wayGroup);
-    const ringR = THREE.MathUtils.clamp(w.R * 0.62, this.footR + 4.5, w.R - 3);
-    for (const d of list) {
-      // figures after this one go clockwise from the spawn, earlier ones the other way, the gate opposite the spawn
-      const want = d.kind === 'gate' ? -Math.PI / 2 : Math.PI / 2 - Math.sign(d.slot) * (0.45 + (Math.abs(d.slot) - 1) * 0.75);
-      let spot = null;
-      for (let k = 0; k < 40 && !spot; k++) {
-        const a = want + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.1;
-        for (const r of [ringR, ringR + 2, ringR - 2, ringR + 4, ringR - 4]) {
-          const x = Math.cos(a) * r, z = Math.sin(a) * r;
-          if (w.isFreeGround(x, z, 1.6) && !this.nearWaystone(x, z, 3.4) && !(Math.abs(x) < 3 && z > 2 && z < w.R)) { spot = { x, z }; break; }
-        }
-      }
-      if (!spot) continue;
-      const ws = { ...spot, y: w.groundY(spot.x, spot.z), data: d, reach: d.kind === 'gate' ? 1.2 : 1.45, group: null };
-      // pedestals are solid; you open one by walking up to it (the gate: by walking through it)
-      if (d.kind === 'figure') w.colliders.push(new THREE.Box3(new THREE.Vector3(ws.x - 0.75, ws.y, ws.z - 0.75), new THREE.Vector3(ws.x + 0.75, ws.y + 1, ws.z + 0.75)));
-      else for (const s of [-1, 1]) {
-        const a = Math.atan2(ws.z, ws.x) + Math.PI / 2, px = ws.x + Math.cos(a) * s * 1.25, pz = ws.z + Math.sin(a) * s * 1.25;
-        w.colliders.push(new THREE.Box3(new THREE.Vector3(px - 0.22, ws.y, pz - 0.22), new THREE.Vector3(px + 0.22, ws.y + 2.6, pz + 0.22)));
-      }
-      this.waystones.push(ws);
-      this.dressWaystone(ws);
-    }
-  }
-  nearWaystone(x, z, r = 2.2) { return (this.waystones || []).some(o => Math.hypot(o.x - x, o.z - z) < r); }
-  clearWaystones() {
-    if (this.wayGroup) {
-      this.scene.remove(this.wayGroup);
-      this.wayGroup.traverse(o => { o.geometry?.dispose(); disposeMats(o.material); });
-    }
-    this.wayGroup = null;
-    this.waystones = [];
-    this.wayInside = null;
-  }
-  // (re)build a waystone's look for its current state
-  dressWaystone(ws) {
-    if (ws.group) {
-      this.wayGroup.remove(ws.group);
-      ws.group.traverse(o => { o.geometry?.dispose(); disposeMats(o.material); });
-    }
-    const g = new THREE.Group(), T = this.world.theme, d = ws.data;
-    g.position.set(ws.x, ws.y, ws.z);
-    g.rotation.y = Math.atan2(-ws.x, -ws.z); // face the middle of the island
-    const mesh = (geo, color, x, y, z) => { const m = new THREE.Mesh(geo, toon(color)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
-    const sprite = (tex, y, s) => {
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true }));
-      sp.layers.set(LAYER_OVERLAY); sp.renderOrder = 5; sp.scale.setScalar(s); sp.position.y = y; g.add(sp); return sp;
-    };
-    ws.ring = null;
-    if (d.kind === 'figure') {
-      mesh(new THREE.CylinderGeometry(0.82, 0.92, 0.5, 8), T.pedestal[0], 0, 0.25, 0);
-      mesh(new THREE.CylinderGeometry(0.74, 0.78, 0.5, 8), d.state === 'done' ? T.pedestal[1] : 0xd8ccb6, 0, 0.75, 0);
-      const geo = mergeFigure(d.cells);
-      geo.computeBoundingBox();
-      const bb = geo.boundingBox, span = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z), hgt = bb.max.y - bb.min.y;
-      const k = Math.min(1.3 / span, 1.5 / hgt);
-      const mat = d.state === 'done' ? this.mat : toon(d.state === 'open' ? 0x4a3f63 : 0x8c829c);
-      if (mat === this.mat) mat.userData.keep = true;
-      const fig = new THREE.Mesh(geo, mat);
-      fig.scale.setScalar(k);
-      fig.position.y = 1.0;
-      fig.castShadow = true;
-      g.add(fig);
-      const top = 1.0 + hgt * k;
-      const badge = badgeTexture(d.state === 'open' ? '?' : d.num, d.state === 'locked' ? 'dim' : 'plain');
-      badge.userData.cached = true;
-      ws.badge = sprite(badge, top + 0.55, 0.62);
-      ws.top = top;
-    } else {
-      const wood = 0x8a5a3c, open = d.state === 'open';
-      for (const s of [-1, 1]) mesh(new THREE.BoxGeometry(0.36, 2.6, 0.36), wood, s * 1.25, 1.3, 0);
-      mesh(new THREE.BoxGeometry(3.1, 0.34, 0.5), wood, 0, 2.55, 0);
-      // a sign with the next world's name
-      const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
-      const c2 = cv.getContext('2d');
-      c2.fillStyle = open ? '#fff4e0' : '#cfc6b8'; c2.fillRect(0, 0, 512, 128);
-      c2.fillStyle = INK; c2.textAlign = 'center'; c2.textBaseline = 'middle';
-      let fs = 64; do { c2.font = `700 ${fs}px Fredoka, sans-serif`; fs -= 4; } while (fs > 24 && c2.measureText(d.label).width > 470);
-      c2.fillText(d.label, 256, 68);
-      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-      const board = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.65, 0.12), [toon(wood), toon(wood), toon(wood), toon(wood), toon(0xffffff, { map: tex }), toon(0xffffff, { map: tex })]);
-      board.position.set(0, 3.05, 0); board.castShadow = true;
-      g.add(board);
-      if (!open) { const b = badgeTexture('?', 'dim'); b.userData.cached = true; ws.badge = sprite(b, 1.4, 0.7); }
-    }
-    if (d.state === 'open') {
-      // a glowing ring on the ground: this is where to go next
-      const ring = new THREE.Mesh(new THREE.RingGeometry(d.kind === 'gate' ? 1.1 : 1.05, d.kind === 'gate' ? 1.5 : 1.4, 32),
-        new THREE.MeshBasicMaterial({ color: 0x9cf5c8, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
-      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; ring.layers.set(LAYER_OVERLAY);
-      g.add(ring);
-      ws.ring = ring;
-    }
-    this.wayGroup.add(g);
-    ws.group = g;
-  }
-  // after the world's progress changed (a figure was finished): re-read every waystone's state
-  refreshWaystones(list) {
-    for (const ws of this.waystones) {
-      const d = list.find(x => x.id === ws.data.id);
-      if (d && d.state !== ws.data.state) { ws.data = d; this.dressWaystone(ws); }
-    }
-  }
-  // where to walk next: the first open figure, else an open gate
+  // ---------- walking between islands ----------
+  // where to walk next after finishing a figure: the next open island's bridge, or the portal when the world is done
   wayTarget() {
-    const ws = this.waystones.find(o => o.data.kind === 'figure' && o.data.state === 'open') || this.waystones.find(o => o.data.kind === 'gate' && o.data.state === 'open');
-    return ws ? new THREE.Vector3(ws.x, ws.y + 1.2, ws.z) : null;
+    if (!this.arch) return null;
+    const next = this.arch.parts.find(p => p.open && !this.events.isDone?.(p.level) && p.level !== this.level);
+    return next ? this.arch.entryOf(next.level) : this.arch.portalPos();
   }
-  updateWaystones(dt) {
-    for (const ws of this.waystones) {
-      if (ws.ring) { const k = (this.t * 0.9) % 1; ws.ring.scale.setScalar(1 + k * 0.25); ws.ring.material.opacity = 0.75 * (1 - k); }
-      if (ws.badge && ws.top !== undefined) ws.badge.position.y = ws.top + 0.55 + Math.sin(this.t * 2 + ws.x) * 0.08;
-    }
-    if (this.mode !== 'play') return;
-    const p = this.player.pos;
-    let hit = null;
-    for (const ws of this.waystones) if (Math.hypot(p.x - ws.x, p.z - ws.z) < ws.reach && Math.abs(p.y - ws.y) < 1.2) hit = ws;
-    if (hit && hit !== this.wayInside) this.events.waystone?.(hit.data);
-    this.wayInside = hit;
+  updateIslands() {
+    if (!this.arch || this.mode !== 'play') return;
+    const { x, z } = this.player.pos;
+    const pt = this.arch.partAt(x, z);
+    if (pt && pt.level !== this.level && !this.switching) { this.switching = true; this.events.island?.(pt.level); }
+    const inPortal = this.arch.atPortal(x, z);
+    if (inPortal && !this.inPortal) this.events.portal?.();
+    this.inPortal = inPortal;
+    const gate = this.arch.lockedGateAt(x, z);
+    if (gate && gate !== this.gateTold) this.events.toast?.(t('way.locked'));
+    this.gateTold = gate;
   }
-  // back on the island after the results: the figure stands finished and you can walk on to the next waystone
-  walkOn(list) {
+  // back on the island after the results: the figure stands finished and you can walk on
+  walkOn() {
     this.roaming = true;
     this.fx.clearBeam();
     for (const v of this.voxels) { v.mesh.position.copy(v.target); v.mesh.rotation.set(0, 0, 0); v.mesh.scale.setScalar(1); }
-    if (list) this.refreshWaystones(list);
-    this.wayInside = this.waystones.find(o => Math.hypot(this.player.pos.x - o.x, this.player.pos.z - o.z) < o.reach) || null;
+    this.arch?.refresh();
     this.startIntro();
   }
 

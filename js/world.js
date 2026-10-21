@@ -117,7 +117,10 @@ export const THEMES = {
 };
 
 // plain: the classic round island (Kubo's Garden keeps its calm plaza)
-export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'meadow', difficulty = 0, clearR = 3.2, plain = false }) {
+// part: one island of a world's archipelago — no sky, sea plane, lights, clouds or particles (the hub island has those)
+// layout: override the theme's island generator; seaY: sea level to use; pedestal: build the figure's pedestal
+export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'meadow', difficulty = 0, clearR = 3.2, plain = false,
+  part = false, layout = null, seaY = null, pedestal = true }) {
   const T = THEMES[themeId];
   const group = new THREE.Group();
   const colliders = [];
@@ -130,7 +133,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
 
   const W = {
     T, themeId, rng, R, clearR, seed, difficulty, quality, group, B, colliders, blockers, tops, updaters, obstacles, spawnZ,
-    bound: R + 1, hasSea: true, seaY: -1.7, wind: null, pads: [], gravityScale: 1, voidY: undefined,
+    bound: R + 1, hasSea: true, seaY: seaY ?? -1.7, wind: null, pads: [], gravityScale: 1, voidY: undefined,
     walkSd: null, floorAt: () => 0, surfaceAt: null, coastSd: null,
     cstep: 0.5,
     // axis-aligned collider (optionally a resting surface for blocks)
@@ -185,7 +188,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     },
   };
 
-  const layoutId = plain ? 'classic' : T.layout || 'classic';
+  const layoutId = layout || (plain ? 'classic' : T.layout || 'classic');
   LAYOUTS[layoutId](W);
   const walkSd = W.walkSd;
   const coastSd = W.coastSd || walkSd;
@@ -193,16 +196,18 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const voidWorld = W.voidY !== undefined;
 
   // --- Sky ---
-  const { sky, uniforms: skyU, vortex } = buildSky(T, rng, group, updaters);
+  const { sky, uniforms: skyU, vortex } = part ? {} : buildSky(T, rng, group, updaters);
 
   // --- Water + foam ---
   let water = null;
   if (W.hasSea && T.water != null) {
-    water = new THREE.Mesh(new THREE.CircleGeometry(900, 64), toon(T.water));
-    water.rotation.x = -Math.PI / 2;
-    water.position.y = W.seaY;
-    water.receiveShadow = true;
-    group.add(water);
+    if (!part) {
+      water = new THREE.Mesh(new THREE.CircleGeometry(900, 64), toon(T.water));
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = W.seaY;
+      water.receiveShadow = true;
+      group.add(water);
+    }
     const Bn = W.bound + 4;
     const band = (x, z) => { const s = coastSd(x, z); return Math.max(s - 1.3, -0.2 - s); };
     const foamGeo = topGeometry(contours(band, -Bn, -Bn, Bn, Bn, 0.6), 0);
@@ -219,6 +224,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
 
   // --- Pedestal ---
   const [pc1, pc2, pc3] = T.pedestal;
+  if (pedestal) {
   B.put(GEO.box(), pc1, 0, 0.125, 0, { sx: 5.2, sy: 0.25, sz: 5.2 });
   B.put(GEO.box(), pc2, 0, 0.375, 0, { sx: 4.2, sy: 0.25, sz: 4.2 });
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
@@ -227,6 +233,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   }
   W.box(-2.6, 0, -2.6, 2.6, 0.25, 2.6, { sound: 'stone' });
   W.box(-2.1, 0, -2.1, 2.1, 0.5, 2.1, { sound: 'stone' });
+  }
 
   // --- Grass tufts & flowers (instanced, no outlines, sway in the wind) ---
   const swayU = { uTime: { value: 0 }, uWind: { value: new THREE.Vector2() }, uSway: { value: W.sway ?? 1 } };
@@ -301,7 +308,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   });
 
   // --- Clouds: one instanced mesh in a slowly turning ring ---
-  const nClouds = W.clouds ?? 14;
+  const nClouds = part ? 0 : W.clouds ?? 14;
   if (nClouds) {
     const cloudRing = new THREE.Group();
     const blobs = [];
@@ -329,17 +336,17 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   }
 
   // --- Ambient particles that follow the camera ---
-  const particles = T.particles ? addParticles(T, rng, group, updaters, W) : null;
+  const particles = T.particles && !part ? addParticles(T, rng, group, updaters, W) : null;
   W.extras?.forEach(f => f());
 
   B.build(group, blockers);
 
-  sky.castShadow = sky.receiveShadow = false;
-
-  // --- Lights ---
-  const hemi = new THREE.HemisphereLight(T.hemi[0], T.hemi[1], T.hemi[2]);
+  // --- Lights (the hub island lights the whole archipelago) ---
+  let hemi = null, sun = null;
+  if (!part) {
+  hemi = new THREE.HemisphereLight(T.hemi[0], T.hemi[1], T.hemi[2]);
   group.add(hemi);
-  const sun = new THREE.DirectionalLight(T.sun[0], T.sun[1]);
+  sun = new THREE.DirectionalLight(T.sun[0], T.sun[1]);
   const sp = new THREE.Vector3(...T.sunPos).normalize().multiplyScalar(32);
   sun.position.copy(sp);
   sun.target.position.set(0, 0, 0);
@@ -351,10 +358,11 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.03;
   group.add(sun, sun.target);
+  }
 
   // storm: lightning flashes light up the sky; the game plays thunder via api.onFlash
   let flashT = 4 + rng() * 6, flash = 0, unflash = null;
-  if (T.lightning) {
+  if (T.lightning && !part) {
     const baseHemi = hemi.intensity, baseTop = skyU.top.value.clone(), baseHor = skyU.horizon.value.clone();
     unflash = () => {
       flash = 0;
@@ -406,6 +414,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const tmpP = { x: 0, z: 0 };
   const api = {
     group, colliders, blockers, R: W.bound, tops, isFreeGround, heightAt, groundY, theme: T, themeId, onFlash: null, onGust: null,
+    seaY: W.seaY, hasSea: W.hasSea, portal: W.portal || null, part,
     // handles for cutscenes that restyle the weather (calm: true stops the storm's own lightning)
     atmos: { sky: skyU, hemi, sun, particles, vortex, unflash }, calm: false,
     radiusAt: W.radiusAt || (() => W.bound),
@@ -455,7 +464,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
         if (o.geometry && !o.isSprite && !o.geometry.userData.shared) o.geometry.dispose(); // sprites share one geometry
         if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mm => { if (mm.map && !mm.map.userData.shared) mm.map.dispose(); mm.dispose(); });
       });
-      sun.shadow.map?.dispose();
+      sun?.shadow.map?.dispose();
     },
   };
   return api;

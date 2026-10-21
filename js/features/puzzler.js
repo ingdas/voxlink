@@ -13,23 +13,19 @@ export function init(ctx) {
   document.querySelector('body > svg defs').insertAdjacentHTML('beforeend',
     '<symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M5 8h3.2a2.3 2.3 0 1 1 4.6 0H16v3.2a2.3 2.3 0 1 1 0 4.6V19H12.8a2.3 2.3 0 1 0-4.6 0H5v-3.2a2.3 2.3 0 1 0 0-4.6z"/></symbol>');
 
-  // briefing toggle row, styled like the goal rows
-  $('brief-stars').insertAdjacentHTML('afterend', `
-    <div class="goal pz-row" id="pz-row">
-      <svg><use href="#i-puzzle"/></svg>
-      <div class="pz-txt"><b>${t('puzzler.title')}</b><small>${t('puzzler.desc')}</small></div>
-      <button class="toggle" id="pz-toggle" aria-label="${t('puzzler.title')}"><i></i></button>
-    </div>`);
-  const row = $('pz-row'), tog = $('pz-toggle');
-  const syncToggle = () => { tog.classList.toggle('on', !!save.settings.puzzler); row.classList.toggle('on', !!save.settings.puzzler); };
+  // a toggle in Settings (applies from the next figure you start)
+  $('set-outline').closest('.setting').insertAdjacentHTML('afterend', `
+    <div class="setting" id="pz-setting"><span><span>${t('puzzler.title')}</span><small class="set-note">${t('puzzler.desc')}</small></span>
+      <button class="toggle" id="pz-toggle" aria-label="${t('puzzler.title')}"><i></i></button></div>`);
+  const tog = $('pz-toggle');
+  const syncToggle = () => tog.classList.toggle('on', !!save.settings.puzzler);
   syncToggle();
-  row.addEventListener('click', e => {
+  tog.addEventListener('click', e => {
     e.stopPropagation();
     save.settings.puzzler = !save.settings.puzzler;
     syncToggle();
     persist();
     tog.blur();
-    if (e.target.closest('.toggle') === null) ctx.audio.click();
   });
 
   // HUD badge in the progress pill
