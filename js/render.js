@@ -93,8 +93,10 @@ export class Renderer {
       type: !mobile && canHalf ? THREE.HalfFloatType : THREE.UnsignedByteType,
       samples: mobile ? 0 : Math.min(4, r.capabilities.maxSamples || 0),
     };
-    this.direct = false; // last-resort mode: no post-processing (no ink outlines)
-    this.verifyFrames = 2;
+    // last-resort mode: no post-processing (no ink outlines). WebGL1 devices always use it.
+    this.direct = !!window.__gfx?.legacy || r.capabilities.isWebGL2 === false;
+    if (this.direct) { this.tier = { type: THREE.UnsignedByteType, samples: 0 }; this.verifyFrames = 0; }
+    if (!this.direct) this.verifyFrames = 2;
     this.normalMat = new THREE.MeshNormalMaterial();
     this.makeTargets();
     this.quadScene = new THREE.Scene();

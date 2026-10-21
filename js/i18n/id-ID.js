@@ -471,4 +471,5 @@ export default {
   "error.generic": "Ups — ada yang salah.",
   "error.webgl": "Browsermu tidak bisa menjalankan grafis 3D.",
   "error.reload": "Muat ulang",
+  "error.webglTip": "Pastikan akselerasi perangkat keras / WebGL aktif, atau coba browser lain.",
 };

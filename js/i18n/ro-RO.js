@@ -471,4 +471,5 @@ export default {
   "error.generic": "Hopa — ceva n-a mers bine.",
   "error.webgl": "Browserul tău n-a putut porni grafica 3D.",
   "error.reload": "Reîncarcă",
+  "error.webglTip": "Verifică dacă accelerarea hardware / WebGL e pornită sau încearcă alt browser.",
 };

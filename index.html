@@ -18,7 +18,22 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/features.css">
 <link rel="stylesheet" href="css/fonts.css">
-<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+<script>
+  // three.js r186 needs WebGL2; devices without it get r162 (the last version with WebGL1 support).
+  (function () {
+    var gl2 = false, gl1 = false;
+    try { var c = document.createElement('canvas'), g = c.getContext('webgl2'); gl2 = !!g; if (g) { var x = g.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } } catch (e) {}
+    if (!gl2 || /[?&]gl1\b/.test(location.search)) {
+      try { var c1 = document.createElement('canvas'), g1 = c1.getContext('webgl') || c1.getContext('experimental-webgl'); gl1 = !!g1; if (g1) { var x1 = g1.getExtension('WEBGL_lose_context'); if (x1) x1.loseContext(); } } catch (e) {}
+    }
+    var legacy = !gl2 || /[?&]gl1\b/.test(location.search);
+    window.__gfx = { webgl2: gl2, webgl1: gl1, legacy: legacy };
+    var m = document.createElement('script');
+    m.type = 'importmap';
+    m.textContent = JSON.stringify({ imports: { three: legacy ? './lib/three-gl1.module.min.js' : './lib/three.module.min.js' } });
+    document.currentScript.after(m);
+  })();
+</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">

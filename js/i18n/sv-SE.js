@@ -471,4 +471,5 @@ export default {
   "error.generic": "Hoppsan – något gick fel.",
   "error.webgl": "Din webbläsare kunde inte starta 3D-grafiken.",
   "error.reload": "Ladda om",
+  "error.webglTip": "Kontrollera att hårdvaruacceleration / WebGL är påslaget, eller prova en annan webbläsare.",
 };

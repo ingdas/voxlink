@@ -471,4 +471,5 @@ export default {
   "error.generic": "Hoppá – valami elromlott.",
   "error.webgl": "A böngésződ nem tudta elindítani a 3D grafikát.",
   "error.reload": "Újratöltés",
+  "error.webglTip": "Ellenőrizd, hogy be van-e kapcsolva a hardveres gyorsítás / WebGL, vagy próbálj másik böngészőt.",
 };

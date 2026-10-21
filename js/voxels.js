@@ -4,7 +4,7 @@ import { toonGradient } from './render.js';
 export const S = 0.6; // voxel edge length in metres
 export const INK = '#2a1f3d';
 // 20x20 tiles: tile 0 is the blank face, tiles 1..399 are numbers (figures up to 400 blocks).
-const CELL = 102, GRID = 20;
+const CELL = 102.4, GRID = 20; // 20 x 102.4 = 2048: a power of two, so WebGL1 devices keep full resolution
 export const ATLAS_CELLS = GRID * GRID;
 export const FACE_CREAM = 0xfff1d6;
 export const FACE_BLANK = 0xe9dfcf;
@@ -24,7 +24,7 @@ let atlas = null;
 export function getAtlas(renderer) {
   if (atlas) return atlas;
   const cv = document.createElement('canvas');
-  cv.width = cv.height = CELL * GRID;
+  cv.width = cv.height = Math.round(CELL * GRID);
   const g = cv.getContext('2d');
   const k = CELL / 128; // artwork was designed on a 128px tile
   for (let i = 0; i < GRID * GRID; i++) {
@@ -65,7 +65,7 @@ export function getPuzzleAtlas(renderer, tiles) {
   const base = getAtlas(renderer);
   if (!puzzleAtlas) {
     const cv = document.createElement('canvas');
-    cv.width = cv.height = CELL * GRID;
+    cv.width = cv.height = Math.round(CELL * GRID);
     const tex = new THREE.CanvasTexture(cv);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = base.texture.anisotropy;

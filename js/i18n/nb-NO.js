@@ -471,4 +471,5 @@ export default {
   "error.generic": "Oi – noe gikk galt.",
   "error.webgl": "Nettleseren din klarte ikke å starte 3D-grafikken.",
   "error.reload": "Last inn på nytt",
+  "error.webglTip": "Sjekk at maskinvareakselerasjon / WebGL er slått på, eller prøv en annen nettleser.",
 };

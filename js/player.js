@@ -19,6 +19,7 @@ export class Player {
     this._box = new THREE.Box3();
     this.surface = null; // what the player stands on: { friction, slow, sound, splash } from world.surfaceAt
     this.launchT = 0; // flying off a jump pad: no air steering until landing
+    this.hoverT = 0; this.floating = false; // Keeper's updraft: hover time left after letting go of jump
     this.rescue = null; // gliding back to safety after falling into the void
     this.lastSafe = new THREE.Vector3();
     this._floor = null;
@@ -29,7 +30,10 @@ export class Player {
     this.vel.set(0, 0, 0);
     this.yaw = yaw; this.pitch = -0.12;
     this.onGround = true;
+    this.coyote = 0; this.jumpBuffer = 0;
     this.launchT = 0; this.rescue = null;
+    this.hoverT = 0; this.floating = false;
+    this.land = 0; this.bobAmt = 0; this.surface = null;
     this.lastSafe.copy(this.pos);
   }
 

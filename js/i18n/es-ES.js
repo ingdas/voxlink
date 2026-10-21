@@ -471,4 +471,5 @@ export default {
   "error.generic": "¡Ups! Algo ha salido mal.",
   "error.webgl": "Tu navegador no ha podido iniciar los gráficos 3D.",
   "error.reload": "Recargar",
+  "error.webglTip": "Comprueba que la aceleración por hardware / WebGL esté activada o prueba con otro navegador.",
 };

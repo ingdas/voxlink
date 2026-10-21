@@ -10,6 +10,7 @@ export default {
   "error.generic": "Oops — something went wrong.",
   "error.webgl": "Your browser could not start the 3D graphics.",
   "error.reload": "Reload",
+  "error.webglTip": "Check that hardware acceleration / WebGL is turned on, or try another browser.",
   "brief.parts": "{n} parts, each in its own flagged district",
   "talk.skip": "Skip",
   "talk.more": "Tap to continue",

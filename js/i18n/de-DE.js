@@ -471,4 +471,5 @@ export default {
   "error.generic": "Hoppla – da ist etwas schiefgegangen.",
   "error.webgl": "Dein Browser konnte die 3D-Grafik nicht starten.",
   "error.reload": "Neu laden",
+  "error.webglTip": "Prüfe, ob Hardwarebeschleunigung / WebGL aktiviert ist, oder probier einen anderen Browser.",
 };

@@ -471,4 +471,5 @@ export default {
   "error.generic": "おっと、うまくいかなかったよ。",
   "error.webgl": "ブラウザで3Dグラフィックを はじめられなかったよ。",
   "error.reload": "もう一度よみこむ",
+  "error.webglTip": "ハードウェアアクセラレーション / WebGL がオンか たしかめるか、ほかのブラウザでためしてね。",
 };

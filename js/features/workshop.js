@@ -64,7 +64,8 @@ function fromB64(s) {
   return bytes;
 }
 const checksum = bytes => bytes.reduce((h, b) => (h * 31 + b + 7) & 255, 113);
-const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 24);
+// (drop a high surrogate left dangling by the cut, so an emoji at the limit doesn't become U+FFFD)
+const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 24).replace(/[\uD800-\uDBFF]$/, '');
 
 export function encodeFigure({ voxels, name, theme }) {
   const bytes = [];
@@ -89,8 +90,10 @@ export function encodeFigure({ voxels, name, theme }) {
     i += len;
   }
   if (n) put(0, 8 - n);
-  const nm = [...new TextEncoder().encode(cleanName(name))].slice(0, 60);
-  bytes.push(nm.length, ...nm);
+  const nm = [...new TextEncoder().encode(cleanName(name))];
+  let nl = Math.min(60, nm.length);
+  while (nl > 0 && nl < nm.length && (nm[nl] & 0xc0) === 0x80) nl--; // cut on a character boundary
+  bytes.push(nl, ...nm.slice(0, nl));
   bytes.push(checksum(bytes));
   return toB64(bytes);
 }
@@ -100,8 +103,9 @@ export function decodeFigure(code) {
     code = String(code || '').trim();
     const m = code.match(/[?&#]fig=([A-Za-z0-9_-]+)/);
     if (m) code = m[1];
-    const bytes = fromB64(code);
-    if (bytes.length < 4 || checksum(bytes.slice(0, -1)) !== bytes[bytes.length - 1]) return null;
+    const all = fromB64(code);
+    if (all.length < 4 || checksum(all.slice(0, -1)) !== all[all.length - 1]) return null;
+    const bytes = all.slice(0, -1); // payload only: never read the checksum byte as data
     let pos = 0;
     const get = k => {
       let v = 0;
@@ -513,15 +517,15 @@ export function init(ctx) {
     };
     setTimeout(show, 300);
   }
-  const keepGift = () => {
+  const keepGift = fullKey => {
     const r = addEntry(gift);
-    if (r.full) { wsToast(t('workshop.gift.fullPlay')); return null; }
+    if (r.full) { wsToast(t(fullKey)); return null; }
     return r.entry;
   };
   $('ws-g-no').onclick = () => ctx.popOverlay('screen-ws-gift');
-  $('ws-g-save').onclick = () => { const e = keepGift(); if (e) { audio.star(1); openGallery(e.id); wsToast(t('workshop.gift.kept', { name: escapeHtml(e.name) })); } };
+  $('ws-g-save').onclick = () => { const e = keepGift('workshop.toast.fullImport'); if (e) { audio.star(1); openGallery(e.id); wsToast(t('workshop.gift.kept', { name: escapeHtml(e.name) })); } else audio.wrong(); };
   $('ws-g-play').onclick = () => {
-    const e = keepGift();
+    const e = keepGift('workshop.gift.fullPlay');
     if (e) { playEntry(e); return; }
     const lvl = levelFor({ ...gift, id: 'c-gift' });
     forgetLevel(lvl.id);
@@ -711,7 +715,7 @@ export function init(ctx) {
   camCtl.resize();
 
   // ================================================================ editor: state
-  let entry = null; // the figure being edited (entry.isNew until it holds a block)
+  let entry = null; // the figure being edited (only added to the list once it holds a block)
   let toolMode = 'add', color = 'r', mirror = false;
   let undoStack = [], redoStack = [];
   let comp = { main: new Set(), count: 0 };
@@ -742,7 +746,7 @@ export function init(ctx) {
     entry.name = cleanName($('ws-name').value) || entry.name;
     delete entry.gift;
     const idx = list.indexOf(entry);
-    if (!entry.voxels.length) { if (idx >= 0) list.splice(idx, 1); }
+    if (!entry.voxels.length) { if (idx >= 0) list.splice(idx, 1); thumbCache.delete(entry.id); }
     else if (idx < 0) list.unshift(entry);
     forgetLevel(entry.id);
     persist();
@@ -761,6 +765,7 @@ export function init(ctx) {
     meshes.clear(); popping.clear();
     sync(false);
     undoStack = []; redoStack = [];
+    disarmClear(); // an armed Clear must not carry over to the next figure
     $('ws-name').value = e.name;
     if (e.voxels.length) color = e.voxels[e.voxels.length - 1].c;
     setTool('add');
@@ -993,7 +998,7 @@ export function init(ctx) {
         if (drag?.mode === 'tap' && pts.size === 1 && focusAt(drag.sx, drag.sy)) { drag.mode = 'held'; navigator.vibrate?.(12); updateHover(); }
       }, 520);
     } else if (pts.size === 2) {
-      if (drag?.mode === 'orbit') camCtl.endOrbit();
+      if (drag?.mode === 'orbit') { camCtl.endOrbit(); camCtl.stop(); } // no flick spin from the first finger
       drag = { mode: 'pinch', ...pinchInfo(), twist: 0, twisting: false };
     } else drag = { mode: 'none' };
     updateHover();
@@ -1038,7 +1043,8 @@ export function init(ctx) {
     pts.delete(e.pointerId);
     clearTimeout(holdT);
     camCtl.poke();
-    if (drag?.mode === 'tap' && !cancel && !drag.noTap && pts.size === 0 && performance.now() - drag.at < 650) {
+    // (only while the editor is up: a press that outlives Esc / Back must not build on a closed figure)
+    if (drag?.mode === 'tap' && !cancel && !drag.noTap && pts.size === 0 && performance.now() - drag.at < 650 && ctx.app === 'editor') {
       if (drag.button === 1 || (e.altKey && !drag.touch)) focusAt(e.clientX, e.clientY);
       else if (drag.button === 0 || drag.touch) tapAt(e.clientX, e.clientY);
     }
@@ -1091,7 +1097,13 @@ export function init(ctx) {
     flash(t(mirror ? 'workshop.status.mirrorOn' : 'workshop.status.mirrorOff'), 'ok');
     updateHover();
   };
-  let clearArmed = 0;
+  let clearArmed = 0, clearT = 0;
+  const disarmClear = () => {
+    clearArmed = 0;
+    clearTimeout(clearT);
+    $('ws-clear').classList.remove('armed');
+    $('ws-clear').querySelector('span').textContent = t('workshop.tool.clear');
+  };
   $('ws-clear').onclick = () => {
     if (!vox.size) return;
     const b = $('ws-clear');
@@ -1100,12 +1112,11 @@ export function init(ctx) {
       b.classList.add('armed');
       b.querySelector('span').textContent = t('workshop.sure');
       flash(t('workshop.status.clearConfirm'));
-      setTimeout(() => { b.classList.remove('armed'); b.querySelector('span').textContent = t('workshop.tool.clear'); }, 2500);
+      clearTimeout(clearT);
+      clearT = setTimeout(disarmClear, 2500);
       return;
     }
-    clearArmed = 0;
-    b.classList.remove('armed');
-    b.querySelector('span').textContent = t('workshop.tool.clear');
+    disarmClear();
     const before = snap();
     vox.clear();
     commit(before);

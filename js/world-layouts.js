@@ -14,7 +14,7 @@ const Q = new THREE.Quaternion(), V = new THREE.Vector3(), M = new THREE.Matrix4
 function put(W, geo, color, x, y, z, o = {}) { W.B.put(geo, color, x, y, z, o); }
 function putQ(W, geo, color, pos, q, scale, kind = 'solid') { M.compose(pos, q, scale); W.B.add(geo, color, M, kind); }
 
-export function tree(W, kind, x, z, s, y = W.floorAt(x, z) ?? 0) {
+function tree(W, kind, x, z, s, y = W.floorAt(x, z) ?? 0) {
   const { T, rng } = W;
   const leaf = () => T.leaves[Math.floor(rng() * T.leaves.length)];
   if (kind === 'round' || kind === 'bent') {
@@ -71,7 +71,7 @@ export function tree(W, kind, x, z, s, y = W.floorAt(x, z) ?? 0) {
 let _frond = null;
 const frondGeo = () => _frond || (_frond = (() => { const g = new THREE.IcosahedronGeometry(1, 0); g.scale(1.4, 0.12, 0.42); g.translate(1.2, 0, 0); return g; })());
 
-export function rock(W, x, z, s, y = W.floorAt(x, z) ?? 0, shape = W.T.rockShape, collide = true) {
+function rock(W, x, z, s, y = W.floorAt(x, z) ?? 0, shape = W.T.rockShape, collide = true) {
   const { T, rng } = W;
   if (shape === 'ice') {
     for (let i = 0; i < 3; i++) {
@@ -262,7 +262,7 @@ function meadow(W) {
     const open = Math.abs(x) > Math.abs(z) ? (x > 0 ? 'w' : 'e') : (z > 0 ? 'n' : 's');
     const side = (ax, az, bx, bz, gapSide) => {
       // posts + two rails, with a 1.6 m opening in the middle of the open side
-      const L = Math.hypot(bx - ax, bz - az), n = Math.round(L / 1.1);
+      const L = Math.hypot(bx - ax, bz - az);
       const segs = gapSide ? [[0, 0.5 - 0.8 / L], [0.5 + 0.8 / L, 1]] : [[0, 1]];
       for (const [t0, t1] of segs) {
         const sx = ax + (bx - ax) * t0, sz = az + (bz - az) * t0, ex = ax + (bx - ax) * t1, ez = az + (bz - az) * t1;
@@ -274,7 +274,6 @@ function meadow(W) {
         for (const ry of [0.35, 0.65]) put(W, GEO.box(), 0xf8efdc, (sx + ex) / 2, y + ry, (sz + ez) / 2, { sx: along ? l : 0.07, sy: 0.08, sz: along ? 0.07 : l });
         W.box(Math.min(sx, ex) - 0.07, y, Math.min(sz, ez) - 0.07, Math.max(sx, ex) + 0.07, y + 0.8, Math.max(sz, ez) + 0.07, { sound: 'wood' });
       }
-      return n;
     };
     side(x - hx, z - hz, x + hx, z - hz, open === 'n');
     side(x - hx, z + hz, x + hx, z + hz, open === 's');
@@ -675,7 +674,6 @@ function starfall(W) {
     pad(bx, top, bz, { x: Math.cos(a) * (e - 6), y: 0, z: Math.sin(a) * (e - 6) });
   }
   W.bound = Math.max(Rm * 1.15, ...islets.map(s => Math.hypot(s.x, s.z) + s.r)) + 1;
-  W.islets = islets;
 
   // glowing pulse rings over each pad
   W.extras = [() => {
@@ -786,7 +784,7 @@ function storm(W) {
     put(W, GEO.box(), T.moss, x, ph + 0.42, z, { sx: alongX ? L - 0.4 : 0.8, sy: 0.06, sz: alongX ? 0.8 : L - 0.4 });
     W.box(x - (alongX ? L / 2 : 0.5), ph, z - (alongX ? 0.5 : L / 2), x + (alongX ? L / 2 : 0.5), ph + 0.42, z + (alongX ? 0.5 : L / 2), { top: true, sound: 'stone' });
     // the stump sits off one end of the lintel
-    const sx = x + ax * (L / 2 + 0.8) + az * 0, sz = z + az * (L / 2 + 0.8);
+    const sx = x + ax * (L / 2 + 0.8), sz = z + az * (L / 2 + 0.8);
     put(W, GEO.box(), T.stoneDark, sx, 0.55, sz, { sx: 1.1, sy: 1.1, sz: 1.1 });
     W.box(sx - 0.55, 0, sz - 0.55, sx + 0.55, 1.1, sz + 0.55, { top: true, sound: 'stone' });
     W.obstacles.push({ x, z, r: 0.6 }, { x: sx, z: sz, r: 0.8 });

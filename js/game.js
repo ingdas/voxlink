@@ -10,7 +10,7 @@ const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
 export const PACK_SIZE = 4;
 const _e = new THREE.Euler();
 const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
-export const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
+const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
@@ -512,15 +512,14 @@ export class Game {
         const th = this.districtAngle(d), r = Math.max(3, this.footR + 0.6);
         pos = new THREE.Vector3(Math.cos(th) * r, 0, Math.sin(th) * r);
       }
-      if (!pos) continue;
       const flag = new THREE.Group();
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 3.2, 6), new THREE.MeshToonMaterial({ color: 0x6b4a36, gradientMap: this.mat.gradientMap }));
       pole.position.y = 1.6;
-      const cv = document.createElement('canvas'); cv.width = 128; cv.height = 96;
+      const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
       const g = cv.getContext('2d');
-      g.fillStyle = color; g.fillRect(0, 0, 128, 96);
+      g.fillStyle = color; g.fillRect(0, 0, 128, 128);
       g.fillStyle = '#2a1f3d'; g.font = '700 64px Fredoka, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(String(d + 1), 64, 52);
+      g.fillText(String(d + 1), 64, 70);
       const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
       const banner = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.8, 8, 1), new THREE.MeshToonMaterial({ map: tex, side: THREE.DoubleSide, gradientMap: this.mat.gradientMap }));
       banner.position.set(0.58, 2.7, 0);
@@ -584,7 +583,7 @@ export class Game {
   // Kubo Express: every carried block that fits flies across the island to its bubble.
   useExpress() {
     if (this.mode !== 'play' || this.expressCharges <= 0) { this.audio.wrong(); return; }
-    const fits = this.pack.filter(i => this.sockets.has(i));
+    const fits = this.carriedAll().filter(i => this.sockets.has(i));
     if (!fits.length) { this.audio.wrong(); this.events.toast?.(t('express.none')); return; }
     this.expressCharges--;
     fits.forEach((i, k) => this.chainQueue.push({ i, at: this.t + 0.05 + k * 0.15, express: true }));
@@ -704,6 +703,7 @@ export class Game {
     this.sockets.set(child, { child, num: v.num, sprite, proxy, style: 'idle', born: this.t, phase: Math.random() * 6 });
   }
   removeSocket(s) {
+    if (this.fx.beamTarget === s.sprite) this.fx.clearBeam();
     this.scene.remove(s.sprite);
     s.sprite.material.dispose();
     s.sprite.children[0]?.material.dispose();
@@ -745,7 +745,7 @@ export class Game {
       this.sinceLink = 0;
       // chain: carried blocks that belong right on the block we just placed fly in by themselves
       for (const c of this.puzzle.children[i]) {
-        if (this.pack.includes(c) && !this.chainQueue.some(q => q.i === c)) this.chainQueue.push({ i: c, at: this.t + 0.22 + this.chainQueue.length * 0.12 });
+        if (this.carrying(c) && !this.chainQueue.some(q => q.i === c)) this.chainQueue.push({ i: c, at: this.t + 0.22 + this.chainQueue.length * 0.12 });
       }
       if (this.t - (this.lastLinkT ?? -9) > 1.2) this.chain = 0;
       this.lastLinkT = this.t;
@@ -942,8 +942,9 @@ export class Game {
 
   launch(i) {
     const v = this.voxels[i];
-    this.pack.splice(this.slotOf(i), 1);
-    if (this.active >= this.pack.length) this.active = Math.max(0, this.pack.length - 1);
+    const k = this.slotOf(i);
+    this.pack.splice(k, 1);
+    this.active = Math.max(0, Math.min(this.active > k ? this.active - 1 : this.active, this.pack.length - 1));
     if (v.chunk !== undefined) this.launchChunk(i);
     else this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), Math.min(1.6, 0.34 + v.mesh.position.distanceTo(v.target) * 0.03));
     this.ghost.visible = false;
@@ -1101,7 +1102,7 @@ export class Game {
     this.sinceLink += dt;
     while (this.chainQueue.length && this.chainQueue[0].at <= this.t) {
       const { i, express } = this.chainQueue.shift();
-      if (!this.pack.includes(i) || !this.sockets.has(i)) continue;
+      if (!this.carrying(i) || !this.sockets.has(i)) continue;
       if (!express) this.chain++;
       this.launch(i);
       if (!express && this.chain >= 2) this.events.toast?.(t('toast.chain', { n: this.chain + 1 }));
@@ -1191,10 +1192,8 @@ export class Game {
         continue;
       }
       m.visible = true;
-      if (v.state === 'waiting') { m.visible = false; continue; }
       if (v.state === 'flying' || v.state === 'dropping') {
         const a = v.anim;
-        if (a.delay > 0) { a.delay -= dt; m.position.copy(a.from); continue; }
         a.t += dt / a.dur;
         const k = Math.min(1, a.t);
         const e = v.state === 'flying' ? ease(k) : k;

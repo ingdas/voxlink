@@ -471,4 +471,5 @@ export default {
   "error.generic": "Hups – jokin meni vikaan.",
   "error.webgl": "Selaimesi ei pystynyt käynnistämään 3D-grafiikkaa.",
   "error.reload": "Lataa uudelleen",
+  "error.webglTip": "Tarkista, että laitteistokiihdytys / WebGL on päällä, tai kokeile toista selainta.",
 };

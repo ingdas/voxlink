@@ -29,7 +29,8 @@ function showFatal(kind, detail) {
   const tx = (k, f) => { try { return t(k); } catch { return f; } };
   el.innerHTML = `<div class="panel narrow"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div>
     <p>${kind === 'webgl' ? tx('error.webgl', 'Your browser could not start the 3D graphics.') : tx('error.generic', 'Oops — something went wrong.')}</p>
-    <small>${String(detail || '').slice(0, 160).replace(/</g, '&lt;')}</small>
+    <small>${String(detail || '').slice(0, 160).replace(/</g, '&lt;')}<br>WebGL2: ${window.__gfx?.webgl2 ? 'yes' : 'no'} · WebGL: ${window.__gfx?.webgl1 ? 'yes' : window.__gfx?.webgl2 ? '–' : 'no'} · ${(navigator.userAgent.match(/(iPhone OS [\d_]+|Android [\d.]+|Chrome\/\d+|Version\/[\d.]+ Mobile|Firefox\/\d+|SamsungBrowser\/[\d.]+)/g) || []).join(' ')}</small>
+    ${kind === 'webgl' ? `<small>${tx('error.webglTip', 'Check that hardware acceleration / WebGL is turned on, or try another browser.')}</small>` : ''}
     <button class="btn mint" onclick="location.reload()">${tx('error.reload', 'Reload')}</button></div>`;
 }
 addEventListener('error', e => { if (e.message && !/ResizeObserver/.test(e.message)) showFatal('generic', e.message); });

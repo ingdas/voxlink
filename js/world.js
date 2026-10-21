@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { toon, LAYER_FX, LAYER_OVERLAY } from './render.js';
-import { Batch, GEO, contours, topGeometry, wallGeometry, projectInside } from './world-kit.js';
+import { Batch, GEO, contours, topGeometry, wallGeometry, projectInside, sharedDot } from './world-kit.js';
 import { buildSky } from './world-sky.js';
 import { LAYOUTS } from './world-layouts.js';
+
+export { dotTexture } from './world-kit.js';
 
 export const PEDESTAL_TOP = 0.5;
 
@@ -62,21 +64,6 @@ export const THEMES = {
     pedestal: [0x7b77a0, 0xaaa6c8, 0x4cc9f0], particles: 'rain', lightning: true, clouds: 0x8d94b8, step: 'stone',
   },
 };
-
-export function dotTexture() {
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 64;
-  const g = cv.getContext('2d');
-  const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grd.addColorStop(0, 'rgba(255,255,255,1)');
-  grd.addColorStop(0.45, 'rgba(255,255,255,0.9)');
-  grd.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grd;
-  g.fillRect(0, 0, 64, 64);
-  const t = new THREE.CanvasTexture(cv);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
 
 // plain: the classic round island (Kubo's Garden keeps its calm plaza)
 export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'meadow', difficulty = 0, clearR = 3.2, plain = false }) {
@@ -403,13 +390,13 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     update(dt, t, cam) { for (const u of updaters) u(dt, t, cam, api); },
     dispose() {
       group.traverse(o => {
-        if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose();
+        if (o.isInstancedMesh) o.dispose(); // frees the instance matrix / colour buffers
+        if (o.geometry && !o.isSprite && !o.geometry.userData.shared) o.geometry.dispose(); // sprites share one geometry
         if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mm => { if (mm.map && !mm.map.userData.shared) mm.map.dispose(); mm.dispose(); });
       });
       sun.shadow.map?.dispose();
     },
   };
-  W.api = api;
   return api;
 }
 
@@ -424,7 +411,7 @@ function addParticles(T, rng, group, updaters, W) {
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   const color = kind === 'snow' ? 0xffffff : rain ? 0xc8d8ff : kind === 'fireflies' ? 0xffee88 : 0xfff4b0;
   const pm = new THREE.PointsMaterial({
-    color, size: kind === 'snow' ? 0.13 : rain ? 0.07 : 0.16, opacity: rain ? 0.7 : 1, map: dotTexture(), transparent: true, depthWrite: false,
+    color, size: kind === 'snow' ? 0.13 : rain ? 0.07 : 0.16, opacity: rain ? 0.7 : 1, map: sharedDot(), transparent: true, depthWrite: false,
     blending: kind === 'snow' ? THREE.NormalBlending : THREE.AdditiveBlending,
   });
   const pts = new THREE.Points(g, pm);

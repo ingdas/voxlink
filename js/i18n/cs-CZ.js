@@ -471,4 +471,5 @@ export default {
   "error.generic": "Jejda — něco se pokazilo.",
   "error.webgl": "Tvůj prohlížeč nedokázal spustit 3D grafiku.",
   "error.reload": "Načíst znovu",
+  "error.webglTip": "Zkontroluj, že je zapnutá hardwarová akcelerace / WebGL, nebo zkus jiný prohlížeč.",
 };

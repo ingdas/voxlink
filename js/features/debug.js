@@ -60,8 +60,10 @@ export function init(ctx) {
         const k = game.pack.indexOf(v.i);
         if (k >= 0) game.pack.splice(k, 1);
         game.place(v.i, true);
-        if (game.stage < game.stageCount - 1 && game.stageCleared(game.stage)) { game.stage++; game.syncStage(false); }
       }
+      // instant links skip the district bookkeeping: mark finished parts like a resumed session does
+      if (game.stageCount > 1) for (let d = 0; d < game.stageCount; d++) if (game.districtCleared(d)) game.districtDone.add(d);
+      game.stage = Math.min(game.stageCount - 1, game.districtDone.size);
       game.refreshColliders();
       game.emitProgress();
       linkOne();

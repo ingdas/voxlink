@@ -19,6 +19,7 @@ export class Input {
     this.stick = null; // { id, ox, oy, x, y }
     this.lookTouches = new Map();
     this.jumpHeld = false;
+    this.jumpButtonHeld = false; // on-screen jump button, set by main.js
     this.onLockChange = null;
     this.bindings = { ...DEFAULT_KEYS };
     this.smoothing = 0; // 0 = raw mouse/touch look, 1 = heavily smoothed
@@ -74,7 +75,7 @@ export class Input {
     touchLayer.addEventListener('touchstart', e => this.touchStart(e), opt);
     touchLayer.addEventListener('touchmove', e => this.touchMove(e), opt);
     touchLayer.addEventListener('touchend', e => this.touchEnd(e), opt);
-    touchLayer.addEventListener('touchcancel', e => this.touchEnd(e), opt);
+    touchLayer.addEventListener('touchcancel', e => this.touchEnd(e, true), opt);
     this.stickEl = document.getElementById('stick');
     this.knobEl = document.getElementById('stick-knob');
   }
@@ -89,7 +90,8 @@ export class Input {
     if (this.mobile) return Promise.resolve();
     try {
       const p = this.canvas.requestPointerLock({ unadjustedMovement: true });
-      if (p && p.catch) return p.catch(() => this.canvas.requestPointerLock());
+      // retry without unadjustedMovement (unsupported on some platforms); a second refusal fires pointerlockerror
+      if (p && p.catch) return p.catch(() => this.canvas.requestPointerLock()?.catch?.(() => {}));
     } catch { /* older browsers */ }
     return Promise.resolve();
   }
@@ -141,12 +143,14 @@ export class Input {
       this.look.y += dy * k * (this.invertY ? -1 : 1);
     }
   }
-  touchEnd(e) {
+  // cancelled touches (system gestures, incoming call) never count as a tap
+  touchEnd(e, cancelled = false) {
     e.preventDefault();
+    const tap = this.enabled && !cancelled;
     for (const t of e.changedTouches) {
       const now = performance.now();
       if (this.stick && t.identifier === this.stick.id) {
-        if (now - this.stick.t0 < 260 && this.stick.moved < 14) this.actions.push({ type: 'interact', x: t.clientX, y: t.clientY });
+        if (tap && now - this.stick.t0 < 260 && this.stick.moved < 14) this.actions.push({ type: 'interact', x: t.clientX, y: t.clientY });
         this.stick = null;
         this.stickEl.classList.remove('on');
         continue;
@@ -154,7 +158,7 @@ export class Input {
       const l = this.lookTouches.get(t.identifier);
       if (!l) continue;
       this.lookTouches.delete(t.identifier);
-      if (now - l.t0 < 300 && l.moved < 14 && this.enabled) this.actions.push({ type: 'interact', x: t.clientX, y: t.clientY });
+      if (tap && now - l.t0 < 300 && l.moved < 14) this.actions.push({ type: 'interact', x: t.clientX, y: t.clientY });
     }
   }
 
@@ -193,7 +197,7 @@ export class Input {
 
   reset() {
     this.actions = []; this.look.x = this.look.y = 0; this.keys.clear();
-    this.pending.x = this.pending.y = 0; this.pad.lx = this.pad.ly = 0;
+    this.pending.x = this.pending.y = 0; this.pad.lx = this.pad.ly = 0; this.jumpButtonHeld = false;
     this.stick = null; this.lookTouches.clear(); this.stickEl?.classList.remove('on');
   }
 }

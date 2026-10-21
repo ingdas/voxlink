@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import { toon, LAYER_FX } from './render.js';
 
 // ---------- signed distance helpers (negative = inside) ----------
-export const sdCircle = (cx, cz, r) => (x, z) => Math.hypot(x - cx, z - cz) - r;
 // wobbly blob: radius varies with angle, like the classic island outline
 export function sdBlob(cx, cz, r, seed, amp = 1) {
   const a = seed * 1.7, b = seed * 0.6;
@@ -261,9 +260,9 @@ export class Batch {
   }
 }
 
-// shared unit geometries for props (disposed with the world group's merged copies only)
+// shared unit geometries for props (only their merged copies are disposed with the world group)
 const cache = {};
-export const geo = (k, f) => cache[k] || (cache[k] = f());
+const geo = (k, f) => cache[k] || (cache[k] = f(), cache[k].userData.shared = true, cache[k]);
 export const GEO = {
   box: () => geo('box', () => new THREE.BoxGeometry(1, 1, 1)),
   blob: () => geo('blob', () => new THREE.IcosahedronGeometry(1, 1)),
@@ -274,3 +273,25 @@ export const GEO = {
   octa: () => geo('octa', () => new THREE.OctahedronGeometry(1, 0)),
   dome: () => geo('dome', () => new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2)),
 };
+
+// soft round sprite for particles: dotTexture() makes a fresh one (the caller disposes it),
+// sharedDot() returns one cached copy that world.dispose() leaves alone
+export function dotTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const g = cv.getContext('2d');
+  const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, 'rgba(255,255,255,1)');
+  grd.addColorStop(0.45, 'rgba(255,255,255,0.9)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+let dot = null;
+export function sharedDot() {
+  if (!dot) { dot = dotTexture(); dot.userData.shared = true; }
+  return dot;
+}

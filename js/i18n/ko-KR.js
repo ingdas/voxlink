@@ -471,4 +471,5 @@ export default {
   "error.generic": "앗, 문제가 생겼어요.",
   "error.webgl": "브라우저에서 3D 그래픽을 시작하지 못했어요.",
   "error.reload": "새로고침",
+  "error.webglTip": "하드웨어 가속 / WebGL이 켜져 있는지 확인하거나 다른 브라우저를 사용해 보세요.",
 };

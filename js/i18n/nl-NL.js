@@ -471,4 +471,5 @@ export default {
   "error.generic": "Oeps — er ging iets mis.",
   "error.webgl": "Je browser kon de 3D-graphics niet starten.",
   "error.reload": "Herladen",
+  "error.webglTip": "Controleer of hardwareversnelling / WebGL aanstaat, of probeer een andere browser.",
 };

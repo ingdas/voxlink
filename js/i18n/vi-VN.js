@@ -471,4 +471,5 @@ export default {
   "error.generic": "Ối — có lỗi xảy ra.",
   "error.webgl": "Trình duyệt của bạn không khởi động được đồ họa 3D.",
   "error.reload": "Tải lại",
+  "error.webglTip": "Hãy kiểm tra tăng tốc phần cứng / WebGL đã bật chưa, hoặc thử trình duyệt khác.",
 };

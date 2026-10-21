@@ -9,8 +9,8 @@ const DEFAULTS = { fov: 88, smooth: 0, bob: true, reduceMotion: prefersReduced, 
 // rebindable actions; labels are i18n keys access.act.<action>
 const ACTIONS = ['forward', 'back', 'left', 'right', 'jump', 'run', 'interact', 'drop', 'hint'];
 const actLabel = a => t(`access.act.${a}`);
-// fixed keys that can't be rebound (menus, slots, pause and the secondary movement keys)
-const RESERVED = new Set(['Escape', 'Tab', 'KeyP', 'KeyR', 'KeyF', 'Enter', 'NumpadEnter', 'Backspace', 'Digit1', 'Digit2', 'Digit3', 'Digit4',
+// fixed keys that can't be rebound (menus, slots, pause, magnet / express, photo mode and the secondary movement keys)
+const RESERVED = new Set(['Escape', 'Tab', 'KeyP', 'KeyR', 'KeyF', 'KeyC', 'Enter', 'NumpadEnter', 'Backspace', 'Digit1', 'Digit2', 'Digit3', 'Digit4',
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'MetaLeft', 'MetaRight', 'F5', 'F11', 'F12']);
 // named keys → i18n key access.key.<word>; symbol keys are shown as-is
 const KEY_WORDS = {

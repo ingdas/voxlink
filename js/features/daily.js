@@ -70,6 +70,8 @@ export function init(ctx) {
     btn.innerHTML = `<svg><use href="#i-cal"/></svg>${t('daily.btn')}${n ? ` <span class="streak">${n}</span>` : ''}${done ? '' : '<i class="dot"></i>'}`;
   };
   refreshButton();
+  // a tab left open overnight: show the new day's dot and streak when the player comes back
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshButton(); });
 
   const open = () => {
     const key = dayKey();

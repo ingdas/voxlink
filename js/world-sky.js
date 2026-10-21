@@ -2,6 +2,8 @@
 // (moon and ringed planet, storm vortex with its eye, a sea of clouds). All un-outlined (LAYER_FX).
 import * as THREE from 'three';
 import { toon, LAYER_FX } from './render.js';
+import { sharedDot } from './world-kit.js';
+import { mulberry32 } from './voxels.js';
 
 const skyVert = 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
 const skyFrag = `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunCol; uniform vec3 sunDir; uniform float sunSize; uniform float sunGlow; uniform float time;
@@ -69,7 +71,7 @@ export function buildSky(T, rng, group, updaters) {
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xfff6d8, size: 3.2, sizeAttenuation: false, map: dotTex(), transparent: true, depthWrite: false, fog: false }));
+    const stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xfff6d8, size: 3.2, sizeAttenuation: false, map: sharedDot(), transparent: true, depthWrite: false, fog: false }));
     stars.layers.set(LAYER_FX);
     stars.renderOrder = -9;
     group.add(stars);
@@ -81,30 +83,12 @@ export function buildSky(T, rng, group, updaters) {
   return { sky, uniforms };
 }
 
-let dot = null;
-function dotTex() {
-  if (dot) return dot;
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 64;
-  const g = cv.getContext('2d');
-  const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grd.addColorStop(0, 'rgba(255,255,255,1)');
-  grd.addColorStop(0.45, 'rgba(255,255,255,0.9)');
-  grd.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grd;
-  g.fillRect(0, 0, 64, 64);
-  dot = new THREE.CanvasTexture(cv);
-  dot.userData.shared = true;
-  dot.colorSpace = THREE.SRGBColorSpace;
-  return dot;
-}
-
 function craterTexture() {
   const cv = document.createElement('canvas');
   cv.width = cv.height = 128;
   const g = cv.getContext('2d');
   g.fillStyle = '#fff6e6'; g.fillRect(0, 0, 128, 128);
-  const r = mulberry(7);
+  const r = mulberry32(7);
   for (let i = 0; i < 26; i++) {
     const x = r() * 128, y = r() * 128, s = 4 + r() * 14;
     g.fillStyle = `rgba(170,160,200,${0.35 + r() * 0.3})`;
@@ -116,7 +100,6 @@ function craterTexture() {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
-const mulberry = a => () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
 function addMoonAndPlanet(group, updaters) {
   const moon = new THREE.Mesh(new THREE.SphereGeometry(52, 32, 20), new THREE.MeshBasicMaterial({ map: craterTexture(), fog: false, color: 0xfff1dc }));
@@ -125,7 +108,7 @@ function addMoonAndPlanet(group, updaters) {
   moon.renderOrder = -8;
   group.add(moon);
   // soft halo behind the moon
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex(), color: 0xffe9c8, transparent: true, opacity: 0.35, depthWrite: false, fog: false }));
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: sharedDot(), color: 0xffe9c8, transparent: true, opacity: 0.35, depthWrite: false, fog: false }));
   halo.scale.setScalar(260);
   halo.position.copy(moon.position).multiplyScalar(1.02);
   halo.layers.set(LAYER_FX);
@@ -208,7 +191,7 @@ function addVortex(group, updaters, skyU) {
   skyU.flash = { value: 0 };
 }
 
-const seaFrag = `uniform float time; uniform vec3 a; uniform vec3 b; varying vec2 vUv; varying float vD;
+const seaFrag = `uniform float time; uniform vec3 a; uniform vec3 b; varying vec2 vUv;
 ${NOISE}
 void main(){
   vec2 p = (vUv - 0.5) * 1000.0;
@@ -225,7 +208,7 @@ void main(){
 function addCloudSea(group, updaters, cfg) {
   const u = { time: { value: 0 }, a: { value: new THREE.Color(cfg.a) }, b: { value: new THREE.Color(cfg.b) } };
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 1, 1), new THREE.ShaderMaterial({
-    uniforms: u, vertexShader: 'varying vec2 vUv; varying float vD; void main(){ vUv = uv; vD = 0.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    uniforms: u, vertexShader: uvVert,
     fragmentShader: seaFrag, fog: false, depthWrite: true,
   }));
   sea.rotation.x = -Math.PI / 2;

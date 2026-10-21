@@ -62,7 +62,7 @@ export async function detectLocale(saved) {
   if (matchLocale(param)) return matchLocale(param);
   const sdk = await crazyGamesLocale();
   if (matchLocale(sdk)) return matchLocale(sdk);
-  for (const l of navigator.languages || [navigator.language]) if (matchLocale(l)) return matchLocale(l);
+  for (const l of navigator.languages?.length ? navigator.languages : [navigator.language]) if (matchLocale(l)) return matchLocale(l);
   return 'en-US';
 }
 

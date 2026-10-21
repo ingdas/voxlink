@@ -471,4 +471,5 @@ export default {
   "error.generic": "Hay aksi — bir şeyler ters gitti.",
   "error.webgl": "Tarayıcın 3B grafikleri başlatamadı.",
   "error.reload": "Yeniden yükle",
+  "error.webglTip": "Donanım hızlandırmanın / WebGL’in açık olduğundan emin ol ya da başka bir tarayıcı dene.",
 };
