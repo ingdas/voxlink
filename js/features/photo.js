@@ -81,7 +81,7 @@ function open(o) {
   if (state) return;
   const body = document.body, hud = $('hud');
   state = {
-    ...o, prevApp: ctx.app,
+    ...o,
     wasPlaying: body.classList.contains('playing'), hudOff: hud.classList.contains('off'),
   };
   ctx.input.enabled = false;

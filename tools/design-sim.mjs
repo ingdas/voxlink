@@ -1,9 +1,8 @@
 // Design simulation: compares block-availability models with a human-like player model.
 // node --import ./tools/register.mjs tools/design-sim.mjs [levelIds]
-import { LEVELS, expandLevel } from '../js/levels.js';
-import { generatePuzzle, mulberry32 } from '../js/voxels.js';
+import { LEVELS, expandLevel, partsFor } from '../js/levels.js';
+import { generatePuzzle, mulberry32, S } from '../js/voxels.js';
 
-const S = 0.6;
 const RUN = 6.2;           // m/s average while moving
 const READ_R = 4.5;        // can read a block's numbers within this distance
 const SEE_R = 14;          // notices blocks within this distance
@@ -12,7 +11,7 @@ const MEMORY = 8;          // remembers the last N blocks it has read (numbers +
 
 function stagesFor(cells, puzzle) {
   const n = cells.length;
-  const count = n > 44 ? Math.ceil(n / 34) : 1;
+  const count = partsFor(n);
   const stageOf = new Array(n).fill(0);
   if (count === 1) return { count, stageOf };
   const byH = cells.map((c, i) => i).sort((a, b) => (cells[a].iy - cells[b].iy) || (Math.hypot(cells[a].x, cells[a].z) - Math.hypot(cells[b].x, cells[b].z)));
@@ -132,6 +131,7 @@ const VARIANTS = {
 const ids = (process.argv[2] || 'windmill,whale,dragon,octopus,colossus').split(',');
 for (const id of ids) {
   const level = LEVELS.find(l => l.id === id);
+  if (!level) { console.error(`unknown level '${id}' (ids: ${LEVELS.map(l => l.id).join(', ')})`); process.exitCode = 1; continue; }
   console.log(`\n${level.name} (${expandLevel(level).cells.length} blocks)`);
   for (const [name, v] of Object.entries(VARIANTS)) {
     const runs = [];

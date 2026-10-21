@@ -6,8 +6,8 @@ export const INK = '#2a1f3d';
 // 20x20 tiles: tile 0 is the blank face, tiles 1..399 are numbers (figures up to 400 blocks).
 const CELL = 102.4, GRID = 20; // 20 x 102.4 = 2048: a power of two, so WebGL1 devices keep full resolution
 export const ATLAS_CELLS = GRID * GRID;
-export const FACE_CREAM = 0xfff1d6;
-export const FACE_BLANK = 0xe9dfcf;
+const FACE_CREAM = 0xfff1d6;
+const FACE_BLANK = 0xe9dfcf;
 
 // Face order: +x, -x, +y, -y, +z, -z. u/v give the upright text orientation per face.
 export const DIRS = [

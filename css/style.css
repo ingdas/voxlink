@@ -89,7 +89,6 @@ svg .fill, symbol .fill { fill: currentColor; }
   background: var(--paper); border: var(--line) solid var(--ink); border-radius: 26px; box-shadow: 0 9px 0 var(--ink);
   padding: 20px; width: min(440px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 16px;
 }
-.panel.wide { width: min(860px, 100%); }
 .panel.narrow { width: min(380px, 100%); }
 .panel h2 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: .02em; }
 .panel h2.center { text-align: center; }
@@ -186,7 +185,6 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 }
 .chip.u { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 .chip.ready { background: var(--mint); animation: wiggle 1s ease-in-out infinite; }
-.chip.wait { background: var(--paper-2); border-style: dashed; box-shadow: none; }
 .chip.new { animation: pop-chip .35s cubic-bezier(.3, 1.8, .5, 1); }
 .chip.more { background: var(--ink); color: var(--paper); font-size: 14px; }
 @keyframes wiggle { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) scale(1.06); } }
@@ -249,11 +247,7 @@ body.mobile .touch-btns { display: flex; }
   .logo { font-size: clamp(30px, 9vh, 60px); }
   .panel { padding: 14px; gap: 10px; }
   .panel h2 { font-size: 24px; }
-  .needs { top: calc(74px + var(--sat)); }
-  .toast { top: calc(116px + var(--sat)); }
-  .coach { bottom: calc(110px + var(--sab)); font-size: 16px; }
   .complete-thumb { width: 96px; height: 96px; }
-  .complete { padding-top: 28px; }
   .stat b { font-size: 20px; }
   .setting { padding: 6px 12px; font-size: 16px; }
   .settings { gap: 8px; }
@@ -442,7 +436,6 @@ body.mobile .slot .key { display: none; }
 }
 .kubo-bark.show { transform: none; }
 .kubo-bark p { margin: 0; font-weight: 600; font-size: 15px; line-height: 1.25; }
-@media (max-height: 500px) { .kubo-bark { top: calc(62px + var(--sat)); } .kubo-bark p { font-size: 13px; } }
 
 /* ---------- Edge markers ---------- */
 .edge { position: absolute; left: 0; top: 0; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; background: var(--paper); border: var(--line) solid var(--ink); display: none; place-items: center; box-shadow: 0 3px 0 var(--ink); }
@@ -478,7 +471,6 @@ body.mobile .slot .key { display: none; }
   .complete { gap: 8px; }
   .goal { padding: 3px 10px; font-size: 14px; }
   .complete .say { display: none; }
-  .slot { width: 56px; height: 56px; }
   .pack-wrap { bottom: calc(8px + var(--sab)); }
 }
 @media (max-width: 520px) {
@@ -526,8 +518,8 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 
 /* ---------- Tools: hint + magnet ---------- */
 .hud-tools { display: flex; gap: 10px; }
-#btn-magnet .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
-#btn-magnet.empty { filter: saturate(.2); opacity: .7; }
+#btn-magnet .charges, #btn-express .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
+#btn-magnet.empty, #btn-express.empty { filter: saturate(.2); opacity: .7; }
 .edge.district { border-width: 3px; }
 
 /* ---------- Small screens: keep Kubo's tips clear of the bubble list ---------- */
@@ -545,8 +537,6 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 .slot .nums { max-width: 62px; }
 .slot .nums .chip { padding: 0 3px; min-width: 20px; font-size: 11.5px; }
 @media (max-height: 500px), (max-width: 520px) { .slot { width: 62px; } }
-#btn-express .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
-#btn-express.empty { filter: saturate(.2); opacity: .7; }
 body.museum #btn-express { display: none !important; }
 @media (max-width: 520px) { .hud-tools { gap: 6px; } .hud-tools .btn.icon { width: 42px; height: 42px; } }
 .goal.info { background: #f3ecff; } .goal.info svg { fill: none; }
@@ -597,7 +587,6 @@ body.museum #btn-express { display: none !important; }
   .panel.split .brief-thumb, .panel.split .complete-thumb { width: 110px; height: 110px; flex: none; }
   .panel.split h2 { font-size: 22px; }
   .panel.split .brief-tag { margin: 0; font-size: 13px; }
-  .panel.split .brief .say, .panel.split .goal.info { display: none; }
   .panel.split .say { padding: 6px 10px; }
   .panel.split .say p { font-size: 13px; }
   .complete.split .say, .daily.split .daily-hist { display: none; }
@@ -617,9 +606,6 @@ body.museum #btn-express { display: none !important; }
   .tagline { font-size: 13px; padding: 4px 12px; }
   .title-bottom .btn:not(.huge) { min-height: 42px; padding: 6px 14px; font-size: 14px; }
   .title-bottom { gap: 9px; }
-}
-@media (max-height: 500px) and (orientation: landscape) {
-  .screen .panel.split { width: min(760px, 100%); max-width: none; }
 }
 .pz-txt { min-width: 0; }
 .pz-txt small { display: block; white-space: normal; overflow-wrap: anywhere; }

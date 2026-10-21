@@ -118,7 +118,6 @@ const game = new Game({
       $('lvl-name').textContent = level.kind || isDone(level.id) ? level.name : t('hud.mystery');
       $('count').textContent = `${n} / ${total}`;
       $('stage').textContent = game.stageCount > 1 ? t('hud.part', { k: game.stage + 1, n: game.stageCount }) : '';
-      $('stage').style.background = '';
       renderMagnet(game.magnetCharges, false);
       renderTool('btn-express', 'express-n', game.expressCharges ?? 0, false);
       $('bar-fill').style.width = `${(n / total) * 100}%`;
@@ -432,7 +431,10 @@ function resume() {
 
 input.onLockChange = locked => { if (!locked && (app === 'playing' || app === 'intro')) pause(); };
 document.addEventListener('pointerlockerror', () => { if (app === 'playing') pause(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+document.addEventListener('visibilitychange', () => {
+  // the ambient bed keeps playing in a background tab on menus too; the pause screen stays silent
+  if (document.hidden) { pause(); audio.suspend(true); } else if (base !== 'screen-pause') audio.suspend(false);
+});
 
 let pendingUnlock = null; // { from, to } for the map animation
 function onComplete(stats) {
@@ -725,6 +727,7 @@ function bindSettings() {
   $('set-reset').onclick = () => {
     if (!armed) { armed = true; $('set-reset').textContent = t('settings.sure'); setTimeout(() => { armed = false; $('set-reset').textContent = t('settings.resetBtn'); }, 2500); return; }
     Object.assign(save, { unlocked: 1, best: {}, stars: {}, seen: {} });
+    delete save.session; delete save.splits; // a saved run could resume a now-locked figure
     persist();
     $('set-reset').textContent = t('settings.done');
     if (app === 'paused') return;
@@ -830,7 +833,7 @@ const ctx = {
   get base() { return base; }, overlays,
   setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete, splitsHtml,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
-  hooks: { tick: [], complete: [], link: [], settings: [] },
+  hooks: { tick: [], complete: [], link: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures
   modes: {}, // app state -> (dt) => void, per-frame update used instead of game.update while app is that state
   views: {}, // app state -> (dt) => void; replaces game.update + scene render while app is in that state
@@ -855,7 +858,7 @@ async function boot() {
   getAtlas(renderer.gl);
   thumbs = renderThumbs();
   // if the GPU needs a simpler pipeline, the first frames switch to it; then redraw the thumbnails
-  renderer.onDowngrade = () => { thumbKit = null; thumbs = renderThumbs(); };
+  renderer.onDowngrade = () => { thumbs = renderThumbs(); };
   fill.style.width = '80%';
   await new Promise(r => setTimeout(r, 30));
   bindSettings();

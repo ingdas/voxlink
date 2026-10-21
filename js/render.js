@@ -153,6 +153,7 @@ export class Renderer {
     else return false;
     console.warn(`[voxlink] graphics fallback (${reason}):`, this.direct ? 'direct rendering' : this.tier);
     if (!this.direct) this.makeTargets();
+    else { this.colorRT.dispose(); this.normalRT.dispose(); } // unused from now on: free their GPU memory
     this.verifyFrames = 2;
     setTimeout(() => this.onDowngrade?.(), 0);
     return true;
@@ -189,6 +190,8 @@ export class Renderer {
 
   setSize(w, h) {
     this.w = w; this.h = h;
+    // browser zoom changes the device pixel ratio (and fires the resize that lands here)
+    this.maxDpr = Math.min(window.devicePixelRatio || 1, this.mobile ? 1.5 : 2);
     const pr = this.pixelRatio;
     this.gl.setPixelRatio(pr);
     this.gl.setSize(w, h, false);
@@ -219,6 +222,7 @@ export class Renderer {
       const mask = camera.layers.mask;
       camera.layers.enableAll();
       r.shadowMap.needsUpdate = true;
+      r.setClearColor(0x000000, 0); // thumbnails need a transparent background (the screen canvas has no alpha)
       r.setRenderTarget(target);
       r.render(scene, camera);
       camera.layers.mask = mask;

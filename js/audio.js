@@ -21,7 +21,6 @@ export class Audio {
     this.ctx = null;
     this.sfxVol = 0.8;
     this.musicVol = 0.5;
-    this.musicOn = true;
     this.nextNote = 0;
     this.chordIdx = 0;
     this.world = 'meadow';
@@ -51,9 +50,10 @@ export class Audio {
       this.noiseBuf = c.createBuffer(1, c.sampleRate * 2.5, c.sampleRate);
       const d = this.noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      this.startAmbience();
+      this.setWorld(this.world); // the world may have been picked before audio existed: apply its delay + ambience now
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    // iOS reports 'interrupted' after a call or a trip to the home screen
+    if (this.ctx.state !== 'running') this.ctx.resume();
   }
 
   setSfx(v) { this.sfxVol = v; if (this.sfx) { this.sfx.gain.value = v; this.amb.gain.value = v; } }
@@ -187,7 +187,7 @@ export class Audio {
     if (this.ambNodes) {
       const old = this.ambNodes;
       old.out.gain.setTargetAtTime(0.0001, c.currentTime, 0.4);
-      setTimeout(() => old.stop.forEach(n => { try { n.stop(); } catch { /* already stopped */ } }), 2000);
+      setTimeout(() => { old.stop.forEach(n => { try { n.stop(); } catch { /* already stopped */ } }); old.out.disconnect(); }, 2000);
     }
     const out = c.createGain();
     out.gain.setValueAtTime(0.0001, c.currentTime);
@@ -257,7 +257,7 @@ export class Audio {
     const dt = Math.min(0.1, now - (this.lastTick ?? now));
     this.lastTick = now;
     this.ambientEvents(dt);
-    if (!this.musicOn || this.musicVol <= 0) return;
+    if (this.musicVol <= 0) return;
     if (now < this.nextNote - 0.2) return;
     if (this.nextNote < now) this.nextNote = now + 0.1;
     const P = MUSIC[this.world] || MUSIC.meadow;

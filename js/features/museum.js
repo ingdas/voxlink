@@ -182,7 +182,8 @@ function startControl() {
 }
 
 function pauseGarden() {
-  if (!G || ctx.app !== 'museum') return;
+  // not during Kubo's welcome: setBase would drop the dialogue unfinished and control would never start
+  if (!G || ctx.app !== 'museum' || ctx.overlays.includes('screen-talk')) return;
   ctx.app = 'paused'; // the main loop stops rendering behind the pause panel
   ctx.input.enabled = false;
   ctx.input.reset();
@@ -198,6 +199,7 @@ function resumeGarden() {
   ctx.setBase(null);
   ctx.app = 'museum';
   $('hud').classList.remove('off');
+  G.nearKey = ''; // pause / photo hid the info card: show it again if still near a pedestal
   if (G.ready) startControl();
   if (!ctx.mobile) ctx.input.requestLock();
 }
@@ -336,7 +338,6 @@ class Garden {
     this.talkDone = false;
     this.near = null;
     this.nearKey = '';
-    this.renderer = renderer;
     renderer.gl.compile(scene, camera);
   }
 

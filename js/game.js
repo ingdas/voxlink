@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { LEVELS, CHAPTERS, expandLevel, partsFor } from './levels.js';
 import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
-import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS } from './voxels.js';
+import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, shuffle, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS } from './voxels.js';
 import { Player } from './player.js';
 import { LAYER_OVERLAY } from './render.js';
 import { t } from './i18n.js';
@@ -197,7 +197,7 @@ export class Game {
     this.active = 0;
     this.computeStages();
     this.stage = 0;
-    this.scatter(rng, Math.min(0.5, 0.18 + (level.chapter ?? 1) * 0.08));
+    this.scatter(rng, Math.min(0.5, 0.18 + (level.chapter ?? 1) * 0.08), !!resume?.id && !resume.v);
     if (this.levelIndex === 0) {
       // tutorial: put the first block right in front of the player
       const first = this.voxels[this.puzzle.children[this.puzzle.root][0]];
@@ -477,8 +477,6 @@ export class Game {
     }
   }
 
-  stageCleared(k) { return this.voxels.every(v => this.stageOf[v.i] > k || v.state === 'placed'); }
-
   // Every block is on the island from the start; parts are districts. Make sure all open bubbles exist.
   syncStage() {
     for (const v of this.voxels) {
@@ -622,15 +620,16 @@ export class Game {
     this.world = null;
   }
 
-  scatter(rng, topShare) {
+  scatter(rng, topShare, legacyShuffle) {
     const w = this.world;
     const placedPts = [];
     const ok = (x, z, y) => placedPts.every(p => Math.hypot(p.x - x, p.z - z) > 1.15 || Math.abs(p.y - y) > 1);
     const loose = this.voxels.filter(v => !this.puzzle.roots.includes(v.i));
     const rots = cubeRotations();
     const nTop = Math.min(w.tops.length * 3, Math.round(loose.length * topShare));
-    // shuffle so the high-up blocks are a random selection
-    const order = loose.slice().sort(() => rng() - 0.5);
+    // shuffle so the high-up blocks are a random selection; a Fisher-Yates shuffle gives the same layout in every
+    // browser (sort with a random comparator depends on the engine), older saved runs keep their old layout
+    const order = legacyShuffle ? loose.slice().sort(() => rng() - 0.5) : shuffle(loose.slice(), rng);
     // big figures: every part gets its own district (a slice of the island), the first one facing the spawn
     const D = this.stageCount, width = (Math.PI * 2) / D;
     const angDiff = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
@@ -1294,7 +1293,7 @@ export class Game {
   }
 
   sessionData() {
-    return { id: this.level.id, seed: this.runSeed, placed: this.linkOrder.slice(), elapsed: Math.round(this.elapsed), hints: this.hintsUsed, n: this.voxels.length, done: this.placedCount, splits: this.splits.slice() };
+    return { v: 2, id: this.level.id, seed: this.runSeed, placed: this.linkOrder.slice(), elapsed: Math.round(this.elapsed), hints: this.hintsUsed, n: this.voxels.length, done: this.placedCount, splits: this.splits.slice() };
   }
 
   openSocketNumbers() { return [...this.sockets.values()].map(s => s.num).sort((a, b) => a - b); }

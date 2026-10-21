@@ -31,7 +31,6 @@ const ICONS = `
 <symbol id="i-undo" viewBox="0 0 24 24"><path d="M8.5 13.5 4 9l4.5-4.5M4 9h10.5a5.5 5.5 0 0 1 0 11H10"/></symbol>
 <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15.5 13.5 20 9l-4.5-4.5M20 9H9.5a5.5 5.5 0 0 0 0 11H14"/></symbol>
 <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.2 11v5.5M13.8 11v5.5"/></symbol>
-<symbol id="i-share" viewBox="0 0 24 24"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.7 10.7l6.6-3.9M8.7 13.3l6.6 3.9"/></symbol>
 <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4.6L15.6 4.8a2 2 0 0 1 2.8 0l.8.8a2 2 0 0 1 0 2.8L8.6 19 4 20zM13.6 6.8l3.6 3.6"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5.5 15V6.5a2 2 0 0 1 2-2H15"/></symbol>
 <symbol id="i-frame" viewBox="0 0 24 24"><path d="M3.5 8.5v-5h5M15.5 3.5h5v5M20.5 15.5v5h-5M8.5 20.5h-5v-5M12 7.6l3.8 2.1v4.6L12 16.4l-3.8-2.1V9.7zM8.2 9.7 12 11.8l3.8-2.1M12 11.8v4.6"/></symbol>

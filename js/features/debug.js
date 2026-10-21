@@ -27,7 +27,7 @@ export function init(ctx) {
   const linkOne = () => {
     if (!playing()) return false;
     for (const v of game.voxels) {
-      if (v.state === 'dropping' && v.anim) { v.anim.delay = 0; v.anim.t = 1; }
+      if (v.state === 'dropping' && v.anim) v.anim.t = 1;
     }
     const v = game.voxels.find(v => (v.state === 'loose' || v.state === 'held' || v.state === 'lifting') && game.sockets.has(v.i));
     if (!v) return game.voxels.some(v => v.state !== 'placed');

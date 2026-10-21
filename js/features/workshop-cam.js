@@ -277,7 +277,6 @@ export function createEditorCam({ cam, solidAt, bounds, half, freeRect, hitPoint
     keyDown, keyUp, clearKeys,
     poke() { lastInput = now(); },
     get top() { return !!top; },
-    get busy() { return orbiting || !!vel.yaw || !!held.size; },
     debug: () => ({ cur: { ...cur, target: cur.target.toArray() }, goal: { ...goal, target: goal.target.toArray() }, manual, top: !!top, vel: { ...vel }, pushed }),
   };
 }
