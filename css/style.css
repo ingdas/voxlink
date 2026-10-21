@@ -567,9 +567,31 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 #count, #map-stars, bdi.n, .stage, .slot .key, .stat b, .splits span, #pause-info, .garden-count, #ending-stars b, .chip { direction: ltr; unicode-bidi: isolate; }
 
 /* ---------- Tools: hint + magnet ---------- */
-.hud-tools { display: flex; gap: 10px; }
+.hud-tools { display: flex; gap: 14px; }
 #btn-magnet .charges, #btn-express .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
-#btn-magnet.empty, #btn-express.empty { filter: saturate(.2); opacity: .7; }
+/* no charge yet: a grey button, its ring still shows how close the next one is */
+#btn-magnet.empty, #btn-express.empty { background: #d6d1df; }
+#btn-magnet.empty svg, #btn-express.empty svg { opacity: .45; }
+/* the key on each tool (desktop) */
+.tool-key { position: absolute; top: -9px; inset-inline-start: -9px; min-width: 21px; height: 21px; padding: 0 4px; border-radius: 7px; display: grid; place-items: center;
+  background: var(--paper); color: var(--ink); border: 2.5px solid var(--ink); font: 700 11.5px/1 inherit; text-transform: none; pointer-events: none; }
+body.mobile .tool-key, .tool-key:empty { display: none; }
+/* magnet / express: a ring around the button fills towards the next charge (one per so many links) */
+.hud-tools .ring { position: absolute; inset: -8px; border-radius: calc(var(--r) + 7px); padding: 5px; pointer-events: none;
+  background: conic-gradient(var(--sun) var(--p, 0%), rgba(42, 31, 61, .6) 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); transition: opacity .3s; }
+.hud-tools .btn.full .ring { opacity: 0; }
+/* useful right now (blocks that fit in reach / carried far from the figure): a green halo, like the bubbles you can fill */
+.hud-tools .btn.ready { box-shadow: 0 var(--lift) 0 var(--ink), 0 0 0 10px rgba(61, 220, 151, .5), 0 0 24px 10px rgba(61, 220, 151, .7); }
+.hud-tools .btn.ready svg { animation: tool-bob 1.6s ease-in-out infinite; }
+@keyframes tool-bob { 50% { transform: translateY(-2px) rotate(-8deg) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .hud-tools .btn.ready svg { animation: none; } }
+/* a charge earned: "+1 Magnet" under the button for a moment */
+.tool-pop { position: absolute; top: calc(100% + 14px); inset-inline-end: -4px; white-space: nowrap; pointer-events: none;
+  background: var(--ink); color: var(--paper); border-radius: 999px; padding: 4px 10px; font-size: 13px; text-transform: none; letter-spacing: 0;
+  opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; }
+.tool-pop.show { opacity: 1; transform: none; }
 .edge.district { border-width: 3px; }
 .edge.next { background: var(--mint); animation: radar-pulse 1.4s ease-in-out infinite; }
 /* walking on after a figure: the puzzle tools step aside */
@@ -604,7 +626,7 @@ body.roaming :is(#needs, .pack-wrap, #btn-hint, #btn-magnet, #btn-express, #tool
 .slot .nums .chip { padding: 0 3px; min-width: 20px; font-size: 11.5px; }
 @media (max-height: 500px), (max-width: 520px) { .slot { width: 62px; } }
 body.museum #btn-express { display: none !important; }
-@media (max-width: 520px) { .hud-tools { gap: 6px; } .hud-tools .btn.icon { width: 42px; height: 42px; } }
+@media (max-width: 520px) { .hud-tools { gap: 12px; } .hud-tools .btn.icon { width: 42px; height: 42px; } }
 .goal.info { background: #f3ecff; } .goal.info svg { fill: none; }
 @media (max-height: 500px) { .goal.info { display: none; } }
 .screen .panel { overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
@@ -737,7 +759,7 @@ body.ui-scaled #hud { --z: var(--ui-hud, 1); }
 @media (max-height: 500px) { .needs { top: calc(var(--hud-bottom, 52px) / var(--z) + 5px); } .toast { top: calc(var(--needs-bottom, 90px) / var(--z) + 6px); } }
 /* narrow screens: the tools stack down the right edge, so the progress pill and every tool fit */
 @media (max-width: 520px) {
-  .hud-tools { flex-direction: column; gap: 8px; }
+  .hud-tools { flex-direction: column; gap: 14px; }
   .hud-tools .btn.icon { width: 44px; height: 44px; }
   .progress { width: auto; flex: 1; min-width: 0; }
   .needs { max-width: calc(100vw - 132px); }

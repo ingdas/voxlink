@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Burza rozpłynęła się w zupełnie nowy poranek.",
   "cine.end.3": "Jedna po drugiej <b>Wielkie Figury</b> wróciły do domu.",
   "cine.skip": "Pomiń przerywnik",
+  "pack.link.tap.all": "Dotknij dowolnej z baniek {list}: połączą się wszystkie",
+  "pack.link.click.all": "Kliknij dowolną z baniek {list}: połączą się wszystkie",
+  "kubo.chain": "Widzisz? Gdy połączysz klocek, <b>wszystko z plecaka, co pasuje,</b> poleci za nim samo.",
 };

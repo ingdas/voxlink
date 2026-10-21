@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Cơn bão tan dần thành một buổi sáng hoàn toàn mới.",
   "cine.end.3": "Lần lượt từng bức, các <b>Bức Tượng Lớn</b> đã trở về nhà.",
   "cine.skip": "Bỏ qua đoạn phim",
+  "pack.link.tap.all": "Chạm một bong bóng bất kỳ trong {list}: tất cả sẽ nối",
+  "pack.link.click.all": "Nhấp một bong bóng bất kỳ trong {list}: tất cả sẽ nối",
+  "kubo.chain": "Thấy chưa? Khi bạn nối một khối, <b>mọi khối vừa trong ba lô</b> sẽ tự bay theo.",
 };

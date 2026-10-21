@@ -9,6 +9,8 @@ import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
 export const PACK_SIZE = 4;
+// tools on big figures: a charge every `every` links (counted while below `max`)
+export const TOOLS = { magnet: { every: 12, max: 3, reach: 10 }, express: { every: 20, max: 2 } };
 const _e = new THREE.Euler();
 const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
 const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
@@ -618,14 +620,19 @@ export class Game {
     this.emitProgress();
   }
 
-  // Magnet tool: pull every block that fits right now within 10 m into the backpack.
+  // loose blocks that fit right now within the magnet's reach, nearest first
+  magnetTargets() {
+    const p = this.player.pos;
+    return this.voxels
+      .filter(v => v.state === 'loose' && this.sockets.has(v.i) && v.mesh.position.distanceTo(p) < TOOLS.magnet.reach)
+      .sort((a, b) => a.mesh.position.distanceTo(p) - b.mesh.position.distanceTo(p));
+  }
+  // Magnet tool: pull every block that fits right now within reach into the backpack.
   useMagnet() {
     if (this.mode !== 'play' || this.magnetCharges <= 0) { this.audio.wrong(); return; }
     if (this.pack.length >= PACK_SIZE) { this.audio.wrong(); this.events.toast?.(t('magnet.full')); return; }
     const p = this.player.pos;
-    const near = this.voxels
-      .filter(v => v.state === 'loose' && this.sockets.has(v.i) && v.mesh.position.distanceTo(p) < 10)
-      .sort((a, b) => a.mesh.position.distanceTo(p) - b.mesh.position.distanceTo(p));
+    const near = this.magnetTargets();
     let got = 0;
     for (const v of near) {
       if (this.pack.length >= PACK_SIZE) break;
@@ -815,27 +822,26 @@ export class Game {
       this.emitProgress();
       this.linkOrder.push(i);
       this.sinceLink = 0;
-      // chain: carried blocks that belong right on the block we just placed fly in by themselves
-      for (const c of this.puzzle.children[i]) {
-        if (this.carrying(c) && !this.chainQueue.some(q => q.i === c)) this.chainQueue.push({ i: c, at: this.t + 0.22 + this.chainQueue.length * 0.12 });
+      // chain: every carried block that fits now flies in after it, one by one (and so do the ones those open up),
+      // so one link empties the backpack of everything that fits. Puzzler mode keeps it to blocks that belong
+      // right on this one (it never gives away what fits).
+      const follow = this.puzzler ? this.puzzle.children[i].filter(c => this.carrying(c)) : this.carriedAll().filter(c => this.sockets.has(c));
+      for (const c of follow) {
+        if (!this.chainQueue.some(q => q.i === c)) this.chainQueue.push({ i: c, at: this.t + 0.22 + this.chainQueue.length * 0.12 });
       }
       if (this.t - (this.lastLinkT ?? -9) > 1.2) this.chain = 0;
       this.lastLinkT = this.t;
-      if (this.stageCount > 1 && ++this.expressLinks >= 20) {
+      if (this.stageCount > 1 && this.expressCharges < TOOLS.express.max && ++this.expressLinks >= TOOLS.express.every) {
         this.expressLinks = 0;
-        if (this.expressCharges < 2) {
-          this.expressCharges++;
-          this.events.express?.(this.expressCharges, true);
-          if (!this.expressTold) { this.expressTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.express.touch' : 'kubo.express.desk')); }
-        }
+        this.expressCharges++;
+        this.events.express?.(this.expressCharges, true);
+        if (!this.expressTold) { this.expressTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.express.touch' : 'kubo.express.desk')); }
       }
-      if (this.stageCount > 1 && ++this.magnetLinks >= 12) {
+      if (this.stageCount > 1 && this.magnetCharges < TOOLS.magnet.max && ++this.magnetLinks >= TOOLS.magnet.every) {
         this.magnetLinks = 0;
-        if (this.magnetCharges < 3) {
-          this.magnetCharges++;
-          this.events.magnet?.(this.magnetCharges, true);
-          if (!this.magnetTold) { this.magnetTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.magnet.touch' : 'kubo.magnet.desk')); }
-        }
+        this.magnetCharges++;
+        this.events.magnet?.(this.magnetCharges, true);
+        if (!this.magnetTold) { this.magnetTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.magnet.touch' : 'kubo.magnet.desk')); }
       }
       const fr = this.placedCount / this.voxels.length;
       while (this.splits.length < 3 && fr >= (this.splits.length + 1) * 0.25) this.splits.push(Math.round(this.elapsed * 10) / 10);
@@ -1255,7 +1261,7 @@ export class Game {
     while (this.chainQueue.length && this.chainQueue[0].at <= this.t) {
       const { i, express } = this.chainQueue.shift();
       if (!this.carrying(i) || !this.sockets.has(i)) continue;
-      if (!express) this.chain++;
+      if (!express) { this.chain++; if (!this.puzzler && !this.tutorial) this.events.tipOnce?.('chain', t('kubo.chain')); }
       this.launch(i);
       if (!express && this.chain >= 2) this.events.toast?.(t('toast.chain', { n: this.chain + 1 }));
     }
@@ -1267,12 +1273,12 @@ export class Game {
   }
 
   // ---------- walking between islands ----------
-  // the next figure to rebuild in this world (the portal once they're all done); null while you're on it
+  // the next figure to rebuild in this world (the portal once they're all done); null while you're building
+  // one on its island (also near its shore or in a rebuild: the beacon only ever shows the way on)
   nextStop() {
-    if (!this.arch) return null;
+    if (!this.arch || (!this.roaming && this.onIsland)) return null;
     const next = this.arch.parts.find(p => p.open && !this.events.isDone?.(p.level));
     if (!next) return this.arch.parts.every(p => this.events.isDone?.(p.level)) ? 'portal' : null;
-    if (next.level === this.level && !this.roaming && this.arch.partAt(this.player.pos.x, this.player.pos.z) === next) return null;
     return next.level;
   }
   // where to point the edge arrow: the next figure's island, or the portal

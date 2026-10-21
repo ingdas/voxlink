@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Der Sturm schmolz zu einem ganz neuen Morgen.",
   "cine.end.3": "Eine nach der anderen kehrten die <b>Großen Figuren</b> heim.",
   "cine.skip": "Szene überspringen",
+  "pack.link.tap.all": "Tippe auf eine der Blasen {list}: alle verbinden sich",
+  "pack.link.click.all": "Klicke auf eine der Blasen {list}: alle verbinden sich",
+  "kubo.chain": "Gesehen? Wenn du einen Block verbindest, <b>kommt alles aus deinem Rucksack, was passt,</b> von selbst hinterher.",
 };

@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Furtuna s-a topit într-o dimineață nou-nouță.",
   "cine.end.3": "Una câte una, <b>Marile Figurine</b> s-au întors acasă.",
   "cine.skip": "Sari peste scenă",
+  "pack.link.tap.all": "Atinge oricare dintre bulele {list}: se leagă toate",
+  "pack.link.click.all": "Dă clic pe oricare dintre bulele {list}: se leagă toate",
+  "kubo.chain": "Ai văzut? Când legi un bloc, <b>tot ce se potrivește din rucsac</b> îl urmează singur.",
 };

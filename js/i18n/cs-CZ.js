@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Bouře se rozplynula v úplně nové ráno.",
   "cine.end.3": "Jedna po druhé se <b>Velké figurky</b> vrátily domů.",
   "cine.skip": "Přeskočit scénu",
+  "pack.link.tap.all": "Klepni na kteroukoli z bublin {list}: spojí se všechny",
+  "pack.link.click.all": "Klikni na kteroukoli z bublin {list}: spojí se všechny",
+  "kubo.chain": "Vidíš? Když spojíš kostku, <b>všechno v batohu, co pasuje,</b> přiletí samo.",
 };

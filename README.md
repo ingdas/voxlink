@@ -80,7 +80,11 @@ Workshop editor:
   compass points to where blocks fit right now. All blocks are out from the start.
 - Tools on big figures: **Magnet** (R / magnet button) pulls nearby blocks that fit into your
   backpack; **Kubo Express** (F / paper plane) sends every fitting carried block to the figure from
-  anywhere. Linking a block also pulls in carried blocks that belong on it (chain links).
+  anywhere. A ring around each tool fills towards its next charge, and a tool glows green while using it would
+  help (a block that fits within the magnet's reach; carried blocks that fit while you're away from the figure).
+- Linking a block brings along every other carried block that fits, one after another (chain links), so one
+  click empties the backpack of everything the figure can take. Puzzler mode only chains the blocks that belong
+  right on the one you linked, since it never gives away what fits.
 - Tall figures get the Keeper's updraft (hold jump inside the glowing ring).
 - Each world has its own look, music and twist: Meadow (none, the tutorial), Windmill Farm (hay
   trampolines), Frost (icy lakes), Frostwood (deep snowdrifts slow you, a slippery stream), Sunset Reef
@@ -115,7 +119,7 @@ in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (
 
 `tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
 all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
-phones and in Arabic, and keyboard / touch controls. Each suite starts its own static server.
+phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons. Each suite starts its own static server.
 
 ```
 PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tests/e2e/run.mjs          # everything

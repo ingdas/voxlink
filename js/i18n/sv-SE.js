@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Stormen smälte bort i en alldeles ny morgon.",
   "cine.end.3": "En efter en kom de <b>Stora figurerna</b> hem.",
   "cine.skip": "Hoppa över scenen",
+  "pack.link.tap.all": "Tryck på någon av bubblorna {list}: alla länkas",
+  "pack.link.click.all": "Klicka på någon av bubblorna {list}: alla länkas",
+  "kubo.chain": "Såg du? När du länkar en kloss <b>följer allt i ryggsäcken som passar</b> med av sig självt.",
 };

@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "La tempête s'est fondue en un tout nouveau matin.",
   "cine.end.3": "Une à une, les <b>Grandes Figurines</b> sont rentrées à la maison.",
   "cine.skip": "Passer la cinématique",
+  "pack.link.tap.all": "Touche une des bulles {list} : elles se relient toutes",
+  "pack.link.click.all": "Clique sur une des bulles {list} : elles se relient toutes",
+  "kubo.chain": "Tu as vu ? Quand tu relies un bloc, <b>tout ce qui s’emboîte dans ton sac</b> suit tout seul.",
 };

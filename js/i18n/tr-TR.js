@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Fırtına eriyip yepyeni bir sabaha dönüştü.",
   "cine.end.3": "<b>Büyük Figürler</b> birer birer evlerine döndü.",
   "cine.skip": "Sahneyi geç",
+  "pack.link.tap.all": "Baloncuklardan birine dokun ({list}): hepsi bağlanır",
+  "pack.link.click.all": "Baloncuklardan birine tıkla ({list}): hepsi bağlanır",
+  "kubo.chain": "Gördün mü? Bir blok bağladığında <b>sırt çantandaki uyan her şey</b> kendiliğinden peşinden gelir.",
 };

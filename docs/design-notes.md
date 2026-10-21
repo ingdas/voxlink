@@ -64,6 +64,20 @@ useful part, more visible numbers only add noise.
 - Tools now: Hint (costs the no-hint star), Magnet (R, every 12 links), Kubo Express (F, every 20
   links), plus the Keeper's updraft on tall figures.
 
+## 2026-10-21 · Chain links: one rule
+
+Playtest: it wasn't clear when carried blocks went onto the figure by themselves. Only the blocks that belonged
+right on the block you had just linked did, which you can't see; a carried block whose bubble was already
+open stayed in the backpack, even though it looked just the same (green). Now linking any block brings along
+every carried block that fits, and the ones those open up, so the rule is "everything green goes in". The
+backpack line says so ("Click one of bubbles 4, 12: they all link") and Kubo points it out the first time.
+Kubo Express keeps its point: it does the same from anywhere, without the walk back. Puzzler mode keeps the
+old rule, since it never shows what fits.
+
+The tool buttons also say more: a ring fills towards the next charge (charges are no longer counted while a tool
+is full), a key cap shows H / R / F on desktop, "+1 Magnet" shows under the button on a new charge, and a tool
+glows green while using it would do something.
+
 ## 2026-10-21 · Worlds with their own identity
 
 Every chapter used the same round island with box plateaus; only colours changed. Each world now

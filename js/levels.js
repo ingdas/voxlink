@@ -380,11 +380,11 @@ const FIGURES = {
 
   // ---------- Frost ----------
   mitten: () => figure(f => {
-    f.box(-1, 0, 0, 1, 0, 1, 'w');
-    f.box(-1, 1, 0, 1, 4, 1, 'u');
-    f.del(1, 4, 0); f.del(1, 4, 1);
-    for (const z of [0, 1]) { f.set(2, 2, z, 'u'); f.set(2, 3, z, 'u'); }
-    f.recolor((x, y, z) => (y === 2 && x < 2 && (x + z + 4) % 2 === 0 ? 'w' : null)); // knitted band
+    // seen from the front, top row first: thumb out to the side, a red cuff (white would vanish in the snow), a puffy palm at the back
+    ['...uu.', '..uuuu', '..uuuu', 'u.uuuu', 'uuuuuu', '..rrrr', '..rrrr'].forEach((row, i) => {
+      for (let x = 0; x < row.length; x++) if (row[x] !== '.') f.set(x, 6 - i, 0, row[x]);
+    });
+    f.box(3, 2, -1, 4, 5, -1, 'u');
   }),
   sled: () => figure(f => {
     for (const x of [-1, 1]) {

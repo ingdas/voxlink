@@ -3,7 +3,7 @@ import { Renderer } from './render.js';
 import { LEVELS, CHAPTERS, ENDING, expandLevel, parTime, partsFor } from './levels.js';
 import { THEMES } from './world.js';
 import { S, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, getAtlas } from './voxels.js';
-import { Game, PACK_SIZE } from './game.js';
+import { Game, PACK_SIZE, TOOLS } from './game.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { FX } from './fx.js';
@@ -253,7 +253,8 @@ function renderPack(info) {
   $('btn-drop').classList.toggle('show', info.slots.length > 0);
   const fits = info.slots.filter(s => s.fits).map(s => s.link);
   const tip = $('pack-tip');
-  if (fits.length) tip.innerHTML = t(`pack.link.${mobile ? 'tap' : 'click'}.${fits.length > 1 ? 'other' : 'one'}`, { list: `<b>${listJoin(fits)}</b>` });
+  // (more than one: linking one brings the rest along, except in Puzzler mode)
+  if (fits.length) tip.innerHTML = t(`pack.link.${mobile ? 'tap' : 'click'}.${fits.length < 2 ? 'one' : game.puzzler ? 'other' : 'all'}`, { list: `<b>${listJoin(fits)}</b>` });
   else if (info.slots.length) tip.textContent = t('pack.none');
   tip.classList.toggle('on', info.slots.length > 0);
   renderNeeds();
@@ -368,6 +369,7 @@ function tickHud(g) {
   $('hint-cd').style.setProperty('--p', `${g.hintCooldown > 0 ? (g.hintCooldown / (g.hintMax || 8)) * 100 : 0}%`);
   if (!mobile && (g.elapsed > 16 || g.tutorial)) $('keys').classList.add('fade');
   const far = g.player.pos.length() > 7;
+  renderToolState(g, far);
   placeEdge($('edge-home'), homePos, far && g.hasFitInPack());
   placeEdge($('edge-hint'), fx.beamTarget?.position ?? homePos, !!fx.beamTarget);
   const flag = g.flags?.[g.activeDistrict?.() ?? -1];
@@ -1133,7 +1135,34 @@ function renderTool(btn, count, n, gained) {
   document.body.classList.toggle('has-tools', game.stageCount > 1);
   b.classList.toggle('empty', n <= 0);
   $(count).textContent = n;
-  if (gained) b.animate([{ transform: 'scale(1.4) rotate(-10deg)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' });
+  if (gained) {
+    b.animate([{ transform: 'scale(1.4) rotate(-10deg)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' });
+    const pop = b.querySelector('.tool-pop');
+    pop.textContent = `+1 ${b.getAttribute('aria-label')}`;
+    pop.classList.add('show');
+    clearTimeout(pop.timer);
+    pop.timer = setTimeout(() => pop.classList.remove('show'), 2600);
+  }
+}
+// every frame: the rings fill towards the next charge, the keys follow rebinding, and (a few times a second) a
+// tool glows while using it would do something: blocks that fit within the magnet's reach, or carried blocks
+// that fit while you're away from the figure
+let toolCheck = 0;
+function renderToolState(g, far) {
+  const hk = ctx.coachKeys?.()?.hint ?? '';
+  if ($('hint-key').textContent !== hk) $('hint-key').textContent = hk;
+  if (!(g.stageCount > 1)) return;
+  for (const [id, n, links, tool] of [['btn-magnet', g.magnetCharges, g.magnetLinks, TOOLS.magnet], ['btn-express', g.expressCharges, g.expressLinks, TOOLS.express]]) {
+    const b = $(id);
+    b.style.setProperty('--p', `${Math.round((links / tool.every) * 100)}%`);
+    b.classList.toggle('full', n >= tool.max);
+  }
+  const now = performance.now();
+  if (now < toolCheck) return;
+  toolCheck = now + 250;
+  const play = g.mode === 'play' && !g.roaming;
+  $('btn-magnet').classList.toggle('ready', play && g.magnetCharges > 0 && g.pack.length < PACK_SIZE && g.magnetTargets().length > 0);
+  $('btn-express').classList.toggle('ready', play && g.expressCharges > 0 && far && g.hasFitInPack());
 }
 const renderMagnet = (n, gained) => renderTool('btn-magnet', 'magnet-n', n, gained);
 $('btn-c-map').onclick = () => (completeActions.onMap || openMap)();

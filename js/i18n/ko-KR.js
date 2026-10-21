@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "폭풍은 녹아내려 눈부신 새 아침이 되었어요.",
   "cine.end.3": "하나둘, <b>위대한 조각상</b>들이 집으로 돌아왔어요.",
   "cine.skip": "컷신 건너뛰기",
+  "pack.link.tap.all": "{list}번 방울 중 하나를 누르면 모두 이어져요",
+  "pack.link.click.all": "{list}번 방울 중 하나를 클릭하면 모두 이어져요",
+  "kubo.chain": "봤어요? 블록 하나를 이으면 <b>가방 속 맞는 블록이 모두</b> 저절로 따라와요.",
 };

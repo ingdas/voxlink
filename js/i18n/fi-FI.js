@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Myrsky suli upouudeksi aamuksi.",
   "cine.end.3": "Yksi kerrallaan <b>Suuret Hahmot</b> palasivat kotiin.",
   "cine.skip": "Ohita välianimaatio",
+  "pack.link.tap.all": "Napauta mitä tahansa kuplista {list}: kaikki yhdistyvät",
+  "pack.link.click.all": "Klikkaa mitä tahansa kuplista {list}: kaikki yhdistyvät",
+  "kubo.chain": "Huomasitko? Kun yhdistät palikan, <b>kaikki repun sopivat palikat</b> tulevat perässä itsestään.",
 };

@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "La tempesta si sciolse in un mattino tutto nuovo.",
   "cine.end.3": "Una dopo l'altra, le <b>Grandi Figure</b> tornarono a casa.",
   "cine.skip": "Salta filmato",
+  "pack.link.tap.all": "Tocca una qualsiasi delle bolle {list}: si collegano tutte",
+  "pack.link.click.all": "Clicca una qualsiasi delle bolle {list}: si collegano tutte",
+  "kubo.chain": "Visto? Quando colleghi un blocco, <b>tutto ciò che si incastra nello zaino</b> lo segue da solo.",
 };

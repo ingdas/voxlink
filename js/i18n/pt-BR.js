@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "A tempestade se desfez numa manhã novinha em folha.",
   "cine.end.3": "Uma a uma, as <b>Grandes Figuras</b> voltaram para casa.",
   "cine.skip": "Pular cena",
+  "pack.link.tap.all": "Toque em qualquer uma das bolhas {list}: todas se conectam",
+  "pack.link.click.all": "Clique em qualquer uma das bolhas {list}: todas se conectam",
+  "kubo.chain": "Viu só? Quando você conecta um bloco, <b>tudo o que encaixa na sua mochila</b> vai junto sozinho.",
 };

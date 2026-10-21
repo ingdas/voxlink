@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Badai itu mencair menjadi pagi yang baru.",
   "cine.end.3": "Satu per satu, para <b>Figur Agung</b> pulang ke rumah.",
   "cine.skip": "Lewati adegan",
+  "pack.link.tap.all": "Ketuk salah satu gelembung {list}: semuanya terhubung",
+  "pack.link.click.all": "Klik salah satu gelembung {list}: semuanya terhubung",
+  "kubo.chain": "Lihat? Saat kamu menghubungkan satu balok, <b>semua yang cocok di ranselmu</b> ikut dengan sendirinya.",
 };

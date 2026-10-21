@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "La tormenta se fundió en una mañana completamente nueva.",
   "cine.end.3": "Una a una, las <b>Grandes Figuras</b> volvieron a casa.",
   "cine.skip": "Saltar escena",
+  "pack.link.tap.all": "Toca cualquiera de las burbujas {list}: se conectan todas",
+  "pack.link.click.all": "Haz clic en cualquiera de las burbujas {list}: se conectan todas",
+  "kubo.chain": "¿Lo has visto? Al conectar un bloque, <b>todo lo que encaja de tu mochila</b> le sigue solo.",
 };

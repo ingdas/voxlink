@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "De storm smolt weg in een gloednieuwe ochtend.",
   "cine.end.3": "Eén voor één kwamen de <b>Grote Figuren</b> thuis.",
   "cine.skip": "Tussenfilmpje overslaan",
+  "pack.link.tap.all": "Tik op een van de bubbels {list}: ze verbinden allemaal",
+  "pack.link.click.all": "Klik op een van de bubbels {list}: ze verbinden allemaal",
+  "kubo.chain": "Zag je dat? Als je een blok verbindt, <b>komt alles uit je rugzak dat past</b> vanzelf mee.",
 };

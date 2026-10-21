@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "A vihar egy vadonatúj reggellé olvadt.",
   "cine.end.3": "Egyenként hazatértek a <b>Nagy Figurák</b>.",
   "cine.skip": "Átvezető kihagyása",
+  "pack.link.tap.all": "Koppints bármelyik buborékra: {list} – mind összekapcsolódik",
+  "pack.link.click.all": "Kattints bármelyik buborékra: {list} – mind összekapcsolódik",
+  "kubo.chain": "Láttad? Ha összekötsz egy kockát, <b>a hátizsákodból minden illő kocka</b> magától követi.",
 };

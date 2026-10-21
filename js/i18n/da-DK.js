@@ -651,4 +651,7 @@ export default {
   "cine.end.2": "Stormen smeltede over i en helt ny morgen.",
   "cine.end.3": "Én efter én kom de <b>Store Figurer</b> hjem.",
   "cine.skip": "Spring scenen over",
+  "pack.link.tap.all": "Tryk på en af boblerne {list}: de forbindes alle",
+  "pack.link.click.all": "Klik på en af boblerne {list}: de forbindes alle",
+  "kubo.chain": "Så du det? Når du forbinder en klods, <b>følger alt i rygsækken, der passer,</b> helt af sig selv.",
 };
