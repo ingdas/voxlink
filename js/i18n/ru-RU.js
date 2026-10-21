@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Повернуть вправо",
   "workshop.cam.top": "Вид сверху",
   "brief.parts": "Частей: {n}, у каждой свой район с флагом",
+  "error.generic": "Ой — что-то пошло не так.",
+  "error.webgl": "Браузеру не удалось запустить 3D-графику.",
+  "error.reload": "Перезагрузить",
 };

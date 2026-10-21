@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Повернути праворуч",
   "workshop.cam.top": "Вигляд згори",
   "brief.parts": "Частин: {n}, у кожної свій район із прапорцем",
+  "error.generic": "Ой — щось пішло не так.",
+  "error.webgl": "Браузеру не вдалося запустити 3D-графіку.",
+  "error.reload": "Перезавантажити",
 };

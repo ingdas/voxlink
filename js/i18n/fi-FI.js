@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Käännä oikealle",
   "workshop.cam.top": "Näkymä ylhäältä",
   "brief.parts": "Osia: {n}, jokaisella oma liputettu alue",
+  "error.generic": "Hups – jokin meni vikaan.",
+  "error.webgl": "Selaimesi ei pystynyt käynnistämään 3D-grafiikkaa.",
+  "error.reload": "Lataa uudelleen",
 };

@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "오른쪽으로 돌리기",
   "workshop.cam.top": "위에서 보기",
   "brief.parts": "{n}개 부분, 각자 깃발이 있는 구역에 있어요",
+  "error.generic": "앗, 문제가 생겼어요.",
+  "error.webgl": "브라우저에서 3D 그래픽을 시작하지 못했어요.",
+  "error.reload": "새로고침",
 };

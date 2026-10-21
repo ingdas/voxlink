@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Otočit doprava",
   "workshop.cam.top": "Pohled shora",
   "brief.parts": "Částí: {n}, každá ve vlastní čtvrti s vlajkou",
+  "error.generic": "Jejda — něco se pokazilo.",
+  "error.webgl": "Tvůj prohlížeč nedokázal spustit 3D grafiku.",
+  "error.reload": "Načíst znovu",
 };

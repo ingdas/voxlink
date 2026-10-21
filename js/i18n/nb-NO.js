@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Snu mot høyre",
   "workshop.cam.top": "Sett ovenfra",
   "brief.parts": "{n} deler, hver i sin egen bydel med flagg",
+  "error.generic": "Oi – noe gikk galt.",
+  "error.webgl": "Nettleseren din klarte ikke å starte 3D-grafikken.",
+  "error.reload": "Last inn på nytt",
 };

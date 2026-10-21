@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Obróć w prawo",
   "workshop.cam.top": "Widok z góry",
   "brief.parts": "Części: {n}, każda we własnej dzielnicy z flagą",
+  "error.generic": "Ups — coś poszło nie tak.",
+  "error.webgl": "Twoja przeglądarka nie mogła uruchomić grafiki 3D.",
+  "error.reload": "Odśwież",
 };

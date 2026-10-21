@@ -38,11 +38,14 @@ export function init(ctx) {
 
   document.body.insertAdjacentHTML('beforeend', `
   <div id="screen-daily" class="screen dim">
-    <div class="panel narrow daily">
+    <div class="panel narrow daily split">
+      <div class="pcol info">
       <div class="brief-chapter">${t('daily.figure')}</div>
       <h2 class="center" id="daily-date"></h2>
       <div class="brief-thumb"><img id="daily-img" alt=""></div>
       <p class="brief-tag" id="daily-sub"></p>
+      </div>
+      <div class="pcol act">
       <div class="daily-stats">
         <div class="stat"><svg><use href="#i-clock"/></svg><b id="daily-best">–</b><small>${t('daily.todayBest')}</small></div>
         <div class="stat"><svg><use href="#i-star"/></svg><b id="daily-streak">0</b><small>${t('daily.streak')}</small></div>
@@ -51,6 +54,7 @@ export function init(ctx) {
       <div class="row">
         <button class="btn icon" data-back aria-label="${t('aria.back')}"><svg><use href="#i-back"/></svg></button>
         <button class="btn mint grow huge-ish" id="btn-daily-go"><svg><use href="#i-play"/></svg>${t('daily.play')}</button>
+      </div>
       </div>
     </div>
   </div>`);

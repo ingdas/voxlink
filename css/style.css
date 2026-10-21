@@ -552,3 +552,74 @@ body.museum #btn-express { display: none !important; }
 .goal.info { background: #f3ecff; } .goal.info svg { fill: none; }
 @media (max-height: 500px) { .goal.info { display: none; } }
 .screen .panel { overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+
+/* ---------- Fatal error card ---------- */
+.fatal { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: rgba(42, 31, 61, .75); padding: 20px; }
+.fatal .panel { align-items: center; text-align: center; gap: 12px; }
+.fatal p { margin: 0; font-weight: 700; font-size: 18px; }
+.fatal small { color: var(--ink-soft); font-weight: 600; word-break: break-word; }
+
+/* =================== Mobile layout pass =================== */
+/* split panels: info + actions; stacked by default, side by side on short landscape screens */
+.panel.split .pcol { display: contents; }
+.panel > .row:last-child, .pcol.act > .row:last-child {
+  position: sticky; bottom: 0; z-index: 2; background: var(--paper); padding-top: 8px; margin-top: auto;
+  box-shadow: 0 -12px 12px -8px var(--paper);
+}
+.complete .ribbon { position: relative; top: 0; left: auto; transform: rotate(-2deg); align-self: center; margin: -4px 0 2px; }
+.complete { padding-top: 20px; }
+
+/* title buttons wrap instead of running off the screen */
+#title-extra, .title-bottom .row { flex-wrap: wrap; justify-content: center; }
+@media (max-width: 520px) {
+  .title-bottom { gap: 12px; width: 100%; }
+  .title-bottom .row { gap: 10px; }
+  .title-bottom .btn:not(.huge) { font-size: 14px; min-height: 46px; padding: 8px 14px; gap: 8px; }
+  .title-bottom .btn.huge { min-width: 0; width: min(320px, 86vw); font-size: 22px; min-height: 60px; }
+  .logo { font-size: clamp(30px, 11vw, 52px); }
+  .tagline { font-size: 15px; padding: 5px 14px; }
+  .brief-thumb, .complete-thumb { width: 104px; height: 104px; }
+  .panel h2 { font-size: 24px; }
+  .goal { font-size: 14px; padding: 5px 9px; }
+  .brief .say p { font-size: 14px; }
+  .panel { padding: 16px; gap: 12px; }
+}
+@media (max-width: 520px) and (max-height: 760px) {
+  .brief .say, .daily .daily-hist { display: none; }
+}
+
+/* short landscape phones (e.g. iPhone in Safari: ~750 x 340) */
+@media (max-height: 500px) and (orientation: landscape) {
+  .panel.split { flex-direction: row; width: min(760px, 100%); align-items: stretch; gap: 18px; padding: 14px 16px; }
+  .panel.split .pcol { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .panel.split .pcol.info { flex: 0 0 36%; align-items: center; justify-content: center; text-align: center; }
+  .panel.split .pcol.act { flex: 1; justify-content: center; }
+  .panel.split .brief-thumb, .panel.split .complete-thumb { width: 110px; height: 110px; flex: none; }
+  .panel.split h2 { font-size: 22px; }
+  .panel.split .brief-tag { margin: 0; font-size: 13px; }
+  .panel.split .brief .say, .panel.split .goal.info { display: none; }
+  .panel.split .say { padding: 6px 10px; }
+  .panel.split .say p { font-size: 13px; }
+  .complete.split .say, .daily.split .daily-hist { display: none; }
+  .panel.split .stat { padding: 4px; }
+  .panel.split .stat b { font-size: 20px; }
+  .complete.split .ribbon { font-size: 15px; padding: 4px 14px; }
+  .complete.split .complete-stars svg { width: 34px; height: 34px; }
+  /* pause: two columns of buttons */
+  #screen-pause .panel { width: min(560px, 100%); padding: 14px 16px; gap: 10px; }
+  #screen-pause .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #screen-pause .stack .btn { min-height: 46px; font-size: 15px; }
+  #screen-pause .stack .btn.huge { grid-column: 1 / -1; min-height: 52px; font-size: 20px; }
+  #screen-pause h2 { font-size: 22px; }
+  .map-title { display: none; }
+  .chapter-head { top: auto; }
+  .title-top { gap: 6px; }
+  .tagline { font-size: 13px; padding: 4px 12px; }
+  .title-bottom .btn:not(.huge) { min-height: 42px; padding: 6px 14px; font-size: 14px; }
+  .title-bottom { gap: 9px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .screen .panel.split { width: min(760px, 100%); max-width: none; }
+}
+.pz-txt { min-width: 0; }
+.pz-txt small { display: block; white-space: normal; overflow-wrap: anywhere; }

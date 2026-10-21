@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Forgatás jobbra",
   "workshop.cam.top": "Felülnézet",
   "brief.parts": "Részek: {n}, mindegyik saját zászlós negyedben",
+  "error.generic": "Hoppá – valami elromlott.",
+  "error.webgl": "A böngésződ nem tudta elindítani a 3D grafikát.",
+  "error.reload": "Újratöltés",
 };

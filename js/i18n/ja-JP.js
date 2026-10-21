@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "右に回す",
   "workshop.cam.top": "真上から見る",
   "brief.parts": "パーツは{n}こ。それぞれ はたのあるエリアにあるよ",
+  "error.generic": "おっと、うまくいかなかったよ。",
+  "error.webgl": "ブラウザで3Dグラフィックを はじめられなかったよ。",
+  "error.reload": "もう一度よみこむ",
 };

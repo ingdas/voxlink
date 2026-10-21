@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Putar ke kanan",
   "workshop.cam.top": "Tampak atas",
   "brief.parts": "{n} bagian, masing-masing di distrik berbenderanya",
+  "error.generic": "Ups — ada yang salah.",
+  "error.webgl": "Browsermu tidak bisa menjalankan grafis 3D.",
+  "error.reload": "Muat ulang",
 };

@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Rotește la dreapta",
   "workshop.cam.top": "Vedere de sus",
   "brief.parts": "{n} părți, fiecare în cartierul ei cu steag",
+  "error.generic": "Hopa — ceva n-a mers bine.",
+  "error.webgl": "Browserul tău n-a putut porni grafica 3D.",
+  "error.reload": "Reîncarcă",
 };

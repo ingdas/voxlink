@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "تدوير لليمين",
   "workshop.cam.top": "منظر علوي",
   "brief.parts": "عدد الأجزاء: {n}، لكل جزء حيّه وعلمه",
+  "error.generic": "عذرًا — حدث خطأ ما.",
+  "error.webgl": "لم يتمكّن متصفّحك من تشغيل الرسوم ثلاثية الأبعاد.",
+  "error.reload": "إعادة التحميل",
 };

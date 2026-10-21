@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Vrid åt höger",
   "workshop.cam.top": "Vy ovanifrån",
   "brief.parts": "{n} delar, var och en i sitt eget kvarter med flagga",
+  "error.generic": "Hoppsan – något gick fel.",
+  "error.webgl": "Din webbläsare kunde inte starta 3D-grafiken.",
+  "error.reload": "Ladda om",
 };

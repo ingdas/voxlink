@@ -76,22 +76,27 @@ export class Renderer {
   constructor(canvas, { mobile }) {
     this.mobile = mobile;
     const r = (this.gl = new THREE.WebGLRenderer({
-      canvas, antialias: false, alpha: false, stencil: false, powerPreference: 'high-performance',
+      canvas, antialias: false, alpha: false, stencil: false, powerPreference: mobile ? 'default' : 'high-performance',
     }));
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
     r.shadowMap.autoUpdate = false;
     r.setClearColor(0x000000, 1);
-    this.maxDpr = Math.min(window.devicePixelRatio || 1, mobile ? 2 : 2);
+    // phones: lower resolution, plain 8-bit buffers and no MSAA (many mobile GPUs can't render to
+    // multisampled half-float targets, which leaves the 3D view black)
+    this.maxDpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
     this.scale = 1;
     this.outlines = true;
-    this.colorRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
-    const depthTexture = new THREE.DepthTexture(1, 1);
-    depthTexture.type = THREE.UnsignedIntType;
-    this.normalRT = new THREE.WebGLRenderTarget(1, 1, {
-      type: THREE.UnsignedByteType, depthTexture, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
-    });
+    const ext = r.extensions;
+    const canHalf = ext.has('EXT_color_buffer_float') || ext.has('EXT_color_buffer_half_float');
+    this.tier = {
+      type: !mobile && canHalf ? THREE.HalfFloatType : THREE.UnsignedByteType,
+      samples: mobile ? 0 : Math.min(4, r.capabilities.maxSamples || 0),
+    };
+    this.direct = false; // last-resort mode: no post-processing (no ink outlines)
+    this.verifyFrames = 2;
     this.normalMat = new THREE.MeshNormalMaterial();
+    this.makeTargets();
     this.quadScene = new THREE.Scene();
     this.quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     const tri = new THREE.BufferGeometry();
@@ -103,7 +108,7 @@ export class Renderer {
       uniforms: {
         tColor: { value: this.colorRT.texture },
         tNormal: { value: this.normalRT.texture },
-        tDepth: { value: depthTexture },
+        tDepth: { value: this.normalRT.depthTexture },
         resolution: { value: new THREE.Vector2(1, 1) },
         thickness: { value: 1 },
         cameraNear: { value: 0.05 },
@@ -120,6 +125,62 @@ export class Renderer {
     this.w = 1; this.h = 1;
     this.frameTimes = [];
     this.adaptTimer = 0;
+  }
+
+  makeTargets() {
+    this.colorRT?.dispose();
+    this.normalRT?.dispose();
+    this.colorRT = new THREE.WebGLRenderTarget(1, 1, { type: this.tier.type, samples: this.tier.samples });
+    const depthTexture = new THREE.DepthTexture(1, 1);
+    depthTexture.type = THREE.UnsignedIntType;
+    this.normalRT = new THREE.WebGLRenderTarget(1, 1, {
+      type: THREE.UnsignedByteType, depthTexture, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
+    });
+    if (this.composite) {
+      const u = this.composite.uniforms;
+      u.tColor.value = this.colorRT.texture; u.tNormal.value = this.normalRT.texture; u.tDepth.value = depthTexture;
+      this.setSize(this.w, this.h);
+    }
+  }
+
+  // Step down to something this GPU can do: no MSAA -> 8-bit color -> no post-processing.
+  downgrade(reason) {
+    if (this.tier.samples) this.tier.samples = 0;
+    else if (this.tier.type !== THREE.UnsignedByteType) this.tier.type = THREE.UnsignedByteType;
+    else if (!this.direct) this.direct = true;
+    else return false;
+    console.warn(`[voxlink] graphics fallback (${reason}):`, this.direct ? 'direct rendering' : this.tier);
+    if (!this.direct) this.makeTargets();
+    this.verifyFrames = 2;
+    setTimeout(() => this.onDowngrade?.(), 0);
+    return true;
+  }
+
+  targetsComplete() {
+    const gl = this.gl.getContext();
+    for (const rt of [this.colorRT, this.normalRT]) {
+      const p = this.gl.properties.get(rt);
+      for (const fb of [p.__webglFramebuffer, p.__webglMultisampledFramebuffer]) {
+        if (!fb) continue;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        if (!ok) return false;
+      }
+    }
+    return true;
+  }
+
+  // Right after drawing a frame: did anything reach the screen? (an all-black frame means a broken pipeline)
+  frameLooksBroken() {
+    const gl = this.gl.getContext();
+    const px = new Uint8Array(4);
+    let lit = 0;
+    for (const [fx, fy] of [[0.5, 0.5], [0.5, 0.85], [0.2, 0.3], [0.8, 0.7], [0.5, 0.15]]) {
+      gl.readPixels(Math.floor(gl.drawingBufferWidth * fx), Math.floor(gl.drawingBufferHeight * fy), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      if (px[0] + px[1] + px[2] > 6) lit++;
+    }
+    return lit === 0;
   }
 
   get pixelRatio() { return this.maxDpr * this.scale; }
@@ -151,6 +212,16 @@ export class Renderer {
 
   render(scene, camera, target = null, size = null) {
     const r = this.gl;
+    if (this.direct) {
+      // fallback without post-processing: everything straight to the screen
+      const mask = camera.layers.mask;
+      camera.layers.enableAll();
+      r.shadowMap.needsUpdate = true;
+      r.setRenderTarget(target);
+      r.render(scene, camera);
+      camera.layers.mask = mask;
+      return;
+    }
     const u = this.composite.uniforms;
     u.cameraNear.value = camera.near;
     u.cameraFar.value = camera.far;
@@ -190,5 +261,10 @@ export class Renderer {
     }
     camera.layers.mask = mask;
     if (size) this.setSize(this.w, this.h);
+    if (!target && this.verifyFrames > 0) {
+      this.verifyFrames--;
+      if (!this.targetsComplete()) this.downgrade('incomplete framebuffer');
+      else if (this.verifyFrames === 0 && this.frameLooksBroken()) this.downgrade('black frame');
+    }
   }
 }

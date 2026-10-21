@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Sağa döndür",
   "workshop.cam.top": "Üstten görünüm",
   "brief.parts": "Bölüm sayısı: {n}, her biri kendi bayraklı bölgesinde",
+  "error.generic": "Hay aksi — bir şeyler ters gitti.",
+  "error.webgl": "Tarayıcın 3B grafikleri başlatamadı.",
+  "error.reload": "Yeniden yükle",
 };

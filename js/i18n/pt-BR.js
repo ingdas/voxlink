@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Girar para a direita",
   "workshop.cam.top": "Vista de cima",
   "brief.parts": "{n} partes, cada uma em seu distrito com bandeira",
+  "error.generic": "Ops — algo deu errado.",
+  "error.webgl": "Seu navegador não conseguiu iniciar os gráficos 3D.",
+  "error.reload": "Recarregar",
 };

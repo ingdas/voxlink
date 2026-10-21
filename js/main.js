@@ -12,7 +12,32 @@ import { t, setLocale, detectLocale, applyDom, listJoin } from './i18n.js';
 import { localizeContent } from './i18n-content.js';
 
 const $ = id => document.getElementById(id);
-const mobile = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0;
+// touch-first devices: phones/tablets (some report no coarse pointer, so look at several signals)
+const mobile = matchMedia('(pointer: coarse)').matches
+  || /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle/i.test(navigator.userAgent)
+  || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1); // iPadOS reports a Mac
+
+// Something broke: show it on screen instead of leaving a silent black page.
+function showFatal(kind, detail) {
+  let el = document.getElementById('fatal');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fatal';
+    el.className = 'fatal';
+    document.body.appendChild(el);
+  }
+  const tx = (k, f) => { try { return t(k); } catch { return f; } };
+  el.innerHTML = `<div class="panel narrow"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div>
+    <p>${kind === 'webgl' ? tx('error.webgl', 'Your browser could not start the 3D graphics.') : tx('error.generic', 'Oops — something went wrong.')}</p>
+    <small>${String(detail || '').slice(0, 160).replace(/</g, '&lt;')}</small>
+    <button class="btn mint" onclick="location.reload()">${tx('error.reload', 'Reload')}</button></div>`;
+}
+addEventListener('error', e => { if (e.message && !/ResizeObserver/.test(e.message)) showFatal('generic', e.message); });
+addEventListener('unhandledrejection', e => {
+  // user cancelled a share sheet, fullscreen/pointer lock was refused, audio blocked: not fatal
+  if (/AbortError|NotAllowedError|SecurityError|NotSupportedError/.test(e.reason?.name || '') || /pointer ?lock|fullscreen|play\(\)/i.test(e.reason?.message || '')) return;
+  showFatal('generic', e.reason?.message || e.reason);
+});
 document.body.classList.toggle('mobile', mobile);
 
 // ---------- persistence ----------
@@ -61,7 +86,14 @@ document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click'
 
 // ---------- core ----------
 const canvas = $('c');
-const renderer = new Renderer(canvas, { mobile });
+let renderer;
+try {
+  renderer = new Renderer(canvas, { mobile });
+} catch (err) {
+  showFatal('webgl', err?.message);
+  throw err;
+}
+canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); showFatal('webgl', 'WebGL context lost'); });
 renderer.outlines = save.settings.outline;
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xffe3c4, 0.0085);
@@ -472,7 +504,7 @@ function showComplete(o) {
 
 // ---------- world map ----------
 let thumbs = [];
-const SECTION_H = 760, TOP_PAD = 86, BOT_PAD = 70;
+const SECTION_H = 820, TOP_PAD = 86, BOT_PAD = 70;
 const mapPos = [];
 function buildMap() {
   const inner = $('map-inner');
@@ -496,7 +528,7 @@ function buildMap() {
       <span>${locked ? `<svg><use href="#i-lock"/></svg> ${t('map.locked')}` : `<svg><use href="#i-star"/></svg> ${st} / ${ch.levels.length * 3} · ${ch.blurb}`}</span></div>`;
     ch.levels.forEach((l, k) => {
       const x = cx + xs[k] * colW * (c % 2 ? -1 : 1);
-      const y = top + SECTION_H - 120 - k * 158;
+      const y = top + SECTION_H - 110 - k * 152;
       mapPos[l.index] = { x, y };
     });
   });
@@ -821,6 +853,8 @@ async function boot() {
   await new Promise(r => setTimeout(r, 30));
   getAtlas(renderer.gl);
   thumbs = renderThumbs();
+  // if the GPU needs a simpler pipeline, the first frames switch to it; then redraw the thumbnails
+  renderer.onDowngrade = () => { thumbKit = null; thumbs = renderThumbs(); };
   fill.style.width = '80%';
   await new Promise(r => setTimeout(r, 30));
   bindSettings();

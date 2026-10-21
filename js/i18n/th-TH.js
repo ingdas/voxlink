@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "หมุนไปทางขวา",
   "workshop.cam.top": "มุมมองจากด้านบน",
   "brief.parts": "{n} ส่วน แต่ละส่วนอยู่ในเขตที่มีธงของตัวเอง",
+  "error.generic": "อุ๊ย มีบางอย่างผิดพลาด",
+  "error.webgl": "เบราว์เซอร์ของคุณเริ่มกราฟิก 3D ไม่ได้",
+  "error.reload": "โหลดใหม่",
 };

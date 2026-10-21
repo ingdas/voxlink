@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Ruota a destra",
   "workshop.cam.top": "Vista dall'alto",
   "brief.parts": "{n} parti, ognuna nel suo quartiere con bandiera",
+  "error.generic": "Ops, qualcosa è andato storto.",
+  "error.webgl": "Il tuo browser non è riuscito ad avviare la grafica 3D.",
+  "error.reload": "Ricarica",
 };

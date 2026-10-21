@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Tourner à droite",
   "workshop.cam.top": "Vue de dessus",
   "brief.parts": "{n} parties, chacune dans son quartier à drapeau",
+  "error.generic": "Oups, un problème est survenu.",
+  "error.webgl": "Ton navigateur n’a pas pu lancer les graphismes 3D.",
+  "error.reload": "Recharger",
 };

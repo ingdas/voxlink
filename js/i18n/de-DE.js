@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Nach rechts drehen",
   "workshop.cam.top": "Draufsicht",
   "brief.parts": "{n} Teile, jeder in seinem eigenen Bezirk mit Flagge",
+  "error.generic": "Hoppla – da ist etwas schiefgegangen.",
+  "error.webgl": "Dein Browser konnte die 3D-Grafik nicht starten.",
+  "error.reload": "Neu laden",
 };

@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Naar rechts draaien",
   "workshop.cam.top": "Bovenaanzicht",
   "brief.parts": "{n} delen, elk in een eigen wijk met vlag",
+  "error.generic": "Oeps — er ging iets mis.",
+  "error.webgl": "Je browser kon de 3D-graphics niet starten.",
+  "error.reload": "Herladen",
 };

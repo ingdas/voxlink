@@ -468,4 +468,7 @@ export default {
   "workshop.cam.right": "Xoay phải",
   "workshop.cam.top": "Nhìn từ trên xuống",
   "brief.parts": "{n} phần, mỗi phần ở một khu có cờ riêng",
+  "error.generic": "Ối — có lỗi xảy ra.",
+  "error.webgl": "Trình duyệt của bạn không khởi động được đồ họa 3D.",
+  "error.reload": "Tải lại",
 };
