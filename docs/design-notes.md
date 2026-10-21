@@ -164,4 +164,7 @@ still felt like a menu. Each world is now one walkable archipelago (`js/archipel
 - The briefing screen is gone; a figure's intro line is Kubo's bark the first time you step onto its
   island. The Puzzler toggle moved to Settings.
 
-Open question: rows are long in worlds with wide islands (Frost: 250 m end to end).
+Long walks, fixed two ways: the islands stand in **two staggered rows** (odd figures in front, even figures
+behind the gaps, their bridges running between the front islands), which halves the spread (Frost: 125 m →
+63 m from the middle to the furthest island), and the bridges are **breeze lanes** (a glowing stripe; you move
+2.4× faster on them, ~17 m/s running). The longest hub-to-figure trip is now about 8 seconds.

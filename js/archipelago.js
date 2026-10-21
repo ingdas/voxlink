@@ -1,7 +1,8 @@
 // A world's archipelago: a small hub island in the middle and one island per figure, joined by plank bridges.
-// Islands sit in a row north of the hub; a causeway runs north from the hub to a boardwalk along the row, and a
-// short spur leads from the boardwalk into each island's south side (where every island keeps a clear path to its
-// pedestal). Only one figure island is active (its puzzle loaded): the archipelago is shifted so that island sits
+// Islands stand north of the hub in two staggered rows (odd figures in front, even ones behind the gaps); a
+// causeway runs north from the hub to a boardwalk, and a spur leads from the boardwalk into each island's south
+// side (where every island keeps a clear path to its pedestal) — the back row's spurs pass between the front
+// islands. Bridges are breeze lanes: you cross them fast. Only one figure island is active (its puzzle loaded): the archipelago is shifted so that island sits
 // at the origin, which is what the game expects, and `api` answers the player's queries across all islands and
 // bridges in those shifted coordinates. Moving to another island just changes the shift.
 import * as THREE from 'three';
@@ -12,7 +13,8 @@ import { mergeFigure } from './voxels.js';
 import { expandLevel } from './levels.js';
 
 const DECK = 0.22; // bridge deck height
-const GAP = 4; // between neighbouring islands
+const GAP = 5.4; // between front-row islands (a back-row bridge passes through)
+const BOOST = 2.4; // walking speed on the bridges
 const SPUR = 4.5; // boardwalk to island
 const CAUSE = 6; // hub to boardwalk
 const HW = 1.2; // half width of a bridge
@@ -41,18 +43,28 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   const hub = { world: hubWorld, p: new THREE.Vector3() };
   const floating = hubWorld.voidY !== undefined;
 
-  // ---- layout: islands in a row north of the hub ----
-  const xs = [];
-  parts.forEach((pt, i) => { xs.push(i ? xs[i - 1] + parts[i - 1].world.R + pt.world.R + GAP : 0); });
-  const mid = (xs[0] + xs[xs.length - 1]) / 2;
+  // ---- layout: two staggered rows north of the hub ----
   const zJ = -(reach(hubWorld, -1) + CAUSE); // the boardwalk
-  parts.forEach((pt, i) => {
-    pt.coast = coast(pt.world, 1);
-    pt.p.set(xs[i] - mid, 0, zJ - SPUR - reach(pt.world, 1));
-    pt.entry = new THREE.Vector3(pt.p.x, 0, pt.p.z + pt.coast); // where its spur reaches the island
+  const front = parts.filter((pt, i) => i % 2 === 0 || i === parts.length - 1); // an even count ends the front row
+  const back = parts.filter(pt => !front.includes(pt));
+  for (const pt of parts) { pt.coast = coast(pt.world, 1); pt.south = reach(pt.world, 1); pt.north = reach(pt.world, -1); }
+  let x = 0;
+  front.forEach((pt, k) => { if (k) x += front[k - 1].world.R + pt.world.R + GAP; pt.p.set(x, 0, zJ - SPUR - pt.south); });
+  const mid = (front[0].p.x + front[front.length - 1].p.x) / 2;
+  for (const pt of front) pt.p.x -= mid;
+  // a back-row island stands behind the gap between its two front-row neighbours, clear of their north shores
+  // (and of the back-row island before it)
+  back.forEach((pt, k) => {
+    const L = front[k], Rt = front[k + 1] || front[k];
+    const gx = Rt === L ? L.p.x + L.world.R + GAP / 2 : (L.p.x + L.world.R + Rt.p.x - Rt.world.R) / 2;
+    let z = Math.min(L.p.z - L.north, Rt.p.z - Rt.north) - 3 - pt.south;
+    const prev = back[k - 1];
+    if (prev && Math.abs(gx - prev.p.x) < prev.world.R + pt.world.R + 2) z = Math.min(z, prev.p.z - prev.north - 3 - pt.south);
+    pt.p.set(gx, 0, z);
   });
+  for (const pt of parts) pt.entry = new THREE.Vector3(pt.p.x, 0, pt.p.z + pt.coast); // where its spur reaches the island
   const hubN = coast(hubWorld, -1);
-  const xMin = parts[0].p.x, xMax = parts[parts.length - 1].p.x;
+  const xMin = Math.min(...parts.map(pt => pt.p.x)), xMax = Math.max(...parts.map(pt => pt.p.x));
   // bridges as rectangles [x0, z0, x1, z1] (archipelago coordinates: the hub at the origin)
   const causeway = [-HW, zJ - HW, HW, -hubN + 0.8];
   const boardwalk = [xMin - HW, zJ - HW, xMax + HW, zJ + HW];
@@ -78,6 +90,11 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     const alongX = x1 - x0 > z1 - z0, L = alongX ? x1 - x0 : z1 - z0, w = alongX ? z1 - z0 : x1 - x0;
     const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
     B.put(GEO.box(), 0x8a5a3c, cx, DECK - 0.12, cz, { sx: alongX ? L : w, sy: 0.16, sz: alongX ? w : L });
+    // the breeze lane: a glowing dashed stripe down the middle
+    for (let t = 0.6; t < L - 0.4; t += 1.4) {
+      const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
+      B.put(GEO.box(), 0x9cf5ff, px, DECK + 0.015, pz, { sx: alongX ? 0.8 : 0.3, sy: 0.02, sz: alongX ? 0.3 : 0.8, kind: 'glow' });
+    }
     for (let t = 0.25; t < L; t += 0.5) {
       const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
       B.put(GEO.box(), Math.round(t * 2) % 2 ? 0xc08a5c : 0xb27b50, px, DECK - 0.02, pz, { sx: alongX ? 0.44 : w + 0.1, sy: 0.06, sz: alongX ? w + 0.1 : 0.44, kind: 'ground' });
@@ -166,7 +183,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     surfaceAt(x, z, y) {
       const ax = x + A.x, az = z + A.z;
       const k = pieceAt(ax, az, -0.3);
-      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: 1, sound: 'wood' };
+      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: BOOST, sound: 'wood' };
       return (k || active).world.surfaceAt(ax - (k || active).p.x, az - (k || active).p.z, y);
     },
     padAt(x, z, y) {

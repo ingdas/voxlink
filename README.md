@@ -50,7 +50,7 @@ Workshop editor:
 ## How it plays
 
 - Each world is an archipelago you walk around: a middle island with a portal, joined by plank bridges to
-  one island per figure. Walk onto a figure's island to start it (its puzzle takes over; a half-built figure
+  one island per figure (two staggered rows; you zip along the bridges). Walk onto a figure's island to start it (its puzzle takes over; a half-built figure
   keeps its progress when you leave). Blocks can't leave their island. Islands of figures you haven't
   reached yet are closed off by a gate on their bridge. The portal travels between worlds (the world select).
 - Floating **bubbles** on the figure show which numbers are open right now.
