@@ -32,6 +32,8 @@ function tree(W, kind, x, z, s, y = W.floorAt(x, z) ?? 0) {
       const c = new THREE.Vector3(x, y, z).addScaledVector(up, (2.4 + i * 0.95) * s);
       c.x += (rng() - 0.5) * 0.4 * s + dx * i * 0.35 * s; c.z += (rng() - 0.5) * 0.4 * s + dz * i * 0.35 * s;
       put(W, GEO.blob(), lc, c.x, c.y, c.z, { sx: bs * (kind === 'bent' ? 1.25 : 1), sy: bs * 0.9, sz: bs, rx: rng() * 3, ry: rng() * 3, rz: rng() * 3 });
+      // an orchard island's trees carry fruit
+      if (W.mood?.fruit && kind === 'round') for (let f = 0; f < 3; f++) { const a = rng() * 6.3; put(W, GEO.ico(), W.mood.fruit, c.x + Math.cos(a) * bs * 0.9, c.y - bs * 0.3, c.z + Math.sin(a) * bs * 0.9, { sx: 0.13, sy: 0.13, sz: 0.13 }); }
     }
   } else if (kind === 'pine') {
     put(W, GEO.cyl(7), T.trunk, x, y + 0.8 * s, z, { sx: 0.22 * s, sy: 2.2 * s, sz: 0.22 * s });
@@ -321,7 +323,8 @@ function meadow(W) {
     W.obstacles.push({ x, z, r: 2.4 });
   });
 
-  scatterProps(W, Math.round(R * 0.5), (x, z) => okTree(W, x, z), (x, z) => tree(W, 'round', x, z, 0.75 + rng() * 0.5));
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.5)), (x, z) => okTree(W, x, z), (x, z) => tree(W, 'round', x, z, 0.75 + rng() * 0.5));
   // bushes and rocks
   scatterProps(W, Math.round(R * 0.6), (x, z) => okTree(W, x, z, 1.0), (x, z) => {
     const y = W.floorAt(x, z), s = 0.45 + rng() * 0.35;
@@ -329,7 +332,7 @@ function meadow(W) {
     if (rng() < 0.5) for (let k = 0; k < 3; k++) put(W, GEO.ico(), T.flowers[Math.floor(rng() * T.flowers.length)], x + (rng() - 0.5) * s * 1.6, y + s * (0.7 + rng() * 0.4), z + (rng() - 0.5) * s * 1.6, { sx: 0.08, sy: 0.08, sz: 0.08 });
     W.obstacles.push({ x, z, r: s + 0.4 });
   });
-  scatterProps(W, Math.round(R * 0.2), (x, z) => okTree(W, x, z, 1.0), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4));
+  scatterProps(W, W.more('rocks', Math.round(R * 0.2)), (x, z) => okTree(W, x, z, 1.0), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4));
   W.clouds = 18; W.cloudScale = 1.35; W.cloudY = 18;
   W.extras = [() => butterflies(W)];
 }
@@ -449,7 +452,8 @@ function frost(W) {
     }
   }
   // pine forest along the shores
-  scatterProps(W, Math.round(R * 0.95), (x, z) => islands(x, z) < -1.4 && islands(x, z) > -5 && ice(x, z) > 1.5 && okTree(W, x, z, 1.2),
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.95)), (x, z) => islands(x, z) < -1.4 && islands(x, z) > -5 && ice(x, z) > 1.5 && okTree(W, x, z, 1.2),
     (x, z) => tree(W, 'pine', x, z, 0.8 + rng() * 0.55, 0), 10);
   // snow drifts and ice spikes
   scatterProps(W, Math.round(R * 0.6), (x, z) => islands(x, z) < -0.8 && ice(x, z) > 1 && okTree(W, x, z, 0.8), (x, z) => {
@@ -457,7 +461,7 @@ function frost(W) {
     put(W, GEO.dome(), 0xfafcff, x, -0.05, z, { sx: s * 1.4, sy: 0.3 + rng() * 0.2, sz: s, ry: rng() * 3, kind: 'solid' });
     W.obstacles.push({ x, z, r: s + 0.3 });
   });
-  scatterProps(W, Math.round(R * 0.3), (x, z) => islands(x, z) < -1 && ice(x, z) > 1 && okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.5 + rng() * 0.6, 0, 'ice'));
+  scatterProps(W, W.more('rocks', Math.round(R * 0.3)), (x, z) => islands(x, z) < -1 && ice(x, z) > 1 && okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.5 + rng() * 0.6, 0, 'ice'));
   // ice floes drifting on the dark water
   scatterProps(W, 30, (x, z) => coast(x, z) > 2 && coast(x, z) < 16, (x, z) => {
     const s = 0.6 + rng() * 1.6;
@@ -561,7 +565,8 @@ function reef(W) {
   W.noTuft = (x, z) => lag(x, z) < 0.4;
   plateauField(W, Math.round(2 + R * 0.12), { body: 0xe3b27a, cap: 0xf3d9a4, step: 0xeec48c, sound: 'stone' }, (x, z, ext) => lag(x, z) > ext + 2.5);
   // palms along the beach, umbrellas, shells and starfish
-  scatterProps(W, Math.round(R * 0.6), (x, z) => isl(x, z) < -1.8 && lag(x, z) > 1.6 && okTree(W, x, z, 1.6), (x, z) => tree(W, 'palm', x, z, 0.85 + rng() * 0.45, 0), 10);
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.6)), (x, z) => isl(x, z) < -1.8 && lag(x, z) > 1.6 && okTree(W, x, z, 1.6), (x, z) => tree(W, 'palm', x, z, 0.85 + rng() * 0.45, 0), 10);
   scatterProps(W, 3, (x, z) => lag(x, z) > 2.5 && okTree(W, x, z, 3), (x, z) => {
     const cols = [[0xff6b6b, 0xffffff], [0x4cc9f0, 0xffffff], [0xffd23f, 0xff8fc7]][Math.floor(rng() * 3)];
     put(W, GEO.cyl(6), 0xf5f0e8, x, 1.1, z, { sx: 0.06, sy: 2.2, sz: 0.06 });
@@ -580,7 +585,7 @@ function reef(W) {
     }
   }, 3);
   // coral and seaweed on the lagoon floor
-  scatterProps(W, Math.round(b * 2.2), (x, z) => lag(x, z) < -2.4 && !W.blocked(x, z, 0.8, -0.6, 2) && !W.crowded(x, z, 0.8), (x, z) => rock(W, x, z, 0.22 + rng() * 0.18, W.floorAt(x, z), 'coral', false));
+  scatterProps(W, W.more('rocks', Math.round(b * 2.2)), (x, z) => lag(x, z) < -2.4 && !W.blocked(x, z, 0.8, -0.6, 2) && !W.crowded(x, z, 0.8), (x, z) => rock(W, x, z, 0.22 + rng() * 0.18, W.floorAt(x, z), 'coral', false));
   // tall sea stacks out in the sea
   scatterProps(W, 7, (x, z) => isl(x, z) > 5 && isl(x, z) < 22, (x, z) => {
     let y = W.seaY - 0.5, s = 1.6 + rng() * 1.4;
@@ -700,7 +705,8 @@ function starfall(W) {
   }];
 
   plateauField(W, Math.round(1 + R * 0.08), { body: 0x7a6bb0, cap: T.cap, step: 0x8a7bc0, sound: 'crystal' });
-  scatterProps(W, Math.round(R * 0.55), (x, z) => okTree(W, x, z, 1.4), (x, z) => tree(W, 'crystal', x, z, 0.8 + rng() * 0.6, 0));
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.55)), (x, z) => okTree(W, x, z, 1.4), (x, z) => tree(W, 'crystal', x, z, 0.8 + rng() * 0.6, 0));
   // tall crystal spires at the rim
   scatterProps(W, 3, (x, z) => main(x, z) < -1.2 && main(x, z) > -3.5 && okTree(W, x, z, 1.2), (x, z) => {
     const c = T.leaves[Math.floor(rng() * 3)], h = 4 + rng() * 3;
@@ -709,7 +715,7 @@ function starfall(W) {
     W.box(x - 0.6, 0, z - 0.6, x + 0.6, h, z + 0.6, { sound: 'crystal' });
     W.obstacles.push({ x, z, r: 1.4 });
   }, 12);
-  scatterProps(W, Math.round(R * 0.25), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4, 0));
+  scatterProps(W, W.more('rocks', Math.round(R * 0.25)), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4, 0));
   // distant floating rocks for depth
   for (let i = 0; i < 16; i++) {
     const a = rng() * Math.PI * 2, d = W.bound + 10 + rng() * 45, r = 1 + rng() * 3.5;
@@ -806,8 +812,9 @@ function storm(W) {
     if (isl(x, z) > -1 || W.blocked(x, z, 0.4, 0, 1)) continue;
     put(W, GEO.box(), rng() < 0.5 ? 0x6a6a78 : 0x5c5c6a, x, 0.015, z, { sx: 0.45 + rng() * 0.4, sy: 0.04, sz: 0.4 + rng() * 0.3, ry: rng() * 0.4, kind: 'fx' });
   }
-  scatterProps(W, Math.round(R * 0.3), (x, z) => okTree(W, x, z), (x, z) => tree(W, 'bent', x, z, 0.7 + rng() * 0.4, 0));
-  scatterProps(W, Math.round(R * 0.45), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.35 + rng() * 0.5, 0));
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.3)), (x, z) => okTree(W, x, z), (x, z) => tree(W, 'bent', x, z, 0.7 + rng() * 0.4, 0));
+  scatterProps(W, W.more('rocks', Math.round(R * 0.45)), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.35 + rng() * 0.5, 0));
   // jagged rocks rising from the sea
   scatterProps(W, 9, (x, z) => isl(x, z) > 4 && isl(x, z) < 30, (x, z) => {
     const h = 6 + rng() * 9, s = 1.5 + rng() * 2;
@@ -1042,7 +1049,8 @@ function farm(W) {
     W.box(x - (alongX ? L / 2 : r), 0, z - (alongX ? r : L / 2), x + (alongX ? L / 2 : r), r * 2, z + (alongX ? r : L / 2), { top: true, sound: 'grass' });
     W.obstacles.push({ x, z, r: 1.2 });
   });
-  scatterProps(W, Math.round(R * 0.35), (x, z) => okTree(W, x, z) && !inField(x, z, 2), (x, z) => tree(W, 'round', x, z, 0.75 + rng() * 0.45, 0));
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.35)), (x, z) => okTree(W, x, z) && !inField(x, z, 2), (x, z) => tree(W, 'round', x, z, 0.75 + rng() * 0.45, 0));
   scatterProps(W, Math.round(R * 0.4), (x, z) => okTree(W, x, z, 1) && !inField(x, z, 1), (x, z) => {
     const s = 0.45 + rng() * 0.3;
     put(W, GEO.blob(), T.leaves[Math.floor(rng() * T.leaves.length)], x, s * 0.55, z, { sx: s * 1.2, sy: s, sz: s, ry: rng() * 3 });
@@ -1116,7 +1124,8 @@ function frostwood(W) {
 
   // the forest: tall pines, stumps and snowy rocks
   plateauField(W, Math.round(2 + R * 0.12), { body: 0x9fb8dc, cap: 0xffffff, step: 0xbfd0ea, sound: 'snow' }, (x, z, ext) => stream(x, z) > ext + 2.5 && !inDrift(x, z));
-  scatterProps(W, Math.round(R * 1.3), (x, z) => okTree(W, x, z, 1.2) && stream(x, z) > 1.8 && !inDrift(x, z), (x, z) => tree(W, 'pine', x, z, 0.9 + rng() * 0.7, 0), 10);
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 1.3)), (x, z) => okTree(W, x, z, 1.2) && stream(x, z) > 1.8 && !inDrift(x, z), (x, z) => tree(W, 'pine', x, z, 0.9 + rng() * 0.7, 0), 10);
   scatterProps(W, Math.round(R * 0.25), (x, z) => okTree(W, x, z, 1) && stream(x, z) > 1.2 && !inDrift(x, z), (x, z) => {
     put(W, GEO.cyl(8), 0x8a5a3c, x, 0.25, z, { sx: 0.35, sy: 0.5, sz: 0.35 });
     put(W, GEO.cyl(8), 0xfafcff, x, 0.52, z, { sx: 0.37, sy: 0.06, sz: 0.37 });
@@ -1186,8 +1195,9 @@ function cove(W) {
     W.obstacles.push({ x, z, r: 0.9 });
   });
   plateauField(W, Math.round(2 + R * 0.12), { body: T.cliff, cap: T.cap, step: T.dirt, sound: 'stone' }, (x, z, ext) => land(x, z) < -(ext + 2.2));
-  scatterProps(W, Math.round(R * 0.4), (x, z) => okTree(W, x, z, 1.6), (x, z) => tree(W, 'palm', x, z, 0.8 + rng() * 0.4, 0), 10);
-  scatterProps(W, Math.round(R * 0.45), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.35 + rng() * 0.55, 0));
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.4)), (x, z) => okTree(W, x, z, 1.6), (x, z) => tree(W, 'palm', x, z, 0.8 + rng() * 0.4, 0), 10);
+  scatterProps(W, W.more('rocks', Math.round(R * 0.45)), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.35 + rng() * 0.55, 0));
   // tide pools with starfish
   scatterProps(W, Math.round(R * 0.25), (x, z) => land(x, z) < -1.5 && okTree(W, x, z, 1) && W.flatAt(x, z, 0.9, 0.01) !== null, (x, z) => {
     put(W, GEO.cyl(10), 0x3fc9d4, x, 0.015, z, { sx: 0.7 + rng() * 0.3, sy: 0.02, sz: 0.55 + rng() * 0.3, ry: rng() * 3, kind: 'fx' });
@@ -1271,7 +1281,8 @@ function moon(W) {
     tower(W, x, z, 2.0 + rng() * 0.6, 2.0 + rng() * 0.6, 2.4 + rng() * 0.5, 0, 0, 0, 0, { body: T.cliff, cap: T.cap, lines: T.dirt, sound: 'stone' });
     W.obstacles.push({ x, z, r: 2 });
   }, 40);
-  scatterProps(W, Math.round(R * 0.6), (x, z) => okTree(W, x, z, 1) && !onRim(x, z), (x, z) => rock(W, x, z, 0.25 + rng() * 0.55, 0));
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('rocks', Math.round(R * 0.6)), (x, z) => okTree(W, x, z, 1) && !onRim(x, z), (x, z) => rock(W, x, z, 0.25 + rng() * 0.55, 0));
   scatterProps(W, 4, (x, z) => okTree(W, x, z, 1.4) && !onRim(x, z), (x, z) => {
     const c = [0x6ee7ff, 0xb693f5][Math.floor(rng() * 2)], h = 0.8 + rng() * 0.8;
     put(W, GEO.octa(), c, x, h * 0.45, z, { sx: 0.25, sy: h * 0.6, sz: 0.25, ry: rng() * 3, kind: 'glow' });
@@ -1351,8 +1362,9 @@ function cliffs(W) {
     house(W, x, z, ry, { wall: 0xf7f3ea, roof: 0x4f5a6e, door: 0x2d6fb0, glass: 0x9fd4f2 });
   });
   plateauField(W, Math.round(2 + R * 0.1), { body: 0xd9d2c2, cap: T.cap, step: T.cliff, sound: 'stone' }, (x, z, ext) => !onHill(x, z, ext + 2));
-  scatterProps(W, Math.round(R * 0.4), (x, z) => okTree(W, x, z) && !onHill(x, z, 0.5), (x, z) => tree(W, 'bent', x, z, 0.7 + rng() * 0.4, 0));
-  scatterProps(W, Math.round(R * 0.35), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.45, W.floorAt(x, z)));
+  W.landmark(); // before the trees and rocks, which grow around it
+  scatterProps(W, W.more('trees', Math.round(R * 0.4)), (x, z) => okTree(W, x, z) && !onHill(x, z, 0.5), (x, z) => tree(W, 'bent', x, z, 0.7 + rng() * 0.4, 0));
+  scatterProps(W, W.more('rocks', Math.round(R * 0.35)), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.45, W.floorAt(x, z)));
   // kites dancing high above the island
   W.extras.push(() => {
     const kites = [];

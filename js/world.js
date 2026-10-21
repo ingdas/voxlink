@@ -3,6 +3,7 @@ import { toon, LAYER_FX, LAYER_OVERLAY } from './render.js';
 import { Batch, GEO, contours, topGeometry, wallGeometry, projectInside, sharedDot } from './world-kit.js';
 import { buildSky } from './world-sky.js';
 import { LAYOUTS } from './world-layouts.js';
+import { placeLandmark } from './world-moods.js';
 
 export { dotTexture } from './world-kit.js';
 
@@ -119,9 +120,10 @@ export const THEMES = {
 // plain: the classic round island (Kubo's Garden keeps its calm plaza)
 // part: one island of a world's archipelago — no sky, sea plane, lights, clouds or particles (the hub island has those)
 // layout: override the theme's island generator; seaY: sea level to use; pedestal: build the figure's pedestal
+// mood: this island's own character within its world (colours, tree / rock counts, a landmark; see world-moods.js)
 export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'meadow', difficulty = 0, clearR = 3.2, plain = false,
-  part = false, layout = null, seaY = null, pedestal = true }) {
-  const T = THEMES[themeId];
+  part = false, layout = null, seaY = null, pedestal = true, mood = null }) {
+  const T = mood?.tint ? { ...THEMES[themeId], ...mood.tint } : THEMES[themeId];
   const group = new THREE.Group();
   const colliders = [];
   const blockers = []; // meshes that block the interaction ray
@@ -135,7 +137,10 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     T, themeId, rng, R, clearR, seed, difficulty, quality, group, B, colliders, blockers, tops, updaters, obstacles, spawnZ,
     bound: R + 1, hasSea: true, seaY: seaY ?? -1.7, wind: null, pads: [], gravityScale: 1, voidY: undefined,
     walkSd: null, floorAt: () => 0, surfaceAt: null, coastSd: null,
-    cstep: 0.5,
+    cstep: 0.5, mood,
+    // the layout's count of trees or rocks, scaled by the island's mood
+    more: (kind, n) => Math.round(n * (mood?.[kind] ?? 1)),
+    landmark: () => placeLandmark(W),
     // axis-aligned collider (optionally a resting surface for blocks)
     box(x0, y0, z0, x1, y1, z1, { top = false, sound = null } = {}) {
       const b = new THREE.Box3(new THREE.Vector3(x0, y0, z0), new THREE.Vector3(x1, y1, z1));
@@ -190,6 +195,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
 
   const layoutId = layout || (plain ? 'classic' : T.layout || 'classic');
   LAYOUTS[layoutId](W);
+  W.landmark(); // layouts without trees still get theirs
   const walkSd = W.walkSd;
   const coastSd = W.coastSd || walkSd;
   const floorAt = W.floorAt;
@@ -414,7 +420,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const tmpP = { x: 0, z: 0 };
   const api = {
     group, colliders, blockers, R: W.bound, tops, isFreeGround, heightAt, groundY, theme: T, themeId, onFlash: null, onGust: null,
-    seaY: W.seaY, hasSea: W.hasSea, portal: W.portal || null, part,
+    seaY: W.seaY, hasSea: W.hasSea, portal: W.portal || null, part, landmark: W.landmarkAt || null,
     // handles for cutscenes that restyle the weather (calm: true stops the storm's own lightning)
     atmos: { sky: skyU, hemi, sun, particles, vortex, unflash }, calm: false,
     radiusAt: W.radiusAt || (() => W.bound),

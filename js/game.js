@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LEVELS, CHAPTERS, expandLevel, partsFor, coreSize } from './levels.js';
 import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
+import { islandMood } from './world-moods.js';
 import { buildArchipelago } from './archipelago.js';
 import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, shuffle, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS, mergeFigure } from './voxels.js';
 import { Player } from './player.js';
@@ -36,6 +37,7 @@ function buildIsland(level, themeId, quality, part) {
   return buildWorld({
     rng: mulberry32(1000 + hashId(level.id) * 7919), radius: R, seed: (hashId(level.id) % 97) + 1, quality, clearR: footR, part,
     theme: themeId, difficulty: Math.min(1, (level.chapter ?? 2) * 0.16 + (level.chapterProgress ?? 0.33) * 0.24),
+    mood: level.indexInChapter === undefined ? null : islandMood(themeId, level.indexInChapter),
   });
 }
 const badgeCache = new Map();

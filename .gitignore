@@ -2,3 +2,4 @@
 node_modules/
 _site/
 .claude/
+tests/e2e/out/

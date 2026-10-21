@@ -53,6 +53,8 @@ Workshop editor:
   one island per figure (two staggered rows; you zip along the bridges). Walk onto a figure's island to start it (its puzzle takes over; a half-built figure
   keeps its progress when you leave). Blocks can't leave their island. Islands of figures you haven't
   reached yet are closed off by a gate on their bridge. The portal travels between worlds (the world select).
+  A world's islands share its look but each has a mood of its own: its colours (blossom, autumn, golden…),
+  more or fewer trees and rocks, and a landmark (stone circle, giant mushrooms, an ancient oak, a wreck…).
 - Floating **bubbles** on the figure show which numbers are open right now.
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.
@@ -119,7 +121,7 @@ in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (
 
 `tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
 all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
-phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, and the 3D picking up again after the phone drops the WebGL context. Each suite starts its own static server.
+phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), and the 3D picking up again after the phone drops the WebGL context. Each suite starts its own static server.
 
 ```
 PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tests/e2e/run.mjs          # everything
@@ -141,6 +143,7 @@ fly / no-clip, unlock everything, replay the prologue / finale cutscenes, and se
   world queries the game and player use (`floorAt`, `surfaceAt`, `clampPlayer`, `dropPoint`, ...)
 - `js/world-layouts.js`: one generator per chapter world (meadow terraces and pond, frost archipelago,
   reef lagoon and piers, starfall floating islets and jump pads, storm ruins and wind gusts)
+- `js/world-moods.js`: each world's five island moods (colour shifts, tree / rock counts) and their landmarks
 - `js/world-kit.js`, `js/world-sky.js`: merged static geometry, shape contours, skies (aurora, sunset,
   moon and ringed planet, storm vortex, cloud sea)
 - `js/game.js`: level session (sockets, backpack, interaction, animations, celebration)
