@@ -153,9 +153,16 @@ function end() {
   c.finish();
 }
 
-// props are parented to the current world, so unloading the world frees them too
+// props are parented to the current world, so unloading the world frees them too. An archipelago's group is
+// shifted to put the active island at the origin: the stage undoes that, so props are placed in game coordinates.
+function stage() {
+  const w = ctx.game.world;
+  if (!w.cineStage) { w.cineStage = new THREE.Group(); w.group.add(w.cineStage); }
+  w.cineStage.position.copy(w.group.position).negate();
+  return w.cineStage;
+}
 function prop(obj, dispose) {
-  ctx.game.world.group.add(obj);
+  stage().add(obj);
   const p = { obj, dispose: () => { obj.parent?.remove(obj); dispose?.(); } };
   C.props.push(p);
   return obj;
@@ -231,25 +238,32 @@ function armRig(g) {
 
 const glowMat = color => new THREE.SpriteMaterial({ map: sharedDot(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
 
-// The storm in a ball: a swirling sphere with a soft halo.
+// The storm in a ball: cloud bands twisting around a glowing heart, lightning veins flickering over it, a soft halo.
+// crack: steady veins (the grip slipping); zap: veins that flash on and off.
 const orbVert = `varying vec3 vP; varying vec3 vN; varying vec3 vV;
 void main(){ vP = position; vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
-const orbFrag = `uniform float time; uniform vec3 a; uniform vec3 b; uniform float crack;
+const orbFrag = `uniform float time; uniform vec3 a; uniform vec3 b; uniform float crack; uniform float zap;
 varying vec3 vP; varying vec3 vN; varying vec3 vV;
+float h3(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+float n3(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z); }
+float fbm3(vec3 p){ float s = 0.0, w = 0.5; for (int i = 0; i < 4; i++) { s += w * n3(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); w *= 0.5; } return s; }
 void main(){
   vec3 p = normalize(vP);
-  float ang = atan(p.z, p.x);
-  float s1 = sin(ang * 3.0 + p.y * 5.0 - time * 2.4 + sin(p.y * 3.0 + time * 0.7) * 1.6);
-  float s2 = sin(ang * 5.0 - p.y * 8.0 + time * 1.7);
-  float k = smoothstep(0.1, 0.95, s1 * 0.5 + 0.5) * 0.7 + smoothstep(0.55, 1.0, s2 * 0.5 + 0.5) * 0.35;
-  float rim = pow(1.0 - max(dot(vN, vV), 0.0), 2.0);
-  float lines = 1.0 - smoothstep(0.0, 0.07, abs(sin(p.x * 7.0 + p.y * 11.0 + sin(p.z * 5.0) * 2.0)));
-  vec3 c = mix(a, b, k) + b * rim * 0.9 + vec3(1.0) * lines * crack;
+  float tw = p.y * 2.6 - time * 1.1; // bands twist faster towards the poles
+  vec3 q = vec3(p.x * cos(tw) - p.z * sin(tw), p.y, p.x * sin(tw) + p.z * cos(tw));
+  float cl = fbm3(q * 2.4 + vec3(0.0, time * 0.35, 0.0));
+  float k = smoothstep(0.3, 0.75, cl);
+  float face = max(dot(vN, vV), 0.0), rim = pow(1.0 - face, 2.0);
+  float vein = 1.0 - smoothstep(0.0, 0.035, abs(fbm3(p * 3.2 + floor(time * 7.0) * 3.7) - 0.5));
+  float flick = step(0.55, h3(vec3(floor(time * 9.0))));
+  vec3 c = mix(a, b, k * 0.85) + b * rim * 0.9 + b * pow(face, 4.0) * 0.35 + vec3(1.0) * vein * (crack + zap * flick);
   gl_FragColor = vec4(c, 1.0);
   #include <colorspace_fragment>
 }`;
 function makeOrb() {
-  const u = { time: { value: 0 }, a: { value: new THREE.Color(0x1d2452) }, b: { value: new THREE.Color(0xa8dcff) }, crack: { value: 0 } };
+  const u = { time: { value: 0 }, a: { value: new THREE.Color(0x1d2452) }, b: { value: new THREE.Color(0xa8dcff) }, crack: { value: 0 }, zap: { value: 0 } };
   const group = new THREE.Group();
   const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 4), new THREE.ShaderMaterial({ uniforms: u, vertexShader: orbVert, fragmentShader: orbFrag }));
   const halo = new THREE.Sprite(glowMat(0x9fd8ff));
@@ -305,7 +319,7 @@ function makeBolt(from, to) {
 }
 
 // Streaks of rain that follow the camera (the meadow has none of its own).
-function makeRain(n = 700) {
+function makeRain(n = 700, wind = 0.18) {
   const pos = new Float32Array(n * 6), seeds = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) seeds.set([(Math.random() - 0.5) * 34, Math.random() * 16, (Math.random() - 0.5) * 34], i * 3);
   const geo = new THREE.BufferGeometry();
@@ -324,12 +338,213 @@ function makeRain(n = 700) {
         let y = seeds[i * 3 + 1] - dt * 17;
         if (y < -2) y += 16;
         seeds[i * 3 + 1] = y;
-        const x = cam.x + seeds[i * 3] + y * 0.18, z = cam.z + seeds[i * 3 + 2], yy = cam.y - 3 + y;
-        pos.set([x, yy, z, x - 0.1, yy + 0.55, z], i * 6);
+        const x = cam.x + seeds[i * 3] + y * wind, z = cam.z + seeds[i * 3 + 2], yy = cam.y - 3 + y;
+        pos.set([x, yy, z, x - wind * 0.55, yy + 0.55, z], i * 6);
       }
       geo.attributes.position.needsUpdate = true;
     },
   };
+}
+
+// Storm streaks spiralling around `center`: in from the clouds (the finale) or out of it and up into the sky.
+function makeSwirl(center, { n = 220, out = false, color = 0xbfe6ff, size = 0.35 } = {}) {
+  const pos = new Float32Array(n * 3);
+  const seeds = Array.from({ length: n }, () => ({ a: Math.random() * Math.PI * 2, r0: 14 + Math.random() * 30, y0: 12 + Math.random() * 30, s: 0.25 + Math.random() * 0.35, k: Math.random() }));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ color, size, map: sharedDot(), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  const pts = new THREE.Points(geo, mat);
+  pts.layers.set(LAYER_OVERLAY);
+  pts.frustumCulled = false;
+  prop(pts, () => { geo.dispose(); mat.dispose(); });
+  return {
+    // everything starts together near the beginning of its path (a burst rather than a steady flow)
+    gather(spread = 0.15) { for (const p of seeds) p.k = Math.random() * spread; },
+    update(dt, amount) {
+      mat.opacity = amount;
+      pts.visible = amount > 0.01;
+      if (!pts.visible) return;
+      seeds.forEach((p, i) => {
+        p.k += dt * p.s;
+        if (p.k >= 1) p.k -= 1;
+        const k = out ? Math.sqrt(1 - p.k) : p.k * p.k, r = p.r0 * (1 - k);
+        const a = p.a + k * 5 * (out ? -1 : 1);
+        pos[i * 3] = center.x + Math.cos(a) * r;
+        pos[i * 3 + 1] = THREE.MathUtils.lerp(p.y0, center.y, k);
+        pos[i * 3 + 2] = center.z + Math.sin(a) * r;
+      });
+      geo.attributes.position.needsUpdate = true;
+    },
+  };
+}
+
+// A little hurricane around the ball: wisps circling in a tilted disc, faster near the middle.
+function makeWisps(n = 160) {
+  const pos = new Float32Array(n * 3);
+  const seeds = Array.from({ length: n }, () => ({ a: Math.random() * Math.PI * 2, r: 1.25 + Math.pow(Math.random(), 1.6) * 1.9, y: (Math.random() - 0.5) * 0.5, ph: Math.random() * 6 }));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ color: 0x8fbfff, size: 0.2, map: sharedDot(), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  const pts = new THREE.Points(geo, mat);
+  pts.layers.set(LAYER_OVERLAY);
+  pts.frustumCulled = false;
+  pts.rotation.set(0.35, 0, 0.2);
+  prop(pts, () => { geo.dispose(); mat.dispose(); });
+  return {
+    pts,
+    // spin: how wild it is; burst: 0 → 1 as the wisps are flung away
+    update(dt, center, amount, spin = 1, burst = 0) {
+      pts.position.copy(center);
+      mat.opacity = 0.8 * amount * (1 - burst);
+      pts.visible = mat.opacity > 0.01;
+      if (!pts.visible) return;
+      seeds.forEach((s, i) => {
+        s.a += dt * spin * 2.6 / s.r;
+        const r = s.r * (1 + burst * 9) + Math.sin(s.ph + s.a * 3) * 0.08 * spin;
+        pos[i * 3] = Math.cos(s.a) * r;
+        pos[i * 3 + 1] = s.y * (1 + spin * 0.3) + Math.sin(s.a * 2 + s.ph) * 0.12 + burst * s.y * 6;
+        pos[i * 3 + 2] = Math.sin(s.a) * r;
+      });
+      geo.attributes.position.needsUpdate = true;
+    },
+  };
+}
+
+// Small arcs of lightning crackling off the ball, re-drawn every few frames.
+function makeArcs(count = 4, segs = 5) {
+  const group = new THREE.Group();
+  const core = new THREE.MeshBasicMaterial({ color: 0xf4fbff, transparent: true, depthWrite: false, fog: false });
+  const glow = new THREE.MeshBasicMaterial({ color: 0x8ec8ff, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  const up = V(0, 1, 0), d = V(0, 0, 0);
+  const arcs = Array.from({ length: count }, () => {
+    const parts = Array.from({ length: segs }, () => [core, glow].map(m => {
+      const mesh = new THREE.Mesh(box, m);
+      mesh.layers.set(LAYER_FX);
+      group.add(mesh);
+      return mesh;
+    }));
+    return { parts, next: 0 };
+  });
+  prop(group, () => { box.dispose(); core.dispose(); glow.dispose(); });
+  const seg = ([c, g], a, b, w) => {
+    d.copy(b).sub(a);
+    const len = d.length();
+    for (const [m, s] of [[c, w], [g, w * 4]]) {
+      m.position.copy(a).addScaledVector(d, 0.5);
+      m.quaternion.setFromUnitVectors(up, d.clone().normalize());
+      m.scale.set(s, len + s, s);
+    }
+  };
+  return {
+    // amount 0..1: how often they strike; reach: how far from the surface they jump
+    update(T, center, radius, amount, reach = 1.6) {
+      group.visible = amount > 0.01;
+      if (!group.visible) return;
+      for (const arc of arcs) {
+        if (T >= arc.next) {
+          arc.next = T + 0.06 + Math.random() * 0.12;
+          arc.on = Math.random() < amount;
+          if (!arc.on) continue;
+          const dir = V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+          let prev = center.clone().addScaledVector(dir, radius * 0.95);
+          const step = (reach * (0.5 + Math.random() * 0.8)) / segs;
+          const side = V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+          arc.parts.forEach((pair, i) => {
+            const nextP = prev.clone().addScaledVector(dir, step).addScaledVector(side, (Math.random() - 0.5) * step * 2.4);
+            seg(pair, prev, nextP, 0.05 * (1 - i / segs * 0.6));
+            prev = nextP;
+          });
+        }
+        for (const [c, g] of arc.parts) c.visible = g.visible = !!arc.on;
+      }
+    },
+  };
+}
+
+// A flat ring of light rushing out along the ground (or the air) from a blast.
+function makeRing(center, color = 0xcfeaff) {
+  const geo = new THREE.RingGeometry(0.88, 1, 64);
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false });
+  const ring = new THREE.Mesh(geo, mat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.copy(center);
+  ring.layers.set(LAYER_FX);
+  ring.visible = false;
+  prop(ring, () => { geo.dispose(); mat.dispose(); });
+  return {
+    set(k, size) { // k: 0 → 1 through the blast
+      ring.visible = k > 0 && k < 1;
+      ring.scale.setScalar(0.5 + easeOut(k) * size);
+      mat.opacity = 0.7 * (1 - k) * (1 - k);
+    },
+  };
+}
+
+// A low ceiling of storm clouds churning overhead, lit from inside by the lightning.
+const ceilingFrag = `uniform float time; uniform float flash; uniform float amount; varying vec2 vUv;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y); }
+float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; } return s; }
+void main(){
+  vec2 p = vUv * 2.0 - 1.0; float r = length(p);
+  float sw = r * 2.2 - time * 0.06;
+  vec2 q = mat2(cos(sw), -sin(sw), sin(sw), cos(sw)) * p;
+  float n = fbm(q * 5.0 + vec2(time * 0.05, 0.0));
+  float n2 = fbm(q * 9.0 - vec2(0.0, time * 0.08) + n);
+  float puff = smoothstep(0.35, 0.8, n * 0.65 + n2 * 0.5);
+  vec3 c = mix(vec3(0.07, 0.08, 0.16), vec3(0.3, 0.33, 0.48), puff);
+  c += vec3(0.75, 0.82, 1.0) * flash * (0.2 + puff * 0.8);
+  float alpha = amount * (1.0 - smoothstep(0.6, 1.0, r)) * (0.75 + puff * 0.25);
+  gl_FragColor = vec4(c, alpha);
+  #include <colorspace_fragment>
+}`;
+function makeCeiling(y = 26, radius = 170) {
+  const u = { time: { value: 0 }, flash: { value: 0 }, amount: { value: 0 } };
+  const geo = new THREE.CircleGeometry(radius, 48);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: u, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: ceilingFrag,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.rotation.x = Math.PI / 2;
+  m.position.y = y;
+  m.layers.set(LAYER_FX);
+  m.renderOrder = -7;
+  m.frustumCulled = false;
+  prop(m, () => { geo.dispose(); mat.dispose(); });
+  return { mesh: m, u };
+}
+
+// Lightning that comes and goes: bolts made on demand, each fading out over ~0.7 s, with a burst where it lands.
+function makeStrikes() {
+  const live = [];
+  return {
+    strike(from, to, burst = true) {
+      const b = makeBolt(from, to);
+      live.push({ b, t: C.T });
+      if (burst && !C.skipping) {
+        ctx.game.fx.burst(to, 0xffffff, 18, 4);
+        ctx.game.fx.burst(to, 0x9fc8ff, 14, 3);
+      }
+      return b;
+    },
+    update(T) {
+      for (const s of live) {
+        const k = 1 - span(T - s.t, 0.08, 0.7);
+        s.b.set(k);
+        s.b.group.visible = k > 0;
+      }
+    },
+    hide() { for (const s of live) s.b.group.visible = false; },
+  };
+}
+
+// things that only belong in fair weather (butterflies), hidden while the storm is filmed
+function fairWeather(w, on) {
+  w.group.traverse(o => { if (o.userData.fairWeather) o.visible = on; });
 }
 
 // ---------- moods: sky, fog and light, blended per frame ----------
@@ -387,10 +602,23 @@ function prologue(done) {
     const vortex = (A.vortex || []).map(m => ({ m, home: m.position.clone() }));
     if (A.particles) A.particles.visible = false;
     for (const v of g.voxels) v.fly = null;
+    const wisps = makeWisps(), arcs = makeArcs(), funnel = makeSwirl(hands, { out: true, n: 260, size: 0.3, color: 0x8fb4ea });
+    const ring = makeRing(hands), strikes = makeStrikes(), rain = makeRain(700, 0.3);
+    // after the blast, lightning hammers the ruins around the Colossus (seconds after the shatter)
+    const bolts = [0.35, 0.8, 1.3, 2.1, 2.6];
+    const strikeNear = loud => {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const x = side * (6 + Math.random() * 10), z = -12 + Math.random() * 16;
+      const to = V(x, w.floorAt(x, z) ?? 0, z);
+      strikes.strike(to.clone().add(V((Math.random() - 0.5) * 10, 44, (Math.random() - 0.5) * 10)), to);
+      flashAt(0.55);
+      if (loud) crack();
+    };
     shot = {
-      name: 'keeper', w, arms, hands, orb, held, wild, vortex, shatterT: Infinity,
+      name: 'keeper', w, arms, hands, orb, held, wild, vortex, wisps, arcs, funnel, ring, strikes, rain, bolts, strikeNear, shatterT: Infinity,
       shatter() {
         this.shatterT = C.T;
+        this.funnel.gather();
         flashAt(1);
         flashScreen(0.85);
         fade('#fff', 0, 0.7);
@@ -421,16 +649,20 @@ function prologue(done) {
     film(g);
     const w = g.world, A = w.atmos;
     const base = readMood(w);
-    const storm = mood(base, { top: 0x1c2045, hor: 0x4f5679, fog: 0x4f5679, dens: 0.02, hemiK: 0.42, sunK: 0.12, hemiCol: 0xaab4d8 });
+    const storm = mood(base, { top: 0x141833, hor: 0x434a6e, fog: 0x434a6e, dens: 0.022, hemiK: 0.4, sunK: 0.08, hemiCol: 0xaab4d8 });
     if (A.particles) A.particles.visible = false;
-    const rain = makeRain();
+    fairWeather(w, false);
+    const rain = makeRain(1100, 0.32), ceiling = makeCeiling(), strikes = makeStrikes();
     const top = V(0, PEDESTAL_TOP + g.figureHeight, 0);
     const fliers = g.voxels.filter(v => v.state !== 'placed');
     for (const v of g.voxels) { v.mesh.position.copy(v.target); v.mesh.quaternion.identity(); }
     const bolt = makeBolt(V(7, 46, -14), top.clone());
     bolt.set(0);
+    const ring = makeRing(V(0, PEDESTAL_TOP + 0.05, 0), 0xfff4c8);
+    // far-off lightning over the sea behind the island while the camera comes down (cutscene times)
+    const far = [[11.3, V(34, -2, -40)], [12.4, V(-6, -2, -52)], [13.3, V(52, -2, -16)], [13.85, V(18, -2, -46)]];
     shot = {
-      name: 'meadow', w, base, storm, rain, top, fliers, bolt, strikeT: Infinity,
+      name: 'meadow', w, base, storm, rain, top, fliers, bolt, ceiling, strikes, ring, far, strikeT: Infinity,
       strike() {
         this.strikeT = C.T;
         flashAt(1);
@@ -459,7 +691,11 @@ function prologue(done) {
     shot.name = 'wake';
     shot.rain.update(0, ctx.camera.position, 0);
     shot.bolt.group.visible = false;
+    shot.ceiling.mesh.visible = false;
+    shot.strikes.hide();
+    shot.ring.set(0, 0);
     const { w } = shot;
+    fairWeather(w, true);
     applyMood(w, shot.base, shot.base, 0);
     if (w.atmos.particles) w.atmos.particles.visible = true;
     for (const v of g.voxels) {
@@ -512,8 +748,18 @@ function prologue(done) {
         const tremble = span(T, 4.6, 7.0);
         orb.u.time.value = g.t * (1 + tremble * 2);
         orb.u.crack.value = tremble * (0.6 + 0.4 * Math.sin(g.t * 30));
+        orb.u.zap.value = 0.5 + tremble;
         orb.group.position.copy(hands).add(V(Math.sin(g.t * 47) * 0.08 * tremble, Math.sin(g.t * 53) * 0.08 * tremble, 0));
         orb.halo.material.opacity = 0.4 + tremble * 0.3 * Math.sin(g.t * 22);
+        // a little hurricane spins around the ball and sparks jump off it, wilder as it slips
+        shot.wisps.update(dt, orb.group.position, span(T, 0.3, 1.8), 1 + tremble * 2.5, sT >= 0 ? easeOut(sT / 0.9) : 0);
+        shot.arcs.update(T, orb.group.position, 1.15, sT >= 0 ? 0 : 0.3 + tremble * 0.7, 0.8 + tremble * 0.9);
+        // the blast: a ring of light, the storm spiralling up out of the hands, rain and lightning
+        shot.ring.set(sT >= 0 ? sT / 1.5 : 0, 46);
+        shot.funnel.update(dt, sT >= 0 ? 0.75 * span(sT, 0, 0.2) * (1 - span(sT, 2.4, 3.2)) : 0);
+        shot.rain.update(dt, ctx.camera.position, sT >= 0 ? span(sT, 0.4, 1.6) : 0);
+        while (shot.bolts.length && sT >= shot.bolts[0]) { shot.bolts.shift(); shot.strikeNear(shot.bolts.length % 3 === 1); }
+        shot.strikes.update(T);
         if (sT >= 0) {
           const k = easeOut(sT / 0.55);
           orb.ball.visible = false;
@@ -528,7 +774,7 @@ function prologue(done) {
           m.position.lerpVectors(hands, home, grow);
         }
         if (w.atmos.particles) w.atmos.particles.material.opacity = 0.7 * span(sT, 0.2, 1.5);
-        applyMood(w, shot.held, shot.wild, sT >= 0 ? span(sT, 0, 1.6) : tremble * 0.25, f);
+        applyMood(w, shot.held, shot.wild, sT >= 0 ? span(sT, 0, 1.6) : tremble * 0.45, f);
         // flying blocks
         if (sT >= 0) {
           for (const v of g.voxels) {
@@ -549,7 +795,7 @@ function prologue(done) {
         // camera: a wide shot pushing in on the ball and the face, then thrown back by the blast
         // (it stays above the lintel of the gate arch in front of the pedestal)
         const a = ease(span(T, 0.3, 7.0));
-        let pos = lerpV(V(4.5, 13, 23), V(2.2, 7.2, 12.5), a), look = lerpV(V(0, 6.2, 0.5), V(0, 6.6, 1), a);
+        let pos = lerpV(V(4.5, 13, 23), V(2.2, 8.4, 12.5), a), look = lerpV(V(0, 6.2, 0.5), V(0, 6.1, 1), a);
         if (sT >= 0) {
           const b = easeOut(sT / 2.8);
           pos = lerpV(pos, V(7, 8.5, 28), b);
@@ -562,6 +808,16 @@ function prologue(done) {
         applyMood(w, shot.base, shot.storm, 1, f);
         rain.update(dt, ctx.camera.position, span(T, 10.6, 11.4));
         shot.bolt.set(sT >= 0 ? 1 - span(sT, 0.25, 0.7) : 0);
+        shot.ring.set(sT >= 0 ? sT / 1.1 : 0, 9);
+        shot.ceiling.u.time.value = g.t;
+        shot.ceiling.u.flash.value = f;
+        shot.ceiling.u.amount.value = 1;
+        while (shot.far.length && T >= shot.far[0][0]) {
+          const to = shot.far.shift()[1];
+          shot.strikes.strike(to.clone().add(V((Math.random() - 0.5) * 14, 60, (Math.random() - 0.5) * 8)), to, false);
+          flashAt(0.4);
+        }
+        shot.strikes.update(T);
         for (const v of shot.fliers) {
           const a = v.arc, m = v.mesh;
           if (!a) { // the Sprout shivers in the storm before it is hit
@@ -628,38 +884,8 @@ function finale(done) {
   const sunLight = A.sun.position.clone();
   const gold = { a: new THREE.Color(0xff9a3c), b: new THREE.Color(0xfff3c4) };
   const storm = { a: new THREE.Color(0x1d2452), b: new THREE.Color(0xa8dcff) };
-  let orb = null, inflow = null, figures = [];
+  let orb = null, inflow = null, figures = []; // inflow: the storm pouring into the hands from the clouds
   const glowCol = new THREE.Color();
-
-  // the storm pours into the hands: streaks spiralling down from the clouds
-  const makeInflow = () => {
-    const n = 220, pos = new Float32Array(n * 3);
-    const seeds = Array.from({ length: n }, () => ({ a: Math.random() * Math.PI * 2, r0: 14 + Math.random() * 30, y0: 12 + Math.random() * 30, s: 0.25 + Math.random() * 0.35, k: Math.random() }));
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const mat = new THREE.PointsMaterial({ color: 0xbfe6ff, size: 0.35, map: sharedDot(), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-    const pts = new THREE.Points(geo, mat);
-    pts.layers.set(LAYER_OVERLAY);
-    pts.frustumCulled = false;
-    prop(pts, () => { geo.dispose(); mat.dispose(); });
-    return {
-      update(dt, amount) {
-        mat.opacity = amount;
-        pts.visible = amount > 0.01;
-        if (!pts.visible) return;
-        seeds.forEach((p, i) => {
-          p.k += dt * p.s;
-          if (p.k >= 1) p.k -= 1;
-          const k = p.k * p.k, r = p.r0 * (1 - k);
-          const a = p.a + k * 5;
-          pos[i * 3] = hands.x + Math.cos(a) * r;
-          pos[i * 3 + 1] = THREE.MathUtils.lerp(p.y0, hands.y, k);
-          pos[i * 3 + 2] = hands.z + Math.sin(a) * r;
-        });
-        geo.attributes.position.needsUpdate = true;
-      },
-    };
-  };
 
   // every other figure, on a little pedestal in a ring around the Colossus
   const makeFigures = () => {
@@ -718,7 +944,7 @@ function finale(done) {
     end: 22.6,
     keep: true,
     cues: [
-      [0, () => { fade('#000', 1, 0); orb = makeOrb(); orb.group.visible = false; inflow = makeInflow(); makeFigures(); }],
+      [0, () => { fade('#000', 1, 0); orb = makeOrb(); orb.group.visible = false; inflow = makeSwirl(hands); makeFigures(); }],
       [0.2, () => fade('#000', 0, 1.3)],
       [0.8, () => sfx(a => a.tone({ f: 98, f2: 196, type: 'sine', dur: 2.6, vol: 0.12, attack: 1.2, wet: 0.5 }))],
       [1.0, () => say('cine.end.0')],

@@ -364,6 +364,7 @@ function butterflies(W) {
   }
   im.layers.set(LAYER_OVERLAY);
   im.frustumCulled = false;
+  im.userData.fairWeather = true; // hidden in the storm cutscene
   group.add(im);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(1.4, 1.4, 1.4), up = new THREE.Vector3(0, 1, 0);
   updaters.push((dt, t) => {
