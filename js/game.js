@@ -182,6 +182,8 @@ export class Game {
     this.voxels = cells.map((c, i) => {
       const geo = buildVoxelGeometry(this.puzzle.faces[i]);
       const mat = this.mat.clone();
+      mat.onBeforeCompile = this.mat.onBeforeCompile; // clone() drops the pattern shader patch
+      mat.customProgramCacheKey = this.mat.customProgramCacheKey;
       const mesh = new THREE.Mesh(geo, mat);
       mesh.castShadow = mesh.receiveShadow = true;
       mesh.userData.voxel = i;

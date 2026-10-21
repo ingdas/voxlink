@@ -125,9 +125,9 @@ export function roundRect(g, x, y, w, h, r) {
   g.closePath();
 }
 
-// faces: array of 6 { type: 'color'|'num'|'blank', num, color }
+// faces: array of 6 { type: 'color'|'num'|'blank', num, color, pattern }
 export function buildVoxelGeometry(faces, size = S) {
-  const pos = [], nor = [], uv = [], col = [], idx = [];
+  const pos = [], nor = [], uv = [], col = [], pat = [], idx = [];
   const c = new THREE.Color();
   const h = size / 2;
   const pad = 2 / (CELL * GRID);
@@ -144,6 +144,7 @@ export function buildVoxelGeometry(faces, size = S) {
       nor.push(...n);
       uv.push(tu, tv);
       col.push(c.r, c.g, c.b);
+      pat.push(f.type === 'color' ? f.pattern || 0 : 0);
     }
     idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
   });
@@ -152,6 +153,7 @@ export function buildVoxelGeometry(faces, size = S) {
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setAttribute('pattern', new THREE.Float32BufferAttribute(pat, 1));
   geo.setIndex(idx);
   return geo;
 }
@@ -160,12 +162,12 @@ export function buildVoxelGeometry(faces, size = S) {
 export function mergeFigure(cells) {
   const key = (x, y, z) => `${x},${y},${z}`;
   const has = new Set(cells.map(c => key(c.ix, c.iy, c.iz)));
-  const pos = [], nor = [], uv = [], col = [], idx = [];
+  const pos = [], nor = [], uv = [], col = [], pat = [], idx = [];
   for (const c of cells) {
     const open = DIRS.map(d => !has.has(key(c.ix + d.n[0], c.iy + d.n[1], c.iz + d.n[2])));
     if (!open.some(Boolean)) continue;
-    const g = buildVoxelGeometry(open.map(() => ({ type: 'color', color: c.color })));
-    const P = g.attributes.position.array, N = g.attributes.normal.array, U = g.attributes.uv.array, C = g.attributes.color.array;
+    const g = buildVoxelGeometry(open.map(() => ({ type: 'color', color: c.color, pattern: c.pattern })));
+    const P = g.attributes.position.array, N = g.attributes.normal.array, U = g.attributes.uv.array, C = g.attributes.color.array, T = g.attributes.pattern.array;
     const ox = c.x * S, oy = c.iy * S + S / 2, oz = c.z * S;
     open.forEach((o, d) => {
       if (!o) return;
@@ -175,6 +177,7 @@ export function mergeFigure(cells) {
         nor.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]);
         uv.push(U[v * 2], U[v * 2 + 1]);
         col.push(C[v * 3], C[v * 3 + 1], C[v * 3 + 2]);
+        pat.push(T[v]);
       }
       idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
     });
@@ -185,15 +188,48 @@ export function mergeFigure(cells) {
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setAttribute('pattern', new THREE.Float32BufferAttribute(pat, 1));
   geo.setIndex(idx);
   geo.computeBoundingSphere();
   return geo;
 }
 
+// Patterned colour faces (see PATTERN in levels.js): light dots, dark spots or a glassy shine,
+// drawn from the face's own position in its texture tile (tiles per uv unit) so they line up on every face.
+export const patternGlsl = (tiles = GRID) => `
+  if (vPat > 0.5) {
+    vec2 tq = fract(vMapUv * ${tiles.toFixed(1)});
+    if (vPat < 2.5) {
+      float d = min(min(length(tq - vec2(0.3, 0.3)), length(tq - vec2(0.72, 0.42))), min(length(tq - vec2(0.38, 0.74)), length(tq - vec2(0.76, 0.8))));
+      float m = 1.0 - smoothstep(0.095, 0.115, d);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vPat < 1.5 ? vec3(1.0, 0.97, 0.9) : vec3(0.17, 0.13, 0.23), m);
+    } else {
+      float s = smoothstep(0.07, 0.0, abs(tq.x - tq.y * 0.6 - 0.18)) + 0.7 * smoothstep(0.045, 0.0, abs(tq.x - tq.y * 0.6 - 0.36));
+      s *= step(0.12, tq.y) * step(tq.y, 0.88);
+      diffuseColor.rgb = mix(min(diffuseColor.rgb * 1.15 + 0.04, vec3(1.0)), vec3(1.0), clamp(s, 0.0, 1.0) * 0.8);
+    }
+  }`;
+export function patternPatch(sh) {
+  sh.vertexShader = 'attribute float pattern;\nvarying float vPat;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPat = pattern;');
+  sh.fragmentShader = 'varying float vPat;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>${patternGlsl()}`);
+}
+// the same patterns on a material whose map covers each face once (the workshop's blocks)
+export function fixedPatternPatch(material, pattern) {
+  if (!pattern) return material;
+  material.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\n  float vPat = ${pattern.toFixed(1)};${patternGlsl(1)}`);
+  };
+  material.customProgramCacheKey = () => `vx-fixed-pattern-${pattern}`;
+  return material;
+}
+
 export function voxelMaterial(renderer) {
-  return new THREE.MeshToonMaterial({
+  const m = new THREE.MeshToonMaterial({
     map: getAtlas(renderer).texture, vertexColors: true, gradientMap: toonGradient(),
   });
+  m.onBeforeCompile = patternPatch;
+  m.customProgramCacheKey = () => 'vx-voxel-pattern';
+  return m;
 }
 
 // Build the link tree for a figure: random spanning tree from a root on the bottom layer.
@@ -251,7 +287,7 @@ export function generatePuzzle(cells, rng) {
     const out = [];
     for (let d = 0; d < 6; d++) {
       const j = nbr(i, d);
-      if (j === undefined) out.push({ type: 'color', color: c.color });
+      if (j === undefined) out.push({ type: 'color', color: c.color, pattern: c.pattern });
       else if (parent[i] === j) out.push({ type: 'num', num: edgeNum[i] });
       else if (parent[j] === i) out.push({ type: 'num', num: edgeNum[j] });
       else out.push({ type: 'blank' });

@@ -1,20 +1,21 @@
 // G2 — Figure workshop: a friendly voxel editor. Players build their own figure on a grid plate,
 // save up to 12 of them, share them as compact codes / links, and play them as linking puzzles.
 import * as THREE from 'three';
-import { PALETTE, forgetLevel } from '../levels.js';
-import { S } from '../voxels.js';
+import { PALETTE, PATTERN, forgetLevel } from '../levels.js';
+import { S, fixedPatternPatch } from '../voxels.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from '../render.js';
 import { THEMES } from '../world.js';
 import { t } from '../i18n.js';
 import { createEditorCam } from './workshop-cam.js';
 
 const KEYS = Object.keys(PALETTE); // share-code colour index (append-only order)
-const UI_ORDER = 'roylgGcuUvVpbBtwisnk'.split('').filter(c => c in PALETTE);
+const UI_ORDER = 'remzoyjlgGchuUvVpbBtwisnk'.split('').filter(c => c in PALETTE);
 const MIN = 6, MAX = 200, SLOTS = 12;
 const EXT = 7; // x, z in [-EXT, EXT]
 const HMAX = 16; // y in [0, HMAX)
-const THEME_IDS = ['meadow', 'frost', 'reef', 'starfall'];
-const themeName = id => t(`workshop.theme.${id}`);
+// island themes (append only: share codes store the index; version 1 codes hold the first four in 2 bits)
+const THEME_IDS = ['meadow', 'frost', 'reef', 'starfall', 'farm', 'frostwood', 'cove', 'moon', 'cliffs', 'storm'];
+const themeName = id => t(`ch.${id}.name`);
 const FUN_NAME_COUNT = 16; // workshop.name.0 … workshop.name.15
 const CHEER_COUNT = 4, GIFT_CHEER_COUNT = 3; // workshop.cheer.N / workshop.giftCheer.N
 const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -41,6 +42,7 @@ const ICONS = `
 
 // ---------------------------------------------------------------- share codes
 // bit-packed: version, theme, bounding box, occupancy bitmap, colour runs; then name (UTF-8) and a checksum byte.
+// Version 1 stores the theme in 2 bits (the first four worlds), version 2 in 4 bits.
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 function toB64(bytes) {
   let out = '';
@@ -73,7 +75,8 @@ export function encodeFigure({ voxels, name, theme }) {
   const xs = voxels.map(v => v.x), ys = voxels.map(v => v.y), zs = voxels.map(v => v.z);
   const x0 = Math.min(...xs), y0 = Math.min(...ys), z0 = Math.min(...zs);
   const W = Math.max(...xs) - x0 + 1, H = Math.max(...ys) - y0 + 1, D = Math.max(...zs) - z0 + 1;
-  put(1, 3); put(Math.max(0, THEME_IDS.indexOf(theme)), 2);
+  const ti = Math.max(0, THEME_IDS.indexOf(theme));
+  if (ti < 4) { put(1, 3); put(ti, 2); } else { put(2, 3); put(ti, 4); }
   put(x0 + EXT, 4); put(y0, 4); put(z0 + EXT, 4); put(W - 1, 4); put(H - 1, 4); put(D - 1, 4);
   const grid = new Map(voxels.map(v => [`${v.x - x0},${v.y - y0},${v.z - z0}`, v.c]));
   const colors = [];
@@ -115,8 +118,10 @@ export function decodeFigure(code) {
       }
       return v;
     };
-    if (get(3) !== 1) return null;
-    const theme = THEME_IDS[get(2)];
+    const version = get(3);
+    if (version !== 1 && version !== 2) return null;
+    const theme = THEME_IDS[get(version === 1 ? 2 : 4)];
+    if (!theme) return null;
     const x0 = get(4) - EXT, y0 = get(4), z0 = get(4) - EXT, W = get(4) + 1, H = get(4) + 1, D = get(4) + 1;
     if (x0 + W - 1 > EXT || z0 + D - 1 > EXT || y0 + H > HMAX) return null;
     const cells = [];
@@ -163,7 +168,7 @@ function components(vox) {
 function thumbCells(voxels) {
   const xs = voxels.map(v => v.x), ys = voxels.map(v => v.y), zs = voxels.map(v => v.z);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2, y0 = Math.min(...ys);
-  return voxels.map(v => ({ ix: v.x, iy: v.y - y0, iz: v.z, x: v.x - cx, y: v.y - y0, z: v.z - cz, color: PALETTE[v.c] ?? 0xffffff }));
+  return voxels.map(v => ({ ix: v.x, iy: v.y - y0, iz: v.z, x: v.x - cx, y: v.y - y0, z: v.z - cz, color: PALETTE[v.c] ?? 0xffffff, pattern: PATTERN[v.c] || 0 }));
 }
 const sigOf = voxels => voxels.map(v => `${v.x},${v.y},${v.z}${v.c}`).sort().join('|');
 const easeBack = x => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
@@ -190,7 +195,7 @@ export function init(ctx) {
 
   // ---------- DOM ----------
   document.querySelector('svg defs')?.insertAdjacentHTML('beforeend', ICONS);
-  const sw = c => `<button class="ws-sw" data-c="${c}" style="--c:${hex(PALETTE[c])}" aria-label="${attr(t('workshop.colour', { c }))}"></button>`;
+  const sw = c => `<button class="ws-sw${PATTERN[c] ? ` pat-${PATTERN[c]}` : ''}" data-c="${c}" style="--c:${hex(PALETTE[c])}" aria-label="${attr(t('workshop.colour', { c }))}"></button>`;
   const tool = (id, icon, label) => `<button class="btn ws-tool" data-tool="${id}" aria-label="${attr(label)}" title="${attr(label)}"><svg><use href="#i-${icon}"/></svg><span>${label}</span></button>`;
   const camBtn = (id, icon, key) => {
     const label = t(`workshop.cam.${id}`);
@@ -606,7 +611,7 @@ export function init(ctx) {
   const mats = {}, warnMats = {};
   const matFor = (c, warn) => {
     const bank = warn ? warnMats : mats;
-    return bank[c] ||= toon(PALETTE[c], { map: blockTex, ...(warn ? { emissive: 0xffffff, emissiveIntensity: 0.2 } : {}) });
+    return bank[c] ||= fixedPatternPatch(toon(PALETTE[c], { map: blockTex, ...(warn ? { emissive: 0xffffff, emissiveIntensity: 0.2 } : {}) }), PATTERN[c]);
   };
   const vox = new Map(); // key -> colour char
   const meshes = new Map(); // key -> mesh

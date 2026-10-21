@@ -114,6 +114,16 @@ is unchanged, so saves (which count figures in order) carry over as they are.
 
 Bounce pads (farm, cove) reuse Starfall's launch maths with normal gravity; every pad was checked to land
 the player on its target. The share of blocks placed up high and the island difficulty were rescaled for
-twice as many chapters (`chapter * 0.04` and `chapter * 0.16`), so each figure keeps its old values. The
-workshop and the daily figure keep the original four themes: a workshop share code stores the theme in two
-bits.
+twice as many chapters (`chapter * 0.04` and `chapter * 0.16`), so each figure keeps its old values.
+
+## 2026-10-21 · Patterned blocks, workshop worlds, no daily figure
+
+- **Patterned blocks.** Five new palette colours carry a face pattern drawn by the voxel shader: glossy
+  apple red, toadstool red with light dots, ladybug red with dark spots, blue glass and yellow glass. They
+  make small figures read at a glance (the mushroom's dots, the ladybug's spots, lamps, visors, domes) without
+  extra blocks. The pattern is placed from each face's position in its atlas tile, so it shows on game
+  blocks, thumbnails, the garden and the cutscenes alike; the workshop uses the same shader on its blocks.
+  The apple was rebuilt rounder (31 blocks) and became the Meadow's finale.
+- **Workshop worlds.** Custom figures can stand on any of the ten worlds. Share codes stay readable: codes
+  for the first four worlds are still version 1 (2-bit theme); the others are version 2 (4-bit theme).
+- **Daily figure removed** (code, styles and its 17 strings per locale). Old saves lose their daily stats.

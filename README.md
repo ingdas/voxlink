@@ -71,7 +71,7 @@ Workshop editor:
 - The story opens with a cutscene (the Keeper Colossus loses the storm, the storm smashes the first
   figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).
-- Extras: a daily figure (same layout for everyone), Kubo's Garden (walk among your finished
+- Extras: Kubo's Garden (walk among your finished
   figures), photo mode, the Workshop (build and share your own figures), and Puzzler mode
   (link blocks anywhere, solve sums).
 
@@ -101,7 +101,7 @@ fly / no-clip, unlock everything, replay the prologue / finale cutscenes, and se
 - `js/render.js`: toon materials and the ink-outline post pass (depth + normal edges)
 - `js/player.js`, `js/input.js`: first-person controller, keyboard/mouse/touch input
 - `js/main.js`: app flow, HUD, world map, dialogue, saves, and the `ctx` object for features
-- `js/features/*.js`: optional features plugged in through `init(ctx)` (daily, garden, photo,
+- `js/features/*.js`: optional features plugged in through `init(ctx)` (garden, photo,
   workshop, puzzler, accessibility, language picker, debug)
 - `js/features/workshop-cam.js`: the Workshop editor's orbit camera (inertia, zoom to cursor,
   framing, spring arm)

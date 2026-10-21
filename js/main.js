@@ -46,7 +46,7 @@ addEventListener('unhandledrejection', e => {
 document.body.classList.toggle('mobile', mobile);
 
 // ---------- persistence ----------
-// storage keys (and the daily seed, window.__voxlink) keep the working title Voxlink: renaming them would wipe saves
+// storage keys (and window.__voxlink) keep the working title Voxlink: renaming them would wipe saves
 const SAVE_KEY = 'voxlink.v2';
 const save = Object.assign({ unlocked: 1, best: {}, stars: {}, seen: {}, settings: {} }, safeParse(localStorage.getItem(SAVE_KEY)));
 save.settings = Object.assign({ sens: 1, sfx: 0.8, music: 0.45, invert: false, outline: true, full: mobile }, save.settings);
@@ -59,6 +59,7 @@ if ((save.campaign ?? 1) < 2) {
   save.unlocked = Math.max(1, ...reached.map(i => i + 1));
   save.campaign = 2;
 }
+delete save.daily; delete save.dailyStreak; // the daily figure was removed
 function safeParse(s) { try { return JSON.parse(s) || {}; } catch { return {}; } }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { /* private mode */ } }
 const starsOf = id => { const s = save.stars[id]; return s ? (s.done ? 1 : 0) + (s.fast ? 1 : 0) + (s.clean ? 1 : 0) : 0; };
@@ -394,7 +395,7 @@ function talk(lines, done) {
 }
 
 const levelOf = x => (typeof x === 'object' ? x : LEVELS[x]);
-// index: campaign index or level object (daily / custom figures). resume: true to continue a saved session
+// index: campaign index or level object (custom figures). resume: true to continue a saved session
 function startLevel(index, resume = false) {
   audio.unlock();
   audio.suspend(false);
@@ -501,7 +502,7 @@ function splitsHtml(sp, prev) {
   }).join('');
 }
 
-// Results panel, shared by campaign, daily and custom figures.
+// Results panel, shared by campaign and custom figures.
 let completeActions = {};
 function showComplete(o) {
   $('hud').classList.add('off');

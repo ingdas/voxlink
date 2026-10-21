@@ -21,7 +21,15 @@ export const PALETTE = {
   V: 0x6a3fb5, // deep violet
   t: 0xe8d9b8, // sand stone
   i: 0xbfe8ff, // ice
+  // patterned blocks (append only: workshop share codes index this list)
+  e: 0xf2474f, // glossy apple red
+  m: 0xff5d5d, // toadstool red with light dots
+  z: 0xff5d5d, // ladybug red with dark spots
+  h: 0x8fd8ff, // blue glass
+  j: 0xffde6a, // yellow glass (lamps)
 };
+// face patterns drawn by the voxel shader: 1 light dots, 2 dark spots, 3 glass shine
+export const PATTERN = { e: 3, m: 1, z: 2, h: 3, j: 3 };
 
 // ---------- tiny voxel modelling kit ----------
 export function figure(fn) {
@@ -80,8 +88,8 @@ const FIGURES = {
   mushroom: () => figure(f => f.layers(0, [
     ['...', '.w.', '...'],
     ['...', '.w.', '...'],
-    ['rwr', 'rrr', 'rwr'],
-    ['.r.', 'rwr', '.r.'],
+    ['mmm', 'mmm', 'mmm'],
+    ['.m.', 'mmm', '.m.'],
   ])),
 
   duck: () => figure(f => {
@@ -208,7 +216,7 @@ const FIGURES = {
     ['.sss.', '.sss.'],
     ['usssu', 'usrsu'],
     ['usssu', 'usssu'],
-    ['.sss.', '.csc.'],
+    ['.sss.', '.hsh.'],
     ['.sss.', '.sss.'],
     ['..r..', '.....'],
   ])),
@@ -228,7 +236,7 @@ const FIGURES = {
     f.set(0, 0, 0, 'k');
     f.box(-1, 1, -1, 1, 5, 1, 'w');
     for (const [x, z] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) { f.set(x, 1, z, 'r'); f.set(x, 2, z, 'r'); }
-    f.set(0, 4, 2, 'c'); f.set(0, 3, 2, 'w');
+    f.set(0, 4, 2, 'h'); f.set(0, 3, 2, 'w');
     f.box(-1, 6, -1, 1, 6, 1, 'r');
     f.set(0, 7, 0, 'r'); f.set(0, 8, 0, 'y');
     f.recolor((x, y, z) => (y === 1 && Math.abs(x) <= 1 && Math.abs(z) <= 1 ? 's' : null));
@@ -278,8 +286,8 @@ const FIGURES = {
       if (y <= 2) for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) f.set(x, y, z, c);
     }
     f.set(0, 1, 2, 'B');
-    for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) f.set(x, 11, z, 'c');
-    for (const [x, z] of plus) f.set(x, 11, z, 'y');
+    for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) f.set(x, 11, z, 'h');
+    for (const [x, z] of plus) f.set(x, 11, z, 'j');
     f.box(-1, 12, -1, 1, 12, 1, 'k');
     f.set(0, 13, 0, 'r');
   }),
@@ -327,10 +335,10 @@ const FIGURES = {
 
   // ---------- Meadow ----------
   apple: () => figure(f => {
-    f.box(0, 0, 0, 1, 1, 1, 'r');
-    f.set(1, 1, 1, 'p'); // shine
-    f.set(0, 2, 0, 'b');
-    f.set(1, 2, 0, 'g');
+    // a round, shiny apple: narrow bottom, full middle, a top with a dip for the stem
+    f.layers(0, [['.e.', 'eee', '.e.'], ['eee', 'eee', 'eee'], ['eee', 'eee', 'eee'], ['.e.', 'e.e', '.e.']], -1, -1);
+    f.set(0, 3, 0, 'B'); f.set(0, 4, 0, 'B');
+    f.set(1, 4, 0, 'g'); f.set(2, 4, 0, 'l');
   }),
   tulip: () => figure(f => {
     for (let y = 0; y <= 3; y++) f.set(0, y, 0, 'g');
@@ -339,9 +347,8 @@ const FIGURES = {
     for (const [x, z] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) f.set(x, 5, z, 'p');
   }),
   ladybug: () => figure(f => {
-    f.box(-1, 0, -2, 1, 0, 1, 'r');
-    f.box(-1, 1, -1, 1, 1, 0, 'r');
-    for (const [x, y, z] of [[-1, 1, -1], [1, 1, 0], [-1, 0, 1], [1, 0, -2]]) f.set(x, y, z, 'k');
+    f.box(-1, 0, -2, 1, 0, 1, 'z');
+    f.box(-1, 1, -1, 1, 1, 0, 'z');
     for (let x = -1; x <= 1; x++) f.set(x, 0, 2, 'k');
     f.set(-1, 1, 2, 'w'); f.set(1, 1, 2, 'w');
     f.turn(); // side-on, so the spotted shell faces you
@@ -496,7 +503,7 @@ const FIGURES = {
   }),
   crystal: () => figure(f => {
     f.box(-1, 0, -1, 1, 0, 1, 'n');
-    for (let y = 1; y <= 6; y++) f.set(0, y, 0, 'c');
+    for (let y = 1; y <= 6; y++) f.set(0, y, 0, 'h');
     f.set(0, 7, 0, 'i');
     for (let y = 1; y <= 3; y++) f.set(1, y, 0, 'v');
     f.set(2, 3, 0, 'v'); f.set(2, 4, 0, 'v'); f.set(2, 5, 0, 'i');
@@ -526,7 +533,7 @@ const FIGURES = {
     f.box(-1, 3, -2, 1, 4, -2, 's');
     f.box(-1, 6, -1, 1, 8, 1, 'w');
     for (const x of [-1, 1]) for (const z of [-1, 1]) f.del(x, 8, z);
-    f.recolor((x, y, z) => (z === 1 && (y === 6 || y === 7) && Math.abs(x) <= 1 ? (y === 7 && x === 1 ? 'i' : 'c') : null));
+    f.recolor((x, y, z) => (z === 1 && (y === 6 || y === 7) && Math.abs(x) <= 1 ? 'h' : null));
     f.set(1, 9, 0, 's'); f.set(1, 10, 0, 'r');
   }),
   ufo: () => figure(f => {
@@ -534,7 +541,7 @@ const FIGURES = {
       const r = Math.hypot(x, z);
       if (r <= 3.2) f.set(x, 1, z, r > 2.5 && (x + z + 8) % 2 === 0 ? 'y' : 's');
       if (r <= 2.2) f.set(x, 2, z, 'n');
-      if (r <= 1.5) f.set(x, 3, z, 'c');
+      if (r <= 1.5) f.set(x, 3, z, 'h');
     }
     f.set(0, 4, 0, 'l'); f.set(0, 5, 0, 'l'); // a little alien peeking out
     for (const [x, z] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) f.set(x, 0, z, 'y');
@@ -577,7 +584,7 @@ const FIGURES = {
     f.box(-1, 0, -1, 1, 0, 1, 'B');
     for (let y = 1; y <= 4; y++) {
       for (const x of [-1, 1]) for (const z of [-1, 1]) f.set(x, y, z, 'B');
-      for (const [x, z] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) f.set(x, y, z, y === 2 ? 'o' : 'y');
+      for (const [x, z] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) f.set(x, y, z, y === 2 ? 'o' : 'j');
     }
     f.box(-1, 5, -1, 1, 5, 1, 'B');
     f.set(0, 6, 0, 'B');
@@ -641,10 +648,10 @@ export const CHAPTERS = [
     ],
     levels: [
       { id: 'sprout', tag: 'Something tiny', name: 'Sprout', intro: 'Just six blocks. A perfect warm-up!', outro: 'A little sprout! The meadow already looks happier.' },
-      { id: 'apple', tag: 'Crunchy', name: 'Apple', intro: 'The orchard folk left a snack behind. Two layers and a stem!', outro: 'A shiny Apple! An apple a day keeps the storm away.' },
       { id: 'tulip', tag: 'First bloom', name: 'Tulip', intro: 'Petals everywhere! The meadow wants its flower back.', outro: 'The Tulip blooms again. Can you smell it?' },
       { id: 'mushroom', tag: 'Forest snack', name: 'Mushroom', intro: 'The forest folk always kept a lucky charm by the pond…', outro: 'The lucky mushroom! Spotty and proud.' },
       { id: 'ladybug', tag: 'Lucky spots', name: 'Ladybug', intro: 'Count the spots — a ladybug brings good luck!', outro: 'The Ladybug is back. Our luck is turning!' },
+      { id: 'apple', tag: 'Crunchy', name: 'Apple', intro: 'The orchard folk left a snack behind. Two layers and a stem!', outro: 'A shiny Apple! An apple a day keeps the storm away.' },
     ],
   },
   {
@@ -816,7 +823,7 @@ export function expandLevel(level) {
   const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
   const cells = raw.map(c => {
     if (!(c.c in PALETTE)) throw new Error(`Unknown palette '${c.c}' in ${level.id}`);
-    return { ix: c.x, iy: c.y - minY, iz: c.z, x: c.x - cx, y: c.y - minY, z: c.z - cz, color: PALETTE[c.c] };
+    return { ix: c.x, iy: c.y - minY, iz: c.z, x: c.x - cx, y: c.y - minY, z: c.z - cz, color: PALETTE[c.c], pattern: PATTERN[c.c] || 0 };
   });
   const out = { cells, width: maxX - minX + 1, depth: maxZ - minZ + 1, height: maxY - minY + 1 };
   cache.set(level.id, out);

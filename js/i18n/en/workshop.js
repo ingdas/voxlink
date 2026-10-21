@@ -65,10 +65,6 @@ export default {
   'workshop.blocks.other': '{n} blocks',
   'workshop.blocksBest.one': '{n} block · best {time}',
   'workshop.blocksBest.other': '{n} blocks · best {time}',
-  'workshop.theme.meadow': 'Meadow',
-  'workshop.theme.frost': 'Frost',
-  'workshop.theme.reef': 'Reef',
-  'workshop.theme.starfall': 'Starfall',
 
   // share sheet
   'workshop.shareTag': 'Send this link to a friend so they can play your figure',
