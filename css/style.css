@@ -678,3 +678,45 @@ body.museum #btn-express { display: none !important; }
 .complete .row .btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 /* Japanese wraps at phrase boundaries, not mid-word */
 :lang(ja) body { word-break: auto-phrase; }
+
+/* ---------- goals under the progress bar: par time and hints, each with its star ---------- */
+.goals { display: flex; justify-content: center; gap: 14px; margin-top: 4px; font-size: 13px; font-weight: 700; direction: ltr; }
+.goals:empty { display: none; }
+.goals span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.goals svg { width: 15px; height: 15px; stroke: var(--ink); stroke-width: 2.2; fill: none; }
+.goals small { font-size: 12px; opacity: .7; }
+.goals svg.gs { width: 16px; height: 16px; stroke-width: 2; fill: var(--sun); }
+.goals .kept svg.gs { fill: #ffb400; }
+.goals .off svg.gs { fill: rgba(42, 31, 61, .18); }
+.goals .off b { text-decoration: line-through; opacity: .6; }
+#count .ic { width: 15px; height: 15px; vertical-align: -2px; margin-inline-end: 3px; stroke: var(--ink); stroke-width: 2.2; fill: none; }
+/* finished island: rebuild for stars */
+.rebuild { position: absolute; left: 50%; bottom: calc(26px + var(--sab, 0px)); translate: -50% 0; display: none; pointer-events: auto; font-size: 17px; }
+.rebuild.show { display: inline-flex; }
+.rebuild kbd { font: inherit; font-size: 13px; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; padding: 0 6px; }
+body.mobile .rebuild { bottom: auto; top: calc(96px + var(--sat, 0px)); }
+/* Continue: where it goes */
+.play-sub { margin: -10px 0 0; font-weight: 700; font-size: 15px; color: var(--paper); text-shadow: 0 2px 0 var(--ink), 0 0 6px rgba(42, 31, 61, .6); text-align: center; }
+.play-sub:empty { display: none; }
+/* results: labelled stars, marked when new; kept stars from earlier runs show pale */
+.complete-stars .cs { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; }
+.complete-stars .cs small { font-size: 12px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
+.complete-stars .cs:nth-child(2) { transform: translateY(-8px); }
+.complete-stars .cs svg { transform: none; }
+.complete-stars .cs svg.on { animation-name: star-pop; }
+.complete-stars .cs.kept svg { fill: #ffe8a8; }
+.complete-stars .cs em { position: absolute; top: -6px; inset-inline-end: -4px; font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase; background: var(--coral); color: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 5px; rotate: 8deg; }
+#complete-par em { font-style: normal; font-weight: 700; }
+#complete-par em.up { color: #1f8a5b; } #complete-par em.down { color: #c0392b; }
+/* world complete card */
+.world-done { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--paper-2); border: var(--line) solid var(--ink); border-radius: 16px; padding: 8px 10px; }
+.world-done b { font-size: 16px; }
+.world-done .wd-figs { display: flex; gap: 4px; }
+.world-done img { width: 44px; height: 44px; object-fit: contain; }
+.world-done span { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
+.world-done svg { width: 18px; height: 18px; fill: var(--sun); stroke: var(--ink); stroke-width: 2; }
+/* with the world card: no splits or Kubo line, and the way on gets its own row */
+.complete.has-world :is(.splits, .say) { display: none !important; }
+.complete.has-world .row .btn.grow { flex: 1 0 100%; order: -1; }
+.rebuild span { white-space: nowrap; }
+body.mobile .rebuild { font-size: 15px; min-height: 46px; padding: 8px 16px; }

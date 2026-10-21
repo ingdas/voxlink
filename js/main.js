@@ -73,6 +73,7 @@ const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id), 0);
 
 const fmt = s => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const hex = c => `#${c.toString(16).padStart(6, '0')}`;
+const escapeHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- logo ----------
 ['logo-loading', 'logo-title', 'logo-ending'].forEach(id => buildLogo($(id)));
@@ -139,6 +140,7 @@ const game = new Game({
   renderer, scene, camera, audio, input, fx,
   events: {
     progress: (n, total, level) => {
+      goalsKey = '';
       $('lvl-name').textContent = level.kind || isDone(level.id) ? level.name : t('hud.mystery');
       $('count').textContent = `${n} / ${total}`;
       $('stage').textContent = game.stageCount > 1 ? t('hud.part', { k: game.stage + 1, n: game.stageCount }) : '';
@@ -150,7 +152,7 @@ const game = new Game({
     pack: info => renderPack(info),
     focus: info => renderFocus(info),
     toast: msg => toast(msg),
-    kubo: msg => kuboSays(msg),
+    kubo: (msg, urgent) => kuboSays(msg, urgent),
     vibrate: p => { if (mobile && navigator.vibrate) navigator.vibrate(p); },
     complete: stats => onComplete(stats),
     introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); },
@@ -159,13 +161,18 @@ const game = new Game({
     express: (n, gained) => renderTool('btn-express', 'express-n', n, gained),
     isOpen: l => l.index < save.unlocked,
     isDone: l => isDone(l.id),
+    isHalf: l => !!save.sessions[l.id]?.placed?.length,
     island: l => walkOnto(l),
     portal: () => openPortal(),
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); ctx.companion?.nudge(); },
     // a tip Kubo gives once, ever
     tipOnce: (id, msg) => { if (!save.seen[`tip.${id}`]) { save.seen[`tip.${id}`] = true; persist(); kuboSays(msg); } },
     // first steps onto a figure's island this visit: its intro line, the first time ever
-    arrive: l => { if (!l.kind && !game.tutorial && !save.seen[`fig.${l.id}`]) { save.seen[`fig.${l.id}`] = true; persist(); kuboSays(l.intro); } },
+    arrive: l => onArrive(l),
+    // finished islands stand built: R (or the Rebuild button) starts a fresh run for the missing stars
+    rebuild: () => rebuild(),
+    // the first hint of a run costs the no-hint star (unless it's already earned)
+    hintCostsStar: () => !game.level.kind ? !save.stars[game.level.id]?.clean : true,
     tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
     saveSession: data => { if (!game.level.kind) { save.sessions[game.level.id] = data; persist(); } },
@@ -256,8 +263,9 @@ function renderFocus(info) {
 }
 
 let kuboTimer = 0;
-function kuboSays(msg) {
-  if (ctx.companion?.active()) { ctx.companion.say(msg); audio.tone({ f: 660, f2: 880, type: 'triangle', dur: 0.12, vol: 0.06 }); return; }
+// urgent: said right away (otherwise a line waits for the one Kubo is saying)
+function kuboSays(msg, urgent = false) {
+  if (ctx.companion?.active()) { ctx.companion.say(msg, urgent); audio.tone({ f: 660, f2: 880, type: 'triangle', dur: 0.12, vol: 0.06 }); return; }
   const el = $('kubo-bark');
   el.querySelector('p').innerHTML = msg;
   el.classList.add('show');
@@ -346,14 +354,66 @@ function tickHud(g) {
     : g.tutorial === 'link' ? homePos : null;
   const way = tutTarget || (g.mode === 'play' ? g.wayTarget?.() : null);
   placeEdge($('edge-next'), way ?? homePos, !!way && (tutTarget ? true : !g.pack.length && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 6));
+  renderGoals(g);
+  // on a finished island: rebuild it for stars (R, or the button)
+  const canRebuild = g.roaming && !g.level.kind && g.onIsland && g.mode === 'play' && isDone(g.level.id);
+  if (canRebuild !== rebuildShown) {
+    rebuildShown = canRebuild;
+    $('btn-rebuild').classList.toggle('show', canRebuild);
+    if (canRebuild) $('rebuild-label').innerHTML = mobile ? t('hud.rebuild') : `<kbd>R</kbd> ${t('hud.rebuild')}`;
+  }
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
 }
 
+// the goals while you build (par time and hints, each with its star: kept from before, still on, or lost);
+// while roaming, the progress pill shows the world instead
+let rebuildShown = false;
+let goalsKey = '', goalPar = { level: null, par: 0 };
+function renderGoals(g) {
+  const lvl = g.level;
+  let key = '', html = '';
+  if (g.roaming && !lvl.kind) {
+    const ch = CHAPTERS[lvl.chapter], done = ch.levels.filter(l => isDone(l.id)).length;
+    key = `w${lvl.chapter}:${done}`;
+    if (key !== goalsKey) {
+      $('lvl-name').textContent = ch.name;
+      $('count').innerHTML = `<svg class="ic"><use href="#i-cube"/></svg>${done} / ${ch.levels.length}`;
+      $('stage').textContent = '';
+      $('bar-fill').style.width = `${(done / ch.levels.length) * 100}%`;
+    }
+  } else if ((!g.tutorial || g.tutorial === 'done') && !g.roaming && (g.mode === 'play' || g.mode === 'intro')) {
+    if (goalPar.level !== lvl) goalPar = { level: lvl, par: parTime(lvl) };
+    const prev = lvl.kind ? {} : save.stars[lvl.id] || {}, par = goalPar.par, sec = Math.floor(g.elapsed);
+    const cls = (kept, ok) => (kept ? 'kept' : ok ? 'on' : 'off');
+    key = `${sec}:${g.hintsUsed}:${par}:${prev.fast}:${prev.clean}`;
+    html = `<span class="g-time ${cls(prev.fast, g.elapsed <= par)}" title="${t('complete.star.fast')}"><svg><use href="#i-clock"/></svg><b>${fmt(sec)}</b><small>/ ${fmt(par)}</small><svg class="gs"><use href="#i-star"/></svg></span>`
+      + `<span class="g-hint ${cls(prev.clean, !g.hintsUsed)}" title="${t('complete.star.clean')}"><svg><use href="#i-bulb"/></svg><b>${g.hintsUsed}</b><svg class="gs"><use href="#i-star"/></svg></span>`;
+  }
+  if (key === goalsKey) return;
+  goalsKey = key;
+  $('goals').innerHTML = html;
+}
+
 // ---------- flow ----------
+// where Continue goes: the figure you last played if it's unfinished; a half-built one; otherwise the first unfinished figure after
+// the furthest one you've finished (old saves don't land back in world 1); otherwise the first unfinished one at all
 function nextLevelIndex() {
+  const last = LEVELS.find(l => l.id === save.lastPlayed);
+  if (last && last.index < save.unlocked && !isDone(last.id)) return last.index;
+  const half = LEVELS.filter(l => l.index < save.unlocked && !isDone(l.id) && save.sessions[l.id]?.placed?.length).pop();
+  if (half) return half.index;
+  const far = LEVELS.reduce((m, l) => (isDone(l.id) ? l.index : m), -1);
+  const after = LEVELS.find(l => l.index > far && l.index < save.unlocked && !isDone(l.id));
+  if (after) return after.index;
   const i = LEVELS.findIndex((l, k) => k < save.unlocked && !isDone(l.id));
   return i < 0 ? Math.min(save.unlocked, LEVELS.length) - 1 : i;
+}
+// under Continue: world · figure · blocks in (when half built)
+function continueLine() {
+  const l = LEVELS[nextLevelIndex()], s = save.sessions[l.id];
+  const fig = isDone(l.id) ? l.name : t('hud.mystery');
+  return `${CHAPTERS[l.chapter].name} · ${fig}${s?.placed?.length ? ` · <bdi class="n">${s.placed.length} / ${expandLevel(l).cells.length}</bdi>` : ''}`;
 }
 
 function showcase(idx) {
@@ -375,6 +435,7 @@ function enterTitle() {
   const idx = nextLevelIndex();
   if (game.levelIndex !== idx || game.mode !== 'showcase') showcase(idx);
   $('play-label').textContent = t(save.seen.prologue ? 'title.continue' : 'title.play');
+  $('play-sub').innerHTML = save.seen.prologue ? continueLine() : '';
   setBase('screen-title');
 }
 
@@ -442,9 +503,13 @@ function startLevel(index, resume = false, arrive = 'island') {
   mapFromIsland = false;
   document.body.classList.remove('roaming');
   const session = resume === true ? save.sessions[lvl.id] ?? null : resume || null;
-  if (!session && !lvl.kind) { delete save.sessions[lvl.id]; persist(); }
+  // arriving at a finished figure (walking over, by portal, Continue): it stands built; replays are explicit
+  const built = resume === true && !lvl.kind && !session && isDone(lvl.id);
+  if (!session && !lvl.kind && !built) { delete save.sessions[lvl.id]; persist(); }
+  if (!lvl.kind) save.lastPlayed = lvl.id;
   if (arrive === 'keep') {
-    game.load(lvl, session, { arrive });
+    game.load(lvl, session, { arrive, built });
+    document.body.classList.toggle('roaming', built);
     lastNeeds = '';
     renderNeeds();
     renderFocus(null);
@@ -453,11 +518,11 @@ function startLevel(index, resume = false, arrive = 'island') {
     return;
   }
   // the title showcase and the prologue already have this figure's island loaded and its blocks scattered
-  const keepCam = arrive === 'island' && (app === 'title' || (app === 'cinema' && ctx.cinema?.ready === lvl)) && game.level === lvl && !session;
+  const keepCam = arrive === 'island' && (app === 'title' || (app === 'cinema' && ctx.cinema?.ready === lvl)) && game.level === lvl && !session && !built;
   $('kubo-bark').classList.remove('show');
   if (!keepCam) {
     const fromCam = game.world ? null : 1;
-    game.load(lvl, session, { arrive });
+    game.load(lvl, session, { arrive, built });
     if (fromCam) { game.orbitAngle = 0.5; game.updateOrbit(0, 0, 1); }
   }
   input.reset();
@@ -469,6 +534,7 @@ function startLevel(index, resume = false, arrive = 'island') {
   $('keys').classList.remove('fade');
   $('hud').classList.remove('off');
   document.body.classList.remove('celebrating');
+  document.body.classList.toggle('roaming', built);
   setBase(null);
   app = 'intro';
   game.startIntro();
@@ -535,11 +601,26 @@ function onComplete(stats) {
   delete save.sessions[lvl.id];
   persist();
   const finale = idx === LEVELS.length - 1 && firstClear;
+  // the last figure of a world: a world-complete card, and straight on to the next world
+  const ch = CHAPTERS[lvl.chapter], nextCh = CHAPTERS[lvl.chapter + 1];
+  const worldDone = firstClear && ch.levels.every(l => isDone(l.id));
+  const world = worldDone ? { name: ch.name, thumbs: ch.levels.map(l => thumbs[l.index]), stars: ch.levels.reduce((n, l) => n + starsOf(l.id), 0), total: ch.levels.length * 3 } : null;
+  const onward = worldDone && !finale && nextCh && chapterUnlocked(lvl.chapter + 1);
+  // a friend's gift that arrived before the first figure: Kubo hands it over now
+  const giftName = idx === 0 && firstClear ? ctx.gift?.pending() : null;
+  const openGift = () => {
+    ctx.gift.open();
+    completeActions.onNext = walkOn;
+    $('next-label').textContent = t('complete.walkOn');
+  };
   setTimeout(() => showComplete({
     name: lvl.name, img: thumbs[idx], reveal: firstClear, time: stats.time, par, hints: stats.hints,
-    stars: [run.done, run.fast, run.clean], best: isBest && !firstClear ? t('complete.newBest') : '', say: lvl.outro,
+    stars: [run.done, run.fast, run.clean], prevStars: [!!prev.done, !!prev.fast, !!prev.clean],
+    best: isBest && !firstClear ? t('complete.newBest') : '', world,
+    say: giftName ? t('workshop.gift.kubo', { name: escapeHtml(giftName) }) : lvl.outro,
     splits: stats.splits, prevSplits,
-    nextLabel: t(finale ? 'complete.epilogue' : 'complete.walkOn'), onNext: finale ? showEnding : walkOn, onMap: openMap,
+    nextLabel: giftName ? t('workshop.gift.open') : finale ? t('complete.epilogue') : onward ? t('complete.nextWorld', { world: nextCh.name }) : t('complete.walkOn'),
+    onNext: giftName ? openGift : finale ? showEnding : onward ? (pendingUnlock ? openMap : () => enterWorld(lvl.chapter + 1)) : walkOn, onMap: openMap,
     onRetry: () => { pendingUnlock = null; startLevel(lvl); },
   }), 2600);
 }
@@ -561,7 +642,9 @@ function showComplete(o) {
   $('lvl-name').textContent = o.name;
   $('complete-name').textContent = o.name;
   $('complete-time').textContent = fmt(o.time);
-  $('complete-par').textContent = o.par ? t('complete.par', { t: fmt(o.par) }) : (o.parText || t('complete.time'));
+  // the time against par
+  const dp = o.par ? o.time - o.par : 0;
+  $('complete-par').innerHTML = o.par ? `${t('complete.par', { t: fmt(o.par) })} <em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em>` : (o.parText || t('complete.time'));
   $('complete-hints').textContent = o.hints;
   $('complete-img').src = o.img || '';
   $('complete-thumb').classList.toggle('reveal', !!o.reveal);
@@ -569,12 +652,19 @@ function showComplete(o) {
   $('complete-best').textContent = o.best || '';
   $('complete-say').innerHTML = o.say || '';
   $('complete-say').closest('.say').style.display = o.say ? '' : 'none';
-  const st = o.stars || [];
-  $('complete-stars').innerHTML = st.map(() => '<svg><use href="#i-star"/></svg>').join('');
-  const svgs = $('complete-stars').children;
+  // labelled stars: earned this run (pop in), kept from an earlier run (pale), newly earned (marked)
+  const st = o.stars || [], labels = [t('complete.star.done'), t('complete.star.fast'), t('complete.star.clean')];
+  $('complete-stars').innerHTML = st.map((on, k) => `<span class="cs ${o.prevStars?.[k] && !on ? 'kept' : ''}"><svg><use href="#i-star"/></svg><small>${labels[k]}</small>${on && o.prevStars && !o.prevStars[k] ? `<em>${t('complete.star.new')}</em>` : ''}</span>`).join('');
+  const svgs = $('complete-stars').querySelectorAll('svg');
+  // a world finished: its five figures and its stars
+  const w = o.world;
+  $('complete-world').innerHTML = w ? `<b>${t('complete.worldDone', { world: w.name })}</b><div class="wd-figs">${w.thumbs.map(s => `<img src="${s}" alt="">`).join('')}</div><span><svg><use href="#i-star"/></svg> <bdi class="n">${w.stars} / ${w.total}</bdi></span>` : '';
+  $('complete-world').style.display = w ? '' : 'none';
+  $('complete-world').closest('.panel').classList.toggle('has-world', !!w);
   st.forEach((on, k) => { if (on) setTimeout(() => { svgs[k].classList.add('on'); audio.star(k); }, 500 + k * 280); });
   $('next-label').textContent = o.nextLabel || t('complete.continue');
   $('complete-splits').innerHTML = o.splits ? splitsHtml(o.splits, o.prevSplits) : '';
+  $('btn-c-share').style.display = o.onShare ? '' : 'none';
   completeActions = o;
   setBase('screen-complete');
 }
@@ -710,6 +800,36 @@ function backToIsland() {
   input.enabled = true;
   document.body.classList.add('playing');
   if (!mobile) input.requestLock();
+}
+// first steps onto a figure's island this visit: welcome back (first island of a session), its intro line the
+// first time ever, then the goals; on a finished island, what's left to earn there
+let welcomeBack = false;
+function onArrive(l) {
+  if (l.kind || game.tutorial) return;
+  const lines = [];
+  if (welcomeBack) {
+    welcomeBack = false;
+    const s = save.sessions[l.id];
+    if (s?.placed?.length) lines.push(t('kubo.welcomeBackFig', { fig: `<b>${l.name}</b>`, n: s.placed.length, total: game.voxels.length }));
+    else lines.push(t('kubo.welcomeBack'));
+  }
+  if (!save.seen[`fig.${l.id}`]) { save.seen[`fig.${l.id}`] = true; persist(); lines.push(l.intro); }
+  if (game.roaming) {
+    const st = save.stars[l.id] || {};
+    if (!(st.fast && st.clean)) lines.push(t(mobile ? 'kubo.rebuild.touch' : 'kubo.rebuild.desk', { par: `<b>${fmt(parTime(l))}</b>` }));
+  } else if (!save.seen[`goal.${l.id}`] && l !== LEVELS[0]) {
+    save.seen[`goal.${l.id}`] = true; persist();
+    lines.push(t('kubo.goals', { par: `<b>${fmt(parTime(l))}</b>` }));
+  }
+  lines.forEach(m => kuboSays(m));
+}
+// a fresh run on a finished figure, right where you stand (for the stars still missing)
+function rebuild() {
+  const l = game.level;
+  if (!game.roaming || l.kind || !isDone(l.id) || app !== 'playing' || !game.onIsland) return;
+  startLevel(l.index, false, 'keep');
+  audio.tone({ f: 520, f2: 780, type: 'triangle', dur: 0.2, vol: 0.1 });
+  kuboSays(t('kubo.rebuildGo', { par: `<b>${fmt(parTime(l))}</b>` }), true);
 }
 // after the results panel: back onto the island, the way to the next figure lit
 function walkOn() {
@@ -852,7 +972,11 @@ document.addEventListener('pointerdown', e => {
 $('btn-play').onclick = () => {
   audio.unlock();
   if (!save.seen.prologue) { playPrologue(); return; }
-  enterWorld(LEVELS[nextLevelIndex()].chapter);
+  const i = nextLevelIndex();
+  // straight onto a half-built figure's island; otherwise into its world by the portal
+  if (save.sessions[LEVELS[i].id] && save.seen[CHAPTERS[LEVELS[i].chapter].id]) { welcomeBack = true; startLevel(i, true, 'island'); return; }
+  welcomeBack = true;
+  enterWorld(LEVELS[i].chapter);
 };
 $('btn-map').onclick = () => openMap();
 $('btn-map-back').onclick = () => (mapFromIsland ? backToIsland() : enterTitle());
@@ -885,6 +1009,7 @@ $('btn-quit').onclick = () => (game.level?.kind ? enterTitle() : openMap());
 $('btn-pause').onclick = () => pause();
 $('btn-hint').onclick = () => input.actions.push({ type: 'hint' });
 $('btn-magnet').onclick = () => input.actions.push({ type: 'magnet' });
+$('btn-rebuild').onclick = () => rebuild();
 $('btn-express').onclick = () => input.actions.push({ type: 'express' });
 function renderTool(btn, count, n, gained) {
   const b = $(btn);
@@ -898,6 +1023,7 @@ const renderMagnet = (n, gained) => renderTool('btn-magnet', 'magnet-n', n, gain
 $('btn-c-map').onclick = () => (completeActions.onMap || openMap)();
 $('btn-c-retry').onclick = () => (completeActions.onRetry || (() => startLevel(game.level)))();
 $('btn-next').onclick = () => (completeActions.onNext || openMap)();
+$('btn-c-share').onclick = () => completeActions.onShare?.();
 $('btn-ending-map').onclick = () => openMap();
 const jump = $('btn-jump');
 jump.addEventListener('pointerdown', e => { e.preventDefault(); input.actions.push({ type: 'jump' }); input.jumpButtonHeld = true; jump.classList.add('pressed'); });

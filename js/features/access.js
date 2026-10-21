@@ -9,8 +9,8 @@ const DEFAULTS = { fov: 88, smooth: 0, bob: true, reduceMotion: prefersReduced, 
 // rebindable actions; labels are i18n keys access.act.<action>
 const ACTIONS = ['forward', 'back', 'left', 'right', 'turnLeft', 'turnRight', 'lookUp', 'lookDown', 'jump', 'run', 'interact', 'drop', 'hint'];
 const actLabel = a => t(`access.act.${a}`);
-// fixed keys that can't be rebound (menus, slots, pause, magnet / express, photo mode and the secondary movement keys)
-const RESERVED = new Set(['Escape', 'Tab', 'KeyP', 'KeyR', 'KeyF', 'KeyC', 'Enter', 'NumpadEnter', 'Backspace', 'Digit1', 'Digit2', 'Digit3', 'Digit4',
+// fixed keys that can't be rebound (menus, slots, pause, magnet / express and the secondary movement keys)
+const RESERVED = new Set(['Escape', 'Tab', 'KeyP', 'KeyR', 'KeyF', 'Enter', 'NumpadEnter', 'Backspace', 'Digit1', 'Digit2', 'Digit3', 'Digit4',
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'MetaLeft', 'MetaRight', 'F5', 'F11', 'F12']);
 // named keys → i18n key access.key.<word>; symbol keys are shown as-is
 const KEY_WORDS = {
@@ -221,7 +221,6 @@ export function init(ctx) {
       t('access.hint.dropHint2', { a: k(t('access.key.rightClick')), b: k(L('drop')), hint: k(L('hint')) }),
       // the tools line only on figures that have them (body.has-tools)
       `<span class="tools-key">${k('R')} ${t('aria.magnet')} · ${k('F')} ${t('aria.express')}</span>`,
-      `${k('C')} ${t('photo.photo')}`,
     ];
     $('keys').innerHTML = lines.map(s => s.startsWith('<span') ? s : `<span>${s}</span>`).join('');
   }

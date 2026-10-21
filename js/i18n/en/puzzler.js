@@ -1,7 +1,7 @@
 // Puzzler mode (js/features/puzzler.js and the chunk logic in game.js).
 export default {
   "puzzler.title": "Puzzler mode",
-  "puzzler.desc": "Link blocks anywhere, read the figure, solve the sums",
+  "puzzler.desc": "A harder way to play: sums instead of numbers, and blocks link anywhere. Starts with your next figure.",
   "puzzler.badge": "Puzzler",
   "puzzler.kubo.1": "Puzzler! A sum like 3+4 fits bubble 7. Loose blocks can link together on the ground, too.",
   "puzzler.kubo.2": "Link loose blocks into chunks, then fly the whole chunk onto the figure!",

@@ -38,6 +38,14 @@ export function init(ctx) {
   const load = game.load.bind(game);
   game.load = (...args) => { load(...args); sync(); tipped = false; };
 
+  // Puzzler runs are tracked on their own (best time per figure), apart from the classic stars
+  ctx.hooks.complete.push((stats, lvl) => {
+    if (!game.puzzler || lvl.kind) return;
+    save.puzzler = save.puzzler || {};
+    save.puzzler[lvl.id] = Math.min(save.puzzler[lvl.id] || Infinity, Math.round(stats.time));
+    persist();
+  });
+
   // a short explanation from Kubo the first couple of puzzler runs
   let tipped = true;
   ctx.hooks.tick.push(g => {

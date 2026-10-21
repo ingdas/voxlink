@@ -10,6 +10,7 @@ let kubo = null; // { group, body, eyes, mouth, pos, ... }
 let bubble, box, bubbleText, live;
 let bark = '', barkLeft = 0, barkAge = 9, coachHtml = '', nudgeT = 0;
 let shown = false, lastSeq = -1;
+const queue = []; // lines waiting their turn (each gets a fair read before the next)
 
 // how long a line stays up: dense scripts (CJK, Thai) carry more per character
 function readTime(msg) {
@@ -27,6 +28,9 @@ export function init(c) {
   box = bubble.querySelector('.ks-box');
   bubbleText = bubble.querySelector('.ks-text');
   document.getElementById('hud').appendChild(bubble);
+  // tap the bubble to keep the line up a little longer (a re-read)
+  box.style.pointerEvents = 'auto';
+  box.addEventListener('pointerdown', e => { e.stopPropagation(); if (barkLeft > 0 || barkAge < 6) { barkLeft = readTime(bark); barkAge = Math.min(barkAge, 2); } });
   // screen readers hear Kubo's lines too
   live = document.createElement('div');
   live.className = 'sr-only';
@@ -35,13 +39,21 @@ export function init(c) {
   ctx.companion = {
     // only on an island, playing (not in menus, cutscenes, the garden or the workshop)
     active: () => shown,
-    say(msg) { bark = msg; barkLeft = readTime(msg); barkAge = 0; live.textContent = msg.replace(/<[^>]+>/g, ''); },
+    say(msg, urgent = false) {
+      if (!urgent && barkLeft > 0 && barkAge < Math.min(4, readTime(bark) * 0.8)) {
+        if (queue.length < 3 && !queue.some(q => q.msg === msg) && msg !== bark) queue.push({ msg, at: performance.now() });
+        return;
+      }
+      speak(msg);
+    },
     coach(html) { coachHtml = html; },
     // a control that isn't unlocked yet: shake the bubble, wiggle Kubo
     nudge() { nudgeT = 0.45; box.classList.remove('nudge'); void box.offsetWidth; box.classList.add('nudge'); },
   };
   ctx.hooks.frame.push((g, dt) => update(g, dt));
 }
+
+function speak(msg) { bark = msg; barkLeft = readTime(msg); barkAge = 0; live.textContent = msg.replace(/<[^>]+>/g, ''); }
 
 function build() {
   const g = new THREE.Group();
@@ -81,6 +93,9 @@ function update(g, dt) {
   const still = document.body.classList.contains('reduce-motion');
 
   barkLeft -= dt; barkAge += dt;
+  // waiting lines go stale after a while (you've walked on)
+  while (queue.length && performance.now() - queue[0].at > 9000) queue.shift();
+  if (queue.length && (barkLeft <= 0 || barkAge >= Math.min(4, readTime(bark) * 0.8))) speak(queue.shift().msg);
   const pl = g.player;
   const talking = !!coachHtml || barkLeft > 0;
   // the scene shifted under us (walked onto another island): move along
@@ -157,6 +172,7 @@ function placeBubble(g, html, still) {
 function hide() {
   if (!shown && !kubo?.group.visible) return;
   shown = false;
+  queue.length = 0;
   document.body.classList.remove('companion');
   bubble.classList.remove('show');
   if (kubo) { kubo.group.visible = false; kubo.placed = false; }

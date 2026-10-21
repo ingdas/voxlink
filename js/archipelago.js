@@ -37,7 +37,8 @@ function coast(world, dirZ) {
 // chapter: index; levels: its figures; makePart(level) -> { world, footR }; makeHub(seaY) -> world
 // isOpen(level) / isDone(level); figureMaterial: material for finished figures standing on inactive islands
 // doorShut(level): a door at the island end of its bridge stays shut (the very first figure, until it's rebuilt)
-export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, isDone, doorShut = () => false, figureMaterial }) {
+// isHalf(level): a saved run in progress (a half-filled marker floats over its pedestal)
+export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, isDone, isHalf = () => false, doorShut = () => false, figureMaterial }) {
   const root = new THREE.Group();
   const parts = levels.map(level => ({ level, ...makePart(level), p: new THREE.Vector3() }));
   const hubWorld = makeHub(parts[0].world.seaY);
@@ -261,7 +262,8 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       for (const k of pieces) k.world.dispose();
       root.traverse(o => { if (o.parent && o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
       for (const d of displays.values()) d.geometry.dispose();
-      wood.dispose(); dark.dispose(); lockTex?.dispose(); beacon.userData.tex.dispose();
+      wood.dispose(); dark.dispose(); lockTex?.dispose(); beacon.userData.tex.dispose(); halfTex.dispose();
+      for (const s of halves.values()) s.material.dispose();
     },
   };
   const sunDir = new THREE.Vector3(...hubWorld.theme.sunPos).normalize();
@@ -299,6 +301,18 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   }
   let beaconFor;
 
+  // half-built marker: a half-filled disc over the pedestal of a figure with a saved run
+  const halfTex = (() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#2a1f3d'; g.beginPath(); g.arc(64, 68, 54, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff4e0'; g.beginPath(); g.arc(64, 62, 48, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffc93c'; g.beginPath(); g.moveTo(64, 62); g.arc(64, 62, 48, Math.PI / 2, Math.PI * 1.5); g.fill();
+    g.strokeStyle = '#2a1f3d'; g.lineWidth = 6; g.beginPath(); g.moveTo(64, 16); g.lineTo(64, 108); g.stroke();
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  })();
+  const halves = new Map();
   const displays = new Map();
   function dress() {
     for (const pt of parts) {
@@ -317,6 +331,16 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
         displays.set(pt, m);
       }
       if (displays.has(pt)) displays.get(pt).visible = show;
+      const half = pt !== active && pt.open && !isDone(pt.level) && isHalf(pt.level);
+      if (half && !halves.has(pt)) {
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: halfTex, depthWrite: false, transparent: true, fog: false }));
+        s.scale.setScalar(1.6);
+        s.position.set(0, PEDESTAL_TOP + 2.2, 0);
+        s.renderOrder = 5;
+        pt.world.group.add(s);
+        halves.set(pt, s);
+      }
+      if (halves.has(pt)) halves.get(pt).visible = half;
     }
   }
 

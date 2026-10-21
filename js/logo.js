@@ -1,5 +1,5 @@
 // The game logo: "KUBO'S ISLANDS" as two rows of tilted letter blocks, like the game's voxels.
-// Built as DOM for the menus and the photo watermark; photo.js also paints it onto snapshots.
+// Built as DOM for the menus.
 export const GAME_NAME = "Kubo's Islands";
 export const LOGO_ROWS = ["KUBO'S", 'ISLANDS'];
 const COLORS = ['#ffc93c', '#ff6b6b', '#3ddc97', '#4cc9f0', '#b693f5']; // sun, coral, mint, sky, lilac

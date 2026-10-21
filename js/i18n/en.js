@@ -2,9 +2,8 @@
 import core from './en/core.js';
 import story from './en/story.js';
 import access from './en/access.js';
-import photo from './en/photo.js';
 import museum from './en/museum.js';
 import workshop from './en/workshop.js';
 import puzzler from './en/puzzler.js';
 
-export default { ...core, ...story, ...access, ...photo, ...museum, ...workshop, ...puzzler };
+export default { ...core, ...story, ...access, ...museum, ...workshop, ...puzzler };

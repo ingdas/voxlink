@@ -155,7 +155,8 @@ export class Game {
   // level: campaign index, or a level object ({ id, name, voxels|figure, theme, kind, ... })
   // arrive: 'island' (start on the figure's island), 'hub' (by portal, on the middle island) or 'keep' (walked over:
   // the player stays where they are while the scene shifts to the new island)
-  load(index, resume = null, { arrive = 'island' } = {}) {
+  // built: a finished figure stands whole and you just roam (rebuilding it for stars is a separate choice)
+  load(index, resume = null, { arrive = 'island', built = false } = {}) {
     const level = typeof index === 'object' ? index : LEVELS[index];
     const campaign = LEVELS.includes(level);
     this.unloadPuzzle();
@@ -187,7 +188,7 @@ export class Game {
           chapter: level.chapter, levels: chapter.levels, figureMaterial: this.figureMat,
           makePart: l => ({ world: buildIsland(l, themeId, quality, true) }),
           makeHub: seaY => buildWorld({ rng: mulberry32(4242 + level.chapter * 31), radius: 11, seed: 7 + level.chapter, quality, theme: themeId, layout: 'hub', seaY, pedestal: false }),
-          isOpen: l => this.events.isOpen?.(l) ?? true, isDone: l => !!this.events.isDone?.(l),
+          isOpen: l => this.events.isOpen?.(l) ?? true, isDone: l => !!this.events.isDone?.(l), isHalf: l => !!this.events.isHalf?.(l),
           doorShut: l => l === LEVELS[0] && !this.events.isDone?.(l),
         });
         this.scene.add(this.arch.group);
@@ -251,7 +252,11 @@ export class Game {
     }
     for (const r of this.puzzle.roots) this.place(r, true);
     // big figures start with a small pre-built core so several bubbles are open from the start
-    const seed = coreSize(cells.length);
+    const seed = built ? 0 : coreSize(cells.length);
+    if (built) {
+      const all = this.puzzle.roots.flatMap(r => this.puzzle.children[r]);
+      while (all.length) { const c = all.shift(); this.place(c, true); all.push(...this.puzzle.children[c]); }
+    }
     const queue = this.puzzle.roots.flatMap(r => this.puzzle.children[r]);
     for (let k = 0; k < seed && queue.length; k++) {
       const c = queue.splice(Math.floor(rng() * queue.length), 1)[0];
@@ -300,6 +305,8 @@ export class Game {
     this.tutAcc = 0;
     this.tutUsed = new Set(); // controls used during the current step (the coach lights their keys)
     this.packTipShown = false;
+    this.hintWarnT = -99;
+    this.roaming = built;
     this.barked = new Set();
     this.chainQueue = [];
     this.chain = 0;
@@ -1042,6 +1049,12 @@ export class Game {
     if (this.hintCooldown > 0) { this.events.toast?.(t('toast.recharging')); return; }
     const fits = this.voxels.filter(v => v.state === 'loose' && this.sockets.has(v.i));
     if (!fits.length) return;
+    // the first hint of a run costs the no-hint star: Kubo says so, and a second press within a few seconds uses it
+    if (!practice && !this.hintsUsed && this.events.hintCostsStar?.() && this.t - this.hintWarnT > 6) {
+      this.hintWarnT = this.t;
+      this.events.kubo?.(t('kubo.hintWarn'), true);
+      return;
+    }
     this.hintCooldown = this.hintMax;
     if (!practice) this.hintsUsed++;
     this.audio.hint();
@@ -1198,7 +1211,7 @@ export class Game {
       else if (a.type === 'interact') this.interact(a.x, a.y);
       else if (a.type === 'drop') this.drop();
       else if (a.type === 'hint') this.hint();
-      else if (a.type === 'magnet') this.useMagnet();
+      else if (a.type === 'magnet') { if (this.roaming) this.events.rebuild?.(); else this.useMagnet(); }
       else if (a.type === 'express') this.useExpress();
       else if (a.type === 'pause') this.events.pause?.();
       else if (a.type === 'slot') this.selectSlot(a.k);

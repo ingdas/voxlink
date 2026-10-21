@@ -71,22 +71,32 @@ function onCrazyGames() {
   const hosts = [document.referrer, ...(location.ancestorOrigins ? [...location.ancestorOrigins] : [])].join(' ');
   return /crazygames\./i.test(hosts) || /crazygames\./i.test(location.hostname);
 }
+// The CrazyGames SDK (loaded and initialised once), or null when not on CrazyGames / it fails to load.
+// Also used for invite links (workshop gifts), which must point at the CrazyGames page, not the game's iframe.
+let sdkPromise = null;
+export function crazyGamesSdk() {
+  if (!sdkPromise) sdkPromise = (async () => {
+    if (!onCrazyGames()) return null;
+    try {
+      if (!window.CrazyGames?.SDK) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://sdk.crazygames.com/crazygames-sdk-v3.js';
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+          setTimeout(rej, 3000);
+        });
+      }
+      const sdk = window.CrazyGames.SDK;
+      await Promise.race([sdk.init(), new Promise(r => setTimeout(r, 2500))]);
+      return sdk;
+    } catch { return null; }
+  })();
+  return sdkPromise;
+}
 async function crazyGamesLocale() {
-  if (!onCrazyGames()) return null;
-  try {
-    if (!window.CrazyGames?.SDK) {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://sdk.crazygames.com/crazygames-sdk-v3.js';
-        s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-        setTimeout(rej, 3000);
-      });
-    }
-    const sdk = window.CrazyGames.SDK;
-    await Promise.race([sdk.init(), new Promise(r => setTimeout(r, 2500))]);
-    return sdk.user?.systemInfo?.locale || null;
-  } catch { return null; }
+  const sdk = await crazyGamesSdk();
+  return sdk?.user?.systemInfo?.locale || null;
 }
 
 // Locale-aware formatting helpers.

@@ -1,0 +1,78 @@
+// Star rewards: Kubo wears a hat for every star milestone you reach (the newest one he's earned), and tells you
+// the first time he gets one. Small voxel hats built from a few boxes, hung off the companion's hat slot
+// (ctx.dressKubo is called by companion.js every frame he's shown).
+import { t } from '../i18n.js';
+import { toon } from '../render.js';
+
+export const MILESTONES = [
+  { n: 25, id: 'sprout' },
+  { n: 60, id: 'party' },
+  { n: 100, id: 'crown' },
+  { n: 150, id: 'star' },
+];
+
+let ctx, THREE;
+const built = new Map();
+
+export function init(c) {
+  ctx = c; THREE = c.THREE;
+  const stars = () => ctx.LEVELS.reduce((k, l) => { const s = ctx.save.stars[l.id] || {}; return k + !!s.done + !!s.fast + !!s.clean; }, 0);
+  ctx.kuboHat = () => [...MILESTONES].reverse().find(m => stars() >= m.n) || null;
+  let checkT = 0, current = null;
+  ctx.dressKubo = kubo => {
+    // once a second is plenty: stars only change on the results panel
+    const now = performance.now();
+    if (now - checkT > 1000) {
+      checkT = now;
+      current = ctx.kuboHat();
+      const seen = ctx.save.seen.hat || 0;
+      if (current && current.n > seen) {
+        ctx.save.seen.hat = current.n; ctx.persist();
+        const n = current.n;
+        setTimeout(() => ctx.kuboSays(t('kubo.newHat', { n })), 1200);
+      }
+    }
+    const id = current?.id || null;
+    if (kubo.hat === id) return;
+    kubo.hat = id;
+    for (const h of built.values()) h.visible = false;
+    if (!id) return;
+    if (!built.has(id)) { const h = make(id); built.set(id, h); kubo.hats.add(h); }
+    built.get(id).visible = true;
+  };
+}
+
+function box(w, h, d, color, x = 0, y = 0, z = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), toon(color));
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  return m;
+}
+
+function make(id) {
+  const g = new THREE.Group();
+  if (id === 'sprout') {
+    // a little seedling: stem and two leaves
+    g.add(box(0.05, 0.2, 0.05, 0x4caf50, 0, 0.1, 0));
+    const l = box(0.16, 0.05, 0.09, 0x6fdc6a, -0.08, 0.2, 0); l.rotation.z = 0.5; g.add(l);
+    const r = box(0.16, 0.05, 0.09, 0x6fdc6a, 0.08, 0.22, 0); r.rotation.z = -0.5; g.add(r);
+  } else if (id === 'party') {
+    // a stepped party cone with a pom-pom
+    g.add(box(0.3, 0.08, 0.3, 0xff6b6b, 0, 0.04, 0));
+    g.add(box(0.22, 0.08, 0.22, 0x4cc9f0, 0, 0.12, 0));
+    g.add(box(0.14, 0.08, 0.14, 0xff6b6b, 0, 0.2, 0));
+    g.add(box(0.08, 0.08, 0.08, 0xfff4e0, 0, 0.28, 0));
+    g.rotation.z = -0.18; g.position.x = 0.06;
+  } else {
+    // a crown: a band with five points (the gold star crown has a star on top)
+    const gold = 0xffc93c;
+    g.add(box(0.5, 0.1, 0.5, gold, 0, 0.05, 0));
+    for (const [x, z] of [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2], [0, 0.22]]) g.add(box(0.08, 0.12, 0.08, gold, x, 0.16, z));
+    g.add(box(0.07, 0.07, 0.03, 0xff6b6b, 0, 0.06, 0.26));
+    if (id === 'star') {
+      const s = box(0.16, 0.16, 0.05, 0xfff1a8, 0, 0.36, 0); s.rotation.z = Math.PI / 4; g.add(s);
+      g.add(box(0.12, 0.12, 0.06, 0xffe066, 0, 0.36, 0));
+    }
+  }
+  return g;
+}

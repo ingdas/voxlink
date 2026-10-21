@@ -5,7 +5,7 @@ import { PALETTE, PATTERN, forgetLevel } from '../levels.js';
 import { S, fixedPatternPatch } from '../voxels.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from '../render.js';
 import { THEMES } from '../world.js';
-import { t } from '../i18n.js';
+import { t, crazyGamesSdk } from '../i18n.js';
 import { createEditorCam } from './workshop-cam.js';
 
 const KEYS = Object.keys(PALETTE); // share-code colour index (append-only order)
@@ -195,7 +195,7 @@ export function init(ctx) {
 
   // ---------- DOM ----------
   document.querySelector('svg defs')?.insertAdjacentHTML('beforeend', ICONS);
-  const sw = c => `<button class="ws-sw${PATTERN[c] ? ` pat-${PATTERN[c]}` : ''}" data-c="${c}" style="--c:${hex(PALETTE[c])}" aria-label="${attr(t('workshop.colour', { c }))}"></button>`;
+  const sw = c => `<button class="ws-sw${PATTERN[c] ? ` pat-${PATTERN[c]}` : ''}" data-c="${c}" style="--c:${hex(PALETTE[c])}" aria-label="${attr(t(`workshop.sw.${c}`))}" title="${attr(t(`workshop.sw.${c}`))}"></button>`;
   const tool = (id, icon, label) => `<button class="btn ws-tool" data-tool="${id}" aria-label="${attr(label)}" title="${attr(label)}"><svg><use href="#i-${icon}"/></svg><span>${label}</span></button>`;
   const camBtn = (id, icon, key) => {
     const label = t(`workshop.cam.${id}`);
@@ -291,12 +291,12 @@ export function init(ctx) {
   document.querySelectorAll('.ws-input, .ws-name').forEach(el => el.addEventListener('contextmenu', e => e.stopPropagation()));
 
   let toastT = 0;
-  function wsToast(msg) {
+  function wsToast(msg, ms = 2400) {
     const el = $('ws-toast');
     el.innerHTML = msg;
     el.classList.add('show');
     clearTimeout(toastT);
-    toastT = setTimeout(() => el.classList.remove('show'), 2400);
+    toastT = setTimeout(() => el.classList.remove('show'), ms);
   }
   const shake = el => el.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 250 });
 
@@ -345,7 +345,7 @@ export function init(ctx) {
         <button class="ws-thumb" data-act="edit" aria-label="${attr(t('workshop.edit'))}"><img src="${thumbOf(e)}" alt=""></button>
         <div class="ws-info">
           <div class="ws-title">${escapeHtml(e.name)}</div>
-          <div class="ws-meta"><span><svg><use href="#i-cube"/></svg>${e.voxels.length}</span>${e.best ? `<span><svg><use href="#i-clock"/></svg>${fmt(e.best)}</span>` : ''}${ok ? '' : `<span class="ws-wip">${t('workshop.unfinished')}</span>`}</div>
+          <div class="ws-meta"><span><svg><use href="#i-cube"/></svg>${e.voxels.length}</span>${e.best ? `<span><svg><use href="#i-clock"/></svg>${fmt(e.best)}</span>` : ''}${e.stars ? `<span class="ws-stars">${['done', 'fast', 'clean'].map(k => `<svg class="${e.stars[k] ? 'on' : ''}"><use href="#i-star"/></svg>`).join('')}</span>` : ''}${ok ? '' : `<span class="ws-wip">${t('workshop.unfinished')}</span>`}</div>
           <div class="ws-acts">
             <button class="btn mint grow" data-act="play" ${ok ? '' : 'disabled'}><svg><use href="#i-play"/></svg><span>${t('workshop.play')}</span></button>
             <button class="btn sq" data-act="edit" aria-label="${attr(t('workshop.edit'))}"><svg><use href="#i-pencil"/></svg></button>
@@ -459,6 +459,10 @@ export function init(ctx) {
     const prev = entry?.best || 0;
     const isBest = !prev || stats.time < prev;
     if (entry && isBest) { entry.best = stats.time; }
+    // stars on your own figures too (kept per figure)
+    const run = { done: true, fast: stats.time <= ctx.parTime(level), clean: stats.hints === 0 };
+    const was = entry?.stars || {};
+    if (entry) entry.stars = { done: true, fast: !!(was.fast || run.fast), clean: !!(was.clean || run.clean) };
     delete save.sessions?.[level.id];
     persist();
     const par = ctx.parTime(level);
@@ -466,7 +470,8 @@ export function init(ctx) {
     ctx.showComplete({
       name: level.name, img: entry ? thumbOf(entry) : ctx.renderThumb(ctx.expandLevel(level).cells),
       time: stats.time, par, hints: stats.hints,
-      stars: [true, stats.time <= par, stats.hints === 0],
+      stars: [run.done, run.fast, run.clean], prevStars: entry ? [!!was.done, !!was.fast, !!was.clean] : null,
+      onShare: entry && playable(entry.voxels) ? () => openShare(entry) : null,
       best: isBest && prev ? t('workshop.newBest') : '',
       say: t(`workshop.${gifted ? 'giftCheer' : 'cheer'}.${Math.floor(Math.random() * (gifted ? GIFT_CHEER_COUNT : CHEER_COUNT))}`),
       nextLabel: t('workshop.title'), onNext: () => openGallery(entry?.id), onMap: () => ctx.enterTitle(),
@@ -476,9 +481,14 @@ export function init(ctx) {
 
   // ================================================================ share
   let shareEntry = null;
+  // on CrazyGames the link must open the game's CrazyGames page (an invite link), not the iframe's own address
+  let cg = null;
+  crazyGamesSdk().then(s => { cg = s; });
   function shareLink(entry) {
     const code = encodeFigure(entry);
-    return { code, link: `${location.origin}${location.pathname}?fig=${code}` };
+    let link = '';
+    try { link = cg?.game?.inviteLink?.({ fig: code }) || ''; } catch { /* fall back */ }
+    return { code, link: link || `${location.origin}${location.pathname}?fig=${code}` };
   }
   function openShare(entry) {
     if (!playable(entry.voxels)) { audio.wrong(); return; }
@@ -505,22 +515,47 @@ export function init(ctx) {
   copyBtn('ws-s-copy', 'link', 'workshop.copyLink');
   copyBtn('ws-s-code', 'code', 'workshop.code');
 
-  // ================================================================ ?fig= links
+  // ================================================================ ?fig= links (and CrazyGames invite links)
+  // A gift opened before the player has rebuilt their first figure is kept straight away (a short card says so)
+  // and offered by Kubo when the Sprout is done; later on it's shown on the title screen.
   let gift = null;
-  const giftCode = new URLSearchParams(location.search).get('fig');
-  if (giftCode) {
-    gift = decodeFigure(giftCode);
+  const firstRun = () => !save.stars[ctx.LEVELS[0].id]?.done;
+  const giftCard = () => {
+    $('ws-g-img').src = ctx.renderThumb(thumbCells(gift.voxels));
+    $('ws-g-name').textContent = gift.name;
+    $('ws-g-tag').textContent = plural('workshop.gift.tag', gift.voxels.length, { theme: themeName(THEME_IDS.includes(gift.theme) ? gift.theme : 'meadow') });
+    ctx.pushOverlay('screen-ws-gift');
+  };
+  ctx.gift = {
+    // the gift waiting after the first figure (its name), if any
+    pending: () => (save.pendingGift && gift ? gift.name : null),
+    open: () => { if (gift) { delete save.pendingGift; persist(); giftCard(); } },
+  };
+  (async () => {
+    let code = new URLSearchParams(location.search).get('fig');
+    if (!code) { const sdk = await crazyGamesSdk(); try { code = sdk?.game?.getInviteParam?.('fig') || null; } catch { /* none */ } }
+    const fromSave = !code && save.pendingGift;
+    if (fromSave) code = save.pendingGift;
+    if (!code) return;
+    try { const u = new URL(location.href); u.searchParams.delete('fig'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch { /* ignore */ }
+    gift = decodeFigure(code);
+    const ok = gift && playable(gift.voxels);
+    if (fromSave) { if (!ok) { delete save.pendingGift; persist(); } return; }
+    if (ok && firstRun()) {
+      // keep it now (so it can't get lost), tell them, and hand it over after the first figure
+      addEntry(gift);
+      save.pendingGift = code; persist();
+      const card = () => (ctx.base === 'screen-loading' ? setTimeout(card, 200) : wsToast(`<svg><use href="#i-gift"/></svg> ${t('workshop.gift.waiting', { name: escapeHtml(gift.name) })}`, 5200));
+      card();
+      return;
+    }
     const show = () => {
       if (ctx.base !== 'screen-title') { setTimeout(show, 200); return; }
-      try { const u = new URL(location.href); u.searchParams.delete('fig'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch { /* ignore */ }
-      if (!gift || !playable(gift.voxels)) { wsToast(t('workshop.gift.broken')); return; }
-      $('ws-g-img').src = ctx.renderThumb(thumbCells(gift.voxels));
-      $('ws-g-name').textContent = gift.name;
-      $('ws-g-tag').textContent = plural('workshop.gift.tag', gift.voxels.length, { theme: themeName(THEME_IDS.includes(gift.theme) ? gift.theme : 'meadow') });
-      ctx.pushOverlay('screen-ws-gift');
+      if (!ok) { wsToast(t('workshop.gift.broken')); return; }
+      giftCard();
     };
     setTimeout(show, 300);
-  }
+  })();
   const keepGift = fullKey => {
     const r = addEntry(gift);
     if (r.full) { wsToast(t(fullKey)); return null; }

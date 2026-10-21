@@ -25,13 +25,13 @@ Opening `index.html` straight from disk won't work, because browsers block ES mo
 | | Desktop | Mobile |
 |---|---|---|
 | Move | WASD / arrows, Shift to run | Left thumb (floating stick, push fully to run) |
-| Look | Mouse (pointer lock) | Drag with right thumb |
+| Look | Mouse (pointer lock), or J / L to turn and I / K to look up and down | Drag with right thumb |
 | Grab / link | Click (or E) | Tap a block / bubble |
 | Jump / float | Space (hold inside the glowing ring to float up tall figures) | Jump button |
 | Backpack slot | 1–4, mouse wheel, Tab | Tap a slot |
 | Drop | Right-click / Q | Drop button |
 | Hint | H | Bulb button |
-| Photo mode | C | Camera button |
+| Rebuild a finished figure for stars | R (on its island) | Rebuild button |
 | Gamepad | Left stick move, right stick look, A jump, X/RT link, B/LT drop, Y hint, LB/RB slot, Start pause | |
 
 Keys can be rebound in Settings.
@@ -56,7 +56,19 @@ Workshop editor:
 - Floating **bubbles** on the figure show which numbers are open right now.
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.
-- Each figure has 3 stars: finish it, beat the par time, and use no hints.
+- Each figure has 3 stars: finish it, beat the par time, and use no hints. The goals sit under the
+  progress bar while you build (time against par, hints used, each with its star); the first hint of a
+  run asks for a second press, since it costs the no-hint star. The results label each star and mark new
+  ones. Par is per block still to build, a little longer on slow ground (snow, ice, the lagoon).
+- Finished islands stay built: walking onto one (or arriving in a finished world) just lets you roam;
+  **Rebuild for stars** (R / button) starts a fresh, timed run. The clock only runs on the figure's own
+  island, and not during the tutorial.
+- Continue goes back to the figure you last played (or a half-built one); the title shows where. Half-built
+  figures show a half-filled pip on the world select and a marker over their island. Kubo welcomes you
+  back, and finishing a world shows a world card and takes you on to the next one.
+- Star rewards: three-star figures get gold pedestals in Kubo's Garden and gold pips on the world select,
+  a world with every star gets a crown, and Kubo wears a hat from 25, 60, 100 and 150 stars
+  (`js/features/hats.js`).
 - Big figures are split into parts: every part has its own flagged district on the island, and a
   compass points to where blocks fit right now. All blocks are out from the start.
 - Tools on big figures: **Magnet** (R / magnet button) pulls nearby blocks that fit into your
@@ -75,9 +87,14 @@ Workshop editor:
 - The story opens with a cutscene (the Keeper Colossus loses the storm, the storm smashes the first
   figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).
+- Kubo floats beside you and does the talking (`js/features/companion.js`): lines queue so each gets a
+  read (tap the bubble to keep it up), and his bubble docks above the backpack when he's out of view.
 - Extras: Kubo's Garden (walk among your finished
-  figures), photo mode, the Workshop (build and share your own figures), and Puzzler mode
-  (link blocks anywhere, solve sums).
+  figures), the Workshop (build and share your own figures; your own figures earn stars too),
+  and Puzzler mode (link blocks anywhere, solve sums; best times kept separately).
+- Sharing: figure links use the CrazyGames SDK invite link (and `getInviteParam('fig')`) when embedded
+  there, otherwise `?fig=`. A new player who opens a gift link gets it saved right away and Kubo hands it
+  over after the Sprout. Your own figures' results have a Share button.
 
 ## Languages
 
@@ -105,7 +122,7 @@ fly / no-clip, unlock everything, replay the prologue / finale cutscenes, and se
 - `js/render.js`: toon materials and the ink-outline post pass (depth + normal edges)
 - `js/player.js`, `js/input.js`: first-person controller, keyboard/mouse/touch input
 - `js/main.js`: app flow, HUD, world map, dialogue, saves, and the `ctx` object for features
-- `js/features/*.js`: optional features plugged in through `init(ctx)` (garden, photo,
+- `js/features/*.js`: optional features plugged in through `init(ctx)` (garden,
   workshop, puzzler, accessibility, language picker, debug)
 - `js/features/workshop-cam.js`: the Workshop editor's orbit camera (inertia, zoom to cursor,
   framing, spring arm)

@@ -57,7 +57,6 @@
     <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 4v8a6 6 0 0 0 12 0V4h-4v8a2 2 0 0 1-4 0V4zM6 8h4M14 8h4"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M3.5 11.5 20 4l-5.5 16-3.5-6.5zM11 13.5 20 4"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 3 20 19l-8-4-8 4z" class="fill"/></symbol>
-    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.5 8.5h4L9 5.5h6l1.5 3h4v11h-17z"/><circle cx="12" cy="14" r="3.4"/></symbol>
     <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 12.5V20h14v-7.5"/></symbol>
     <symbol id="i-garden" viewBox="0 0 24 24"><path d="M12 2.8l4.5 2.5v5L12 12.8l-4.5-2.5v-5zM7.5 5.3 12 7.8l4.5-2.5M12 7.8v5M5.5 15.5h13M7 15.5v5h10v-5"/></symbol>
   </defs>
@@ -73,6 +72,7 @@
     <div class="progress tag">
       <div class="progress-row"><b id="lvl-name">Sprout</b><i id="stage" class="stage"></i><span id="count">1 / 6</span></div>
       <div class="bar"><i id="bar-fill"></i></div>
+      <div class="goals" id="goals"></div>
     </div>
     <div class="hud-tools">
       <button class="btn icon sun" id="btn-hint" aria-label="Hint" data-i18n-aria="aria.hint"><svg><use href="#i-bulb"/></svg><i class="cd" id="hint-cd"></i></button>
@@ -93,6 +93,7 @@
   <div id="edge-radar" class="edge radar"><svg><use href="#i-arrow"/></svg></div>
   <div id="edge-district" class="edge district"><svg><use href="#i-arrow"/></svg></div>
 
+  <button class="btn sun rebuild" id="btn-rebuild"><svg><use href="#i-retry"/></svg><span id="rebuild-label"></span></button>
   <div class="pack-wrap">
     <div class="pack-tip" id="pack-tip"></div>
     <div class="pack" id="pack"></div>
@@ -121,6 +122,7 @@
   </div>
   <div class="title-bottom">
     <button class="btn huge mint" id="btn-play"><svg><use href="#i-play"/></svg><span id="play-label">Play</span></button>
+    <p class="play-sub" id="play-sub"></p>
     <div class="row">
       <button class="btn" id="btn-map"><svg><use href="#i-map"/></svg><span data-i18n="title.map">Map</span></button>
       <button class="btn" id="btn-settings"><svg><use href="#i-gear"/></svg><span data-i18n="common.settings">Settings</span></button>
@@ -198,10 +200,12 @@
     </div>
     <div class="splits" id="complete-splits"></div>
     <div class="newbest" id="complete-best">New best!</div>
+    <div class="world-done" id="complete-world"></div>
     <div class="say"><div class="kubo mini"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><p id="complete-say"></p></div>
     <div class="row">
       <button class="btn icon" id="btn-c-map" aria-label="Map" data-i18n-aria="aria.map"><svg><use href="#i-map"/></svg></button>
       <button class="btn icon" id="btn-c-retry" aria-label="Replay" data-i18n-aria="aria.replay"><svg><use href="#i-retry"/></svg></button>
+      <button class="btn icon sky" id="btn-c-share" aria-label="Share" data-i18n-aria="workshop.share"><svg><use href="#i-share"/></svg></button>
       <button class="btn mint grow" id="btn-next"><span id="next-label">Continue</span><svg><use href="#i-next"/></svg></button>
     </div>
     </div>

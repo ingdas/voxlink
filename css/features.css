@@ -97,56 +97,6 @@ body.high-contrast .slot.fits { background: #c9f7e0; }
 .slot.fits::after { top: -9px; left: -8px; right: auto; width: 22px; height: 22px; background-size: 15px; }
 .slot .chip.ready::after { display: none; }
 body.high-contrast .slot .chip.ready { outline: 2px solid var(--ink); outline-offset: 1px; }
-/* ---------- D: Photo mode (js/features/photo.js) ---------- */
-.screen.photo { padding: 0; display: block; cursor: grab; }
-.screen.photo:active { cursor: grabbing; }
-/* the frame band is mirrored in photo.js (BAND / BAND_R) so the PNG matches what you see */
-.photo-frame { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.photo-frame::after { content: ''; position: absolute; inset: 14px; border: var(--line) solid var(--ink); border-radius: 14px; box-shadow: 0 0 0 60px var(--paper); }
-.photo-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
-.photo-hint {
-  position: absolute; top: calc(30px + var(--sat)); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(560px, calc(100vw - 80px)); text-align: center;
-  font-size: 15px; pointer-events: none; transition: opacity .4s, transform .4s;
-}
-.photo-hint.gone { opacity: 0; transform: translate(-50%, -8px); }
-.photo-mark { position: absolute; left: calc(30px + var(--sal)); bottom: calc(30px + var(--sab)); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none; }
-.photo-logo { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-.photo-logo .logo-row { display: flex; gap: 3px; align-items: center; }
-.photo-logo span.apos { width: auto; height: 25px; margin: 0 -1px; background: none; border: 0; box-shadow: none; transform: none; font-size: 22px; color: var(--ink); place-items: start center; }
-.photo-logo span {
-  width: 25px; height: 25px; display: grid; place-items: center; font-weight: 700; font-size: 16px; line-height: 1;
-  background: var(--c); border: 2.5px solid var(--ink); border-radius: 5px; box-shadow: 0 3px 0 var(--ink); transform: rotate(var(--rot));
-}
-.photo-name { font-weight: 700; font-size: 15px; line-height: 1; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 var(--ink); padding: 6px 12px; white-space: nowrap; max-width: min(440px, 60vw); overflow: hidden; text-overflow: ellipsis; }
-.photo-name:empty { display: none; }
-.photo-ctl { position: absolute; right: calc(32px + var(--sar)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.photo-ctl .pc { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.photo-ctl .pc > span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--paper); background: var(--ink); border-radius: 999px; padding: 2px 10px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.photo-preview {
-  position: absolute; left: calc(30px + var(--sal)); top: calc(30px + var(--sat)); width: 150px; padding: 7px 7px 4px; font: inherit; color: var(--ink); cursor: pointer;
-  background: var(--paper); border: var(--line) solid var(--ink); border-radius: 12px; box-shadow: 0 5px 0 var(--ink);
-  display: flex; flex-direction: column; gap: 4px; align-items: stretch; transform: rotate(-4deg) scale(0); transform-origin: 30% 30%; transition: transform .35s cubic-bezier(.3, 1.6, .5, 1);
-}
-.photo-preview.show { transform: rotate(-4deg) scale(1); }
-.photo-preview img { width: 100%; border: 2.5px solid var(--ink); border-radius: 6px; display: block; background: var(--paper-2); }
-.photo-preview span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; text-align: center; overflow-wrap: anywhere; }
-.photo-note {
-  position: absolute; top: calc(30px + var(--sat)); left: 50%; transform: translate(-50%, -8px); opacity: 0; pointer-events: none; width: max-content; max-width: calc(100vw - 80px); text-align: center;
-  background: var(--mint); border: var(--line) solid var(--ink); border-radius: 999px; box-shadow: 0 4px 0 var(--ink); padding: 6px 16px; font-weight: 700; transition: opacity .2s, transform .2s;
-}
-.photo-note.show { opacity: 1; transform: translate(-50%, 0); }
-@media (max-height: 500px) {
-  .photo-ctl { gap: 8px; }
-  .photo-ctl .pc { gap: 5px; }
-  .photo-preview { width: 120px; }
-}
-@media (max-aspect-ratio: 1/1) {
-  .photo-ctl { top: auto; transform: none; right: 0; left: 0; bottom: calc(108px + var(--sab)); flex-direction: row; justify-content: center; align-items: flex-end; gap: 26px; }
-  .photo-preview { width: 104px; }
-  .photo-preview img { height: 150px; object-fit: cover; }
-  .photo-hint { font-size: 13px; }
-}
-body.photo-mode #touch { display: none; }
 
 /* ---------- D: Kubo's Garden (js/features/museum.js) ---------- */
 .garden-count { margin-inline-start: 2px; font-size: 13px; background: var(--ink); color: var(--paper); border-radius: 999px; padding: 2px 8px; letter-spacing: .02em; }
@@ -519,8 +469,9 @@ body.mobile .cine-skip kbd { display: none; }
 /* the finale keeps playing behind the ending panel */
 #screen-ending.dim { background: rgba(42, 31, 61, .28); backdrop-filter: none; -webkit-backdrop-filter: none; }
 
-/* key legend: magnet / Express only on figures that have the tools; the HUD camera only on touch */
+/* key legend: magnet / Express only on figures that have the tools */
 body:not(.has-tools) #keys .tools-key { display: none; }
-#btn-h-photo { display: none; background: var(--paper); }
-body.mobile #btn-h-photo { display: grid; }
-body.mobile:not(.playing) #btn-h-photo { display: none; }
+.ws-toast svg { width: 20px; height: 20px; vertical-align: -4px; stroke: var(--ink); stroke-width: 2; fill: var(--sun); }
+.ws-meta .ws-stars { gap: 0; }
+.ws-meta .ws-stars svg { width: 15px; height: 15px; fill: rgba(42, 31, 61, .2); stroke: var(--ink); stroke-width: 2; }
+.ws-meta .ws-stars svg.on { fill: var(--sun); }

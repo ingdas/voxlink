@@ -35,10 +35,6 @@ export function init(c) {
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden && G && ctx.app === 'museum') pauseGarden(); });
   $('btn-pause').addEventListener('click', () => { if (G && ctx.app === 'museum') pauseGarden(); });
-  addEventListener('keydown', e => {
-    if (!G || ctx.app !== 'museum' || !ctx.input.enabled || e.repeat) return;
-    if (e.code === 'KeyC') openPhoto(false);
-  });
 }
 
 const doneCount = () => ctx.LEVELS.filter(l => ctx.save.stars[l.id]?.done).length;
@@ -70,14 +66,6 @@ function buildDom() {
   right.append(mb, stars);
 
   // HUD extras (only visible while body has .museum)
-  const cam = document.createElement('button');
-  cam.className = 'btn icon garden-only';
-  cam.id = 'btn-garden-photo';
-  cam.setAttribute('aria-label', t('museum.photo'));
-  cam.innerHTML = '<svg><use href="#i-camera"/></svg>';
-  cam.onclick = () => { if (G && ctx.app === 'museum') openPhoto(false); };
-  document.querySelector('#hud .hud-top').appendChild(cam);
-
   const card = document.createElement('div');
   card.className = 'garden-card garden-only';
   card.id = 'garden-card';
@@ -99,14 +87,12 @@ function buildDom() {
       <div class="pause-figure tag" id="garden-pause-info"></div>
       <div class="stack">
         <button class="btn huge mint" id="btn-garden-resume"><svg><use href="#i-play"/></svg>${t('museum.pause.resume')}</button>
-        <button class="btn" id="btn-garden-p-photo"><svg><use href="#i-camera"/></svg>${t('museum.pause.photo')}</button>
         <button class="btn" id="btn-garden-settings"><svg><use href="#i-gear"/></svg>${t('museum.pause.settings')}</button>
         <button class="btn" id="btn-garden-leave"><svg><use href="#i-home"/></svg>${t('museum.pause.leave')}</button>
       </div>
     </div>`;
   document.body.appendChild(ps);
   $('btn-garden-resume').onclick = () => resumeGarden();
-  $('btn-garden-p-photo').onclick = () => openPhoto(true);
   $('btn-garden-settings').onclick = () => ctx.pushOverlay('screen-settings');
   $('btn-garden-leave').onclick = () => exit();
 }
@@ -148,7 +134,7 @@ function enter(origin = 'title') {
     ctx.talk([
       t('museum.talk.welcome', { name: gardenName() }),
       n ? t(plural('museum.talk.some', n), { n, total }) : t('museum.talk.empty'),
-      t(ctx.mobile ? 'museum.talk.photo.touch' : 'museum.talk.photo.keys'),
+      t('museum.talk.near'),
     ], () => {
       if (!G) return;
       G.talkDone = true;
@@ -200,30 +186,9 @@ function resumeGarden() {
   ctx.setBase(null);
   ctx.app = 'museum';
   $('hud').classList.remove('off');
-  G.nearKey = ''; // pause / photo hid the info card: show it again if still near a pedestal
+  G.nearKey = ''; // pause hid the info card: show it again if still near a pedestal
   if (G.ready) startControl();
   if (!ctx.mobile) ctx.input.requestLock();
-}
-
-function openPhoto(fromPause) {
-  if (!G || !ctx.photo) return;
-  const near = G.near && G.near.kind === 'figure' ? G.near : null;
-  const done = near && ctx.save.stars[near.level.id]?.done;
-  ctx.input.enabled = false;
-  $('garden-card').classList.remove('show');
-  ctx.photo.open({
-    name: done ? near.level.name : gardenName(),
-    orbit: near ? {
-      center: near.center.clone(), minDist: Math.max(2.2, near.r * 1.5, near.figH + 0.8), maxDist: 26,
-      dist0: near.figH * 1.3 + near.r * 1.2 + 1.2, pitch0: 0.28,
-    } : null,
-    update: dt => G?.updateScenery(dt),
-    onClose: () => {
-      if (!G) return;
-      if (fromPause) { ctx.app = 'museum'; pauseGarden(); return; }
-      resumeGarden();
-    },
-  });
 }
 
 // ---------- the island ----------
@@ -291,11 +256,12 @@ class Garden {
         cum += it.r * 2 + GAP;
         const px = Math.cos(th) * RING, pz = Math.sin(th) * RING;
         const done = !!save.stars[it.level.id]?.done;
-        // pedestal: two octagonal tiers in the chapter's colours
-        const base = new THREE.Mesh(octGeo(it.r, 0.36), mat(T.pedestal[0]));
+        const gold = done && save.stars[it.level.id].fast && save.stars[it.level.id].clean;
+        // pedestal: two octagonal tiers in the chapter's colours (gold for all three stars)
+        const base = new THREE.Mesh(octGeo(it.r, 0.36), mat(gold ? 0xe0a21a : T.pedestal[0]));
         base.position.set(px, 0.18, pz);
         const topR = it.r - 0.16;
-        const top = new THREE.Mesh(octGeo(topR, 0.24), mat(done ? T.pedestal[1] : 0xd8ccb6));
+        const top = new THREE.Mesh(octGeo(topR, 0.24), mat(gold ? 0xffc93c : done ? T.pedestal[1] : 0xd8ccb6));
         top.position.set(px, 0.36 + 0.12, pz);
         const trim = new THREE.Mesh(octGeo(topR * 0.35, 0.06), mat(done ? T.pedestal[2] : 0xbfb29b));
         trim.position.set(px, PED_H + 0.03, pz);
@@ -412,7 +378,7 @@ class Garden {
     this.items.push({ kind: 'kubo', x: 0, z: 0, r: 1.6, center: new THREE.Vector3(0, 1.2, 0) });
   }
 
-  // world animation that also runs while photo mode holds the camera
+  // world animation (scenery, sprites, Kubo)
   updateScenery(dt) {
     this.t += dt;
     const cam = ctx.camera;
@@ -524,10 +490,11 @@ function kuboLine() {
   const pool = [
     t(plural('museum.line.home', n), { n, total }),
     t('museum.line.hum'),
-    t('museum.line.photo'),
   ];
   if (next) pool.push(t('museum.line.hint', { tag: next.tag }));
-  if (n === total) pool.push(t('museum.line.allStars'));
+  // every figure home: go for the stars, until they're all collected too
+  const stars = ctx.LEVELS.reduce((k, l) => { const s = ctx.save.stars[l.id] || {}; return k + !!s.done + !!s.fast + !!s.clean; }, 0);
+  if (n === total) pool.push(t(stars < total * 3 ? 'museum.line.allStars' : 'museum.line.everyStar'));
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
