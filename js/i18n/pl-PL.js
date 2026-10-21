@@ -70,6 +70,7 @@ export default {
   "way.next": "Przejdź po mostach na wyspę następnej figurki!",
   "way.nextWorld": "Ten świat jest odbudowany! Wejdź do portalu na środkowej wyspie i przenieś się do kolejnego świata: {world}.",
   "way.carry": "Klocki zostają na swojej wyspie. Odłóż je, zanim przejdziesz.",
+  "way.door": "Te drzwi otworzą się, gdy odbudujesz figurkę na tej wyspie.",
   "way.locked": "Ten most otworzy się, gdy odbudujesz figurki przed nim.",
   "complete.par": "cel {t}",
   "complete.time": "czas",

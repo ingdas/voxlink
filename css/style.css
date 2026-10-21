@@ -206,6 +206,12 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 }
 .coach.show { opacity: 1; transform: translate(-50%, 0); }
 .coach b { color: var(--sun); }
+/* tutorial: the keys to press light up as they're used; a bar fills while you look / walk */
+.coach kbd.ck { display: inline-block; min-width: 1.7em; padding: 0 .3em; margin: 0 .08em; border-radius: 7px; font: inherit; font-weight: 700; line-height: 1.5;
+  color: var(--paper); background: rgba(255, 255, 255, .1); border: 2px solid rgba(255, 255, 255, .55); box-shadow: 0 2px 0 rgba(0, 0, 0, .35); transition: background .15s, color .15s, transform .15s; }
+.coach kbd.ck.on { background: var(--mint); border-color: var(--mint); color: var(--ink); transform: translateY(-2px); }
+.coach-bar { display: block; height: 7px; width: min(260px, 70%); margin: 8px auto 2px; border-radius: 999px; background: rgba(255, 255, 255, .18); overflow: hidden; }
+.coach-bar i { display: block; height: 100%; border-radius: inherit; background: var(--mint); transition: width .12s linear; }
 /* tutorial: a control that isn't unlocked yet shakes the coach line; the button the step teaches pulses */
 .coach.nudge { animation: coach-nudge .4s ease-in-out; }
 @keyframes coach-nudge { 20%, 60% { translate: -7px 0; scale: 1.05; } 40%, 80% { translate: 7px 0; scale: 1.05; } }

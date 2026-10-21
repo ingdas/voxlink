@@ -70,6 +70,7 @@ export default {
   "way.next": "Seberangi jembatan ke pulau figur berikutnya!",
   "way.nextWorld": "Dunia ini sudah dibangun lagi! Masuk ke portal di pulau tengah untuk pergi ke dunia berikutnya: {world}.",
   "way.carry": "Balok tetap di pulaunya sendiri. Taruh dulu sebelum menyeberang.",
+  "way.door": "Pintu ini terbuka setelah kamu membangun lagi figur di pulau ini.",
   "way.locked": "Jembatan ini terbuka setelah kamu membangun lagi figur-figur sebelumnya.",
   "complete.par": "target {t}",
   "complete.time": "waktu",

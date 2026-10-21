@@ -70,6 +70,7 @@ export default {
   "way.next": "Menj át a hidakon a következő figura szigetére!",
   "way.nextWorld": "Ez a világ újra felépült! Lépj be a középső sziget portáljába, és utazz a következő világba: {world}.",
   "way.carry": "A kockák a saját szigetükön maradnak. Tedd le őket, mielőtt átmész.",
+  "way.door": "Ez az ajtó akkor nyílik meg, ha újraépítetted a figurát ezen a szigeten.",
   "way.locked": "Ez a híd akkor nyílik meg, ha újraépítetted az előtte lévő figurákat.",
   "complete.par": "cél: {t}",
   "complete.time": "idő",

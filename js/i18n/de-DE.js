@@ -70,6 +70,7 @@ export default {
   "way.next": "Lauf über die Brücken zur Insel der nächsten Figur!",
   "way.nextWorld": "Diese Welt ist wieder aufgebaut! Spring ins Portal auf der mittleren Insel und reise zur nächsten Welt: {world}.",
   "way.carry": "Blöcke bleiben auf ihrer eigenen Insel. Leg sie ab, bevor du rübergehst.",
+  "way.door": "Diese Tür geht auf, sobald du die Figur auf dieser Insel wieder aufgebaut hast.",
   "way.locked": "Diese Brücke geht auf, sobald du die Figuren davor wieder aufgebaut hast.",
   "complete.par": "Ziel {t}",
   "complete.time": "Zeit",

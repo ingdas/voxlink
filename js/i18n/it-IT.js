@@ -70,6 +70,7 @@ export default {
   "way.next": "Attraversa i ponti fino all'isola della prossima figura!",
   "way.nextWorld": "Questo mondo è ricostruito! Entra nel portale sull'isola centrale per viaggiare verso il prossimo mondo: {world}.",
   "way.carry": "I blocchi restano sulla loro isola. Posali prima di attraversare.",
+  "way.door": "Questa porta si apre quando avrai ricostruito la figura su quest'isola.",
   "way.locked": "Questo ponte si apre quando avrai ricostruito le figure che vengono prima.",
   "complete.par": "obiettivo {t}",
   "complete.time": "tempo",

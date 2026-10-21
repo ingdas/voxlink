@@ -92,6 +92,7 @@ export default {
   "way.next": "Cross the bridges to the next figure's island!",
   "way.nextWorld": "This world is rebuilt! Step into the portal on the middle island to travel to {world}.",
   "way.carry": "Blocks stay on their own island. Drop them before you cross.",
+  "way.door": "This door opens once you've rebuilt the figure on this island.",
   "way.locked": "This bridge opens once you've rebuilt the figures before it.",
   "complete.par": "par {t}",
   "complete.time": "time",

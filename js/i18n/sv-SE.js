@@ -70,6 +70,7 @@ export default {
   "way.next": "Gå över broarna till nästa figurs ö!",
   "way.nextWorld": "Den här världen är uppbyggd igen! Kliv in i portalen på ön i mitten för att resa till nästa värld: {world}.",
   "way.carry": "Klossarna stannar på sin egen ö. Släpp dem innan du går över.",
+  "way.door": "Den här dörren öppnas när du har byggt upp figuren på den här ön.",
   "way.locked": "Den här bron öppnas när du har byggt upp figurerna före den.",
   "complete.par": "mål {t}",
   "complete.time": "tid",

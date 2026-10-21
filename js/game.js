@@ -15,6 +15,7 @@ const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may ho
 // First-play tutorial: one control per step. A control unlocks at the step that teaches it and stays
 // unlocked; anything not taught yet is blocked (and nudges the coach line). Looking around and pausing always work.
 export const TUTORIAL = ['look', 'move', 'jump', 'grab', 'link', 'drop', 'hint', 'done'];
+const LOOK_GOAL = 1.4, WALK_GOAL = 3.5; // radians looked around / metres walked
 const NEEDS = { jump: 'jump', drop: 'drop', hint: 'hint', slot: 'grab', cycle: 'grab', magnet: 'done', express: 'done' };
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
@@ -187,6 +188,7 @@ export class Game {
           makePart: l => ({ world: buildIsland(l, themeId, quality, true) }),
           makeHub: seaY => buildWorld({ rng: mulberry32(4242 + level.chapter * 31), radius: 11, seed: 7 + level.chapter, quality, theme: themeId, layout: 'hub', seaY, pedestal: false }),
           isOpen: l => this.events.isOpen?.(l) ?? true, isDone: l => !!this.events.isDone?.(l),
+          doorShut: l => l === LEVELS[0] && !this.events.isDone?.(l),
         });
         this.scene.add(this.arch.group);
         this.world = this.arch.api;
@@ -291,6 +293,7 @@ export class Game {
     this.tutorial = null; // set by main.js for a first play
     this.tutNext = null;
     this.tutAcc = 0;
+    this.tutUsed = new Set(); // controls used during the current step (the coach lights their keys)
     this.packTipShown = false;
     this.barked = new Set();
     this.chainQueue = [];
@@ -994,7 +997,7 @@ export class Game {
     this.pack.splice(this.active, 1);
     this.active = Math.max(0, Math.min(this.active, this.pack.length - 1));
     this.audio.drop();
-    if (this.tutorial === 'drop') this.tutAdvance('hint');
+    if (this.tutorial === 'drop') { this.tutUsed.add('drop'); this.tutAdvance('hint'); }
     this.emitPack();
   }
 
@@ -1020,7 +1023,7 @@ export class Game {
     if (this.mode !== 'play') return;
     // the tutorial's practice hint is free
     const practice = this.tutorial === 'hint';
-    if (practice) this.tutAdvance('done');
+    if (practice) { this.tutUsed.add('hint'); this.tutAdvance('done'); }
     const fitInPack = this.carriedAll().find(i => this.sockets.has(i));
     if (fitInPack !== undefined) {
       // free: you're already carrying a fitting block, just point at its bubble
@@ -1145,6 +1148,11 @@ export class Game {
     this.events.tutorialNudge?.();
   }
   // a finished step ticks over after a short beat, so the player sees it worked
+  // how far along the look / walk steps are (0..1)
+  tutProgress() {
+    if (this.tutNext) return 1;
+    return this.tutorial === 'look' ? Math.min(1, this.tutAcc / LOOK_GOAL) : this.tutorial === 'move' ? Math.min(1, this.tutAcc / WALK_GOAL) : 0;
+  }
   tutAdvance(step, delay = 0.6) {
     if (this.tutNext) return;
     this.tutNext = { step, at: this.elapsed + delay };
@@ -1156,11 +1164,14 @@ export class Game {
       this.tutorial = this.tutNext.step;
       this.tutNext = null;
       this.tutAcc = 0;
+      this.tutUsed.clear();
       return;
     }
     if (this.tutNext) return;
-    if (tut === 'look' && (this.tutAcc += Math.abs(look.x) + Math.abs(look.y)) > 1.4) this.tutAdvance('move');
-    else if (tut === 'move' && (this.tutAcc += moved) > 3.5) this.tutAdvance('jump');
+    if (tut === 'move') for (const d of ['forward', 'left', 'back', 'right']) if (this.input.held(d)) this.tutUsed.add(d);
+    // look and walk advance the moment they're done (the coach shows the progress filling up)
+    if (tut === 'look' && (this.tutAcc += Math.abs(look.x) + Math.abs(look.y)) > LOOK_GOAL) this.tutAdvance('move', 0.15);
+    else if (tut === 'move' && (this.tutAcc += moved) > WALK_GOAL) this.tutAdvance('jump', 0.15);
     else if (tut === 'done' && (this.tutAcc += dt) > 4.5) this.tutorial = null;
   }
 
@@ -1177,7 +1188,7 @@ export class Game {
     }
     for (const a of this.input.takeActions()) {
       if (NEEDS[a.type] && !this.tutAllows(NEEDS[a.type])) { this.tutNudge(); continue; }
-      if (a.type === 'jump') { this.player.jumpBuffer = 0.14; if (this.tutorial === 'jump') this.tutAdvance('grab', 0.9); }
+      if (a.type === 'jump') { this.player.jumpBuffer = 0.14; if (this.tutorial === 'jump') { this.tutUsed.add('jump'); this.tutAdvance('grab', 0.5); } }
       else if (a.type === 'interact') this.interact(a.x, a.y);
       else if (a.type === 'drop') this.drop();
       else if (a.type === 'hint') this.hint();
@@ -1220,12 +1231,21 @@ export class Game {
   }
 
   // ---------- walking between islands ----------
-  // where to walk next after finishing a figure: the next open island's bridge, or the portal when the world is done
-  wayTarget() {
+  // the next figure to rebuild in this world (the portal once they're all done); null while you're on it
+  nextStop() {
     if (!this.arch) return null;
-    const next = this.arch.parts.find(p => p.open && !this.events.isDone?.(p.level) && p.level !== this.level);
-    return next ? this.arch.entryOf(next.level) : this.arch.portalPos();
+    const next = this.arch.parts.find(p => p.open && !this.events.isDone?.(p.level));
+    if (!next) return this.arch.parts.every(p => this.events.isDone?.(p.level)) ? 'portal' : null;
+    if (next.level === this.level && !this.roaming && this.arch.partAt(this.player.pos.x, this.player.pos.z) === next) return null;
+    return next.level;
   }
+  // where to point the edge arrow: the next figure's island, or the portal
+  wayTarget() {
+    const n = this.nextStop();
+    if (!n) return null;
+    return n === 'portal' ? this.arch.portalPos() : this.arch.offsetOf(n).setY(PEDESTAL_TOP + 1.5);
+  }
+  updateBeacon() { this.arch.setBeacon(this.nextStop()); }
   updateIslands() {
     if (!this.arch || this.mode !== 'play') return;
     const { x, z } = this.player.pos;
@@ -1234,9 +1254,10 @@ export class Game {
     const inPortal = this.arch.atPortal(x, z);
     if (inPortal && !this.inPortal) this.events.portal?.();
     this.inPortal = inPortal;
-    const gate = this.arch.lockedGateAt(x, z);
-    if (gate && gate !== this.gateTold) this.events.toast?.(t('way.locked'));
-    this.gateTold = gate;
+    const gate = this.arch.lockedGateAt(x, z), door = this.arch.shutDoorAt(x, z), told = gate || door;
+    if (told && told !== this.gateTold) this.events.toast?.(t(door ? 'way.door' : 'way.locked'));
+    this.gateTold = told;
+    this.updateBeacon();
   }
   // back on the island after the results: the figure stands finished and you can walk on
   walkOn() {

@@ -168,3 +168,17 @@ Long walks, fixed two ways: the islands stand in **two staggered rows** (odd fig
 behind the gaps, their bridges running between the front islands), which halves the spread (Frost: 125 m →
 63 m from the middle to the furthest island), and the bridges are **breeze lanes** (a glowing stripe; you move
 2.4× faster on them, ~17 m/s running). The longest hub-to-figure trip is now about 8 seconds.
+
+## 2026-10-21 · Rails, the first door, a beacon and live tutorial feedback
+
+- **Rails** run along every open edge of every bridge (two bars on posts), with openings only where a bridge
+  meets land or another bridge; the boardwalk's ends are railed too. The dotted "breeze lane" stripe is gone
+  (the speed boost stays).
+- **The first island's door**: the bridge off the Sprout's island has a door that stays shut until the Sprout
+  is rebuilt, so a new player can't wander off mid-tutorial. Entering the Meadow before that starts you on
+  that island rather than the hub.
+- **Where next**: a tall column of light with a "?" stands over the next figure's island (over the portal once
+  the world is done), and an edge arrow points there whenever it's out of view.
+- **Tutorial feedback**: the coach shows your actual keys and lights each one the moment you use it (W A S D,
+  Space, right-click/Q, H); the look and walk steps show a bar that fills as you go and advance as soon as
+  it's full.

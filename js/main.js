@@ -271,9 +271,23 @@ function toast(msg) {
 }
 
 // tutorial steps (game.TUTORIAL): the coach line names the player's own keys / gamepad buttons
-const coachText = step => (step === 'done' ? t('coach.done') : t(`coach.${step}.${mobile ? 'touch' : 'desk'}`, {
-  move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', ...ctx.coachLabels?.(),
-}));
+// Each key lights up once you've used it, and the look / walk steps show a bar filling up as you go.
+const keycap = (label, on) => `<kbd class="ck${on ? ' on' : ''}">${String(label).replace(/[<&]/g, c => (c === '<' ? '&lt;' : '&amp;'))}</kbd>`;
+function coachText(step) {
+  if (step === 'done') return t('coach.done');
+  const used = game.tutUsed || new Set();
+  const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', ...ctx.coachLabels?.() };
+  const keys = !mobile && ctx.coachKeys?.();
+  if (keys) {
+    v.move = ['forward', 'left', 'back', 'right'].map(d => keycap(keys[d], used.has(d))).join('');
+    v.jump = keycap(keys.jump, used.has('jump'));
+    v.drop = `${keycap(keys.rightClick, used.has('drop'))} / ${keycap(keys.drop, used.has('drop'))}`;
+    v.hint = keycap(keys.hint, used.has('hint'));
+  }
+  let html = t(`coach.${step}.${mobile ? 'touch' : 'desk'}`, v);
+  if (step === 'look' || step === 'move') html += `<span class="coach-bar"><i style="width:${Math.round(game.tutProgress() * 20) * 5}%"></i></span>`;
+  return html;
+}
 // the on-screen button each step teaches gets a pulsing ring
 const COACH_BTN = { jump: 'btn-jump', drop: 'btn-drop', hint: 'btn-hint' };
 let coachStep = null;
@@ -316,8 +330,9 @@ function tickHud(g) {
   const inDistrict = flag && Math.hypot(g.player.pos.x - flag.pos.x, g.player.pos.z - flag.pos.z) < 9;
   placeEdge($('edge-district'), flag?.pos ?? homePos, !!flag && !inDistrict && !g.hasFitInPack?.() && !fx.beamTarget);
   if (flag) $('edge-district').style.background = flag.color;
-  const way = g.roaming ? g.wayTarget?.() : null;
-  placeEdge($('edge-next'), way ?? homePos, !!way && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 3);
+  // the way to the next figure (or the portal): an arrow at the screen edge while it's out of view
+  const way = g.mode === 'play' ? g.wayTarget?.() : null;
+  placeEdge($('edge-next'), way ?? homePos, !!way && !g.pack.length && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 6);
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
 }
@@ -654,7 +669,9 @@ function enterWorld(c) {
   const ch = CHAPTERS[c];
   if (c === 0 && !save.seen.prologue) return playPrologue();
   if (!save.seen[ch.id]) { save.seen[ch.id] = true; persist(); return talk(ch.intro, () => enterWorld(c)); }
-  startLevel(firstOpenIn(c), true, 'hub');
+  // the very first figure starts on its own island (its door keeps you there until it's rebuilt)
+  const i = firstOpenIn(c);
+  startLevel(i, true, i === 0 && !isDone(LEVELS[0].id) ? 'island' : 'hub');
 }
 // walked onto another figure's island: its puzzle takes over (the figure you left keeps its progress)
 function walkOnto(l) {

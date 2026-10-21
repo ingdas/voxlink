@@ -70,6 +70,7 @@ export default {
   "way.next": "Köprülerden geçip sonraki figürün adasına git!",
   "way.nextWorld": "Bu dünya yeniden kuruldu! Ortadaki adanın portalına gir ve sonraki dünyaya yolculuk et: {world}.",
   "way.carry": "Bloklar kendi adalarında kalır. Geçmeden önce onları bırak.",
+  "way.door": "Bu kapı, bu adadaki figürü yeniden kurunca açılır.",
   "way.locked": "Bu köprü, ondan önceki figürleri yeniden kurunca açılır.",
   "complete.par": "hedef {t}",
   "complete.time": "süre",

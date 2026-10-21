@@ -70,6 +70,7 @@ export default {
   "way.next": "Kulje siltoja pitkin seuraavan hahmon saarelle!",
   "way.nextWorld": "Tämä maailma on taas koottu! Astu keskimmäisen saaren portaaliin ja matkaa seuraavaan maailmaan: {world}.",
   "way.carry": "Palikat pysyvät omalla saarellaan. Pudota ne ennen kuin menet sillalle.",
+  "way.door": "Tämä ovi aukeaa, kun olet koonnut tämän saaren hahmon.",
   "way.locked": "Tämä silta aukeaa, kun olet koonnut sitä edeltävät hahmot.",
   "complete.par": "tavoite {t}",
   "complete.time": "aika",

@@ -70,6 +70,7 @@ export default {
   "way.next": "Traverse les ponts jusqu'à l'île de la prochaine figurine !",
   "way.nextWorld": "Ce monde est reconstruit ! Entre dans le portail de l'île du milieu pour partir vers le monde suivant : {world}.",
   "way.carry": "Les blocs restent sur leur île. Pose-les avant de traverser.",
+  "way.door": "Cette porte s'ouvrira quand tu auras reconstruit la figurine de cette île.",
   "way.locked": "Ce pont s'ouvrira quand tu auras reconstruit les figurines d'avant.",
   "complete.par": "objectif {t}",
   "complete.time": "temps",

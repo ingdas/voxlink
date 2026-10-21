@@ -2,7 +2,7 @@
 // Islands stand north of the hub in two staggered rows (odd figures in front, even ones behind the gaps); a
 // causeway runs north from the hub to a boardwalk, and a spur leads from the boardwalk into each island's south
 // side (where every island keeps a clear path to its pedestal) — the back row's spurs pass between the front
-// islands. Bridges are breeze lanes: you cross them fast. Only one figure island is active (its puzzle loaded): the archipelago is shifted so that island sits
+// islands. Bridges are breeze lanes: you cross them fast. Rails line every open edge. Only one figure island is active (its puzzle loaded): the archipelago is shifted so that island sits
 // at the origin, which is what the game expects, and `api` answers the player's queries across all islands and
 // bridges in those shifted coordinates. Moving to another island just changes the shift.
 import * as THREE from 'three';
@@ -36,7 +36,8 @@ function coast(world, dirZ) {
 
 // chapter: index; levels: its figures; makePart(level) -> { world, footR }; makeHub(seaY) -> world
 // isOpen(level) / isDone(level); figureMaterial: material for finished figures standing on inactive islands
-export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, isDone, figureMaterial }) {
+// doorShut(level): a door at the island end of its bridge stays shut (the very first figure, until it's rebuilt)
+export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, isDone, doorShut = () => false, figureMaterial }) {
   const root = new THREE.Group();
   const parts = levels.map(level => ({ level, ...makePart(level), p: new THREE.Vector3() }));
   const hubWorld = makeHub(parts[0].world.seaY);
@@ -73,9 +74,15 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   const fixedSd = [rectSd(causeway), rectSd(boardwalk)];
   parts.forEach(pt => { pt.spurSd = rectSd(pt.spur); });
   // a locked island's spur is closed off by a gate where it leaves the boardwalk
+  for (const pt of parts) pt.doorZ = pt.entry.z + 1.3;
   const bridgeSd = (x, z) => {
     let d = Math.min(fixedSd[0](x, z), fixedSd[1](x, z));
-    for (const pt of parts) d = Math.min(d, pt.open ? pt.spurSd(x, z) : Math.max(pt.spurSd(x, z), (zJ - HW - 0.3) - z));
+    for (const pt of parts) {
+      let e = pt.spurSd(x, z);
+      if (!pt.open) e = Math.max(e, (zJ - HW - 0.3) - z);
+      if (pt.shut) e = Math.max(e, 0.35 - Math.abs(z - pt.doorZ));
+      d = Math.min(d, e);
+    }
     return d;
   };
 
@@ -86,34 +93,43 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
 
   // ---- bridge looks ----
   const B = new Batch();
-  const deck = ([x0, z0, x1, z1], gaps = []) => {
+  const rects = [causeway, boardwalk, ...parts.map(pt => pt.spur)];
+  const pieceList = [hub, ...parts];
+  const onLand = (ax, az) => pieceList.some(k => k.world.walkSd(ax - k.p.x, az - k.p.z) < -0.05);
+  const inOther = (ax, az, self) => rects.some(r => r !== self && ax > r[0] + 0.12 && ax < r[2] - 0.12 && az > r[1] + 0.12 && az < r[3] - 0.12);
+  const postH = floating ? 1.6 : DECK - hubWorld.seaY + 0.9;
+  const deck = r => {
+    const [x0, z0, x1, z1] = r;
     const alongX = x1 - x0 > z1 - z0, L = alongX ? x1 - x0 : z1 - z0, w = alongX ? z1 - z0 : x1 - x0;
     const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
     B.put(GEO.box(), 0x8a5a3c, cx, DECK - 0.12, cz, { sx: alongX ? L : w, sy: 0.16, sz: alongX ? w : L });
-    // the breeze lane: a glowing dashed stripe down the middle
-    for (let t = 0.6; t < L - 0.4; t += 1.4) {
-      const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
-      B.put(GEO.box(), 0x9cf5ff, px, DECK + 0.015, pz, { sx: alongX ? 0.8 : 0.3, sy: 0.02, sz: alongX ? 0.3 : 0.8, kind: 'glow' });
-    }
     for (let t = 0.25; t < L; t += 0.5) {
       const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
       B.put(GEO.box(), Math.round(t * 2) % 2 ? 0xc08a5c : 0xb27b50, px, DECK - 0.02, pz, { sx: alongX ? 0.44 : w + 0.1, sy: 0.06, sz: alongX ? w + 0.1 : 0.44, kind: 'ground' });
     }
-    // posts and a rope rail along both sides (with openings where other bridges join)
-    for (const s of [-1, 1]) {
-      const off = (w / 2 + 0.05) * s;
-      for (let t = 0.4; t < L; t += 2.2) {
-        const px = alongX ? x0 + t : cx + off, pz = alongX ? cz + off : z0 + t;
-        if (gaps.some(g => Math.abs((alongX ? px : pz) - g) < 1.6)) continue;
-        const postH = floating ? 1.6 : DECK - hubWorld.seaY + 0.7;
-        B.put(GEO.cyl(6), 0x6b4a36, px, DECK + 0.7 - postH / 2, pz, { sx: 0.11, sy: postH, sz: 0.11 });
-        B.put(GEO.box(), 0xe9dfcf, px, DECK + 0.62, pz, { sx: alongX ? 2.2 : 0.06, sy: 0.05, sz: alongX ? 0.06 : 2.2 });
+    // rails on every side, except where the bridge runs onto land or into another bridge
+    const sides = [[x0, z0 - 0.05, x1, z0 - 0.05], [x0, z1 + 0.05, x1, z1 + 0.05], [x0 - 0.05, z0, x0 - 0.05, z1], [x1 + 0.05, z0, x1 + 0.05, z1]];
+    for (const [ax, az, bx, bz] of sides) {
+      const len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(len / 0.3));
+      let run = null;
+      const flush = () => {
+        if (!run || run.b - run.a < 0.3) { run = null; return; }
+        const p = t => [ax + (bx - ax) * t / len, az + (bz - az) * t / len];
+        const [sx, sz] = p(run.a), [ex, ez] = p(run.b), rl = run.b - run.a, along = Math.abs(bx - ax) > Math.abs(bz - az);
+        for (const y of [0.42, 0.86]) B.put(GEO.box(), 0xc08a5c, (sx + ex) / 2, DECK + y, (sz + ez) / 2, { sx: along ? rl : 0.09, sy: 0.08, sz: along ? 0.09 : rl });
+        const k = Math.max(1, Math.round(rl / 1.8));
+        for (let i = 0; i <= k; i++) { const [px, pz] = p(run.a + rl * i / k); B.put(GEO.box(), 0x6b4a36, px, DECK + 0.95 - postH / 2, pz, { sx: 0.14, sy: postH, sz: 0.14 }); }
+        run = null;
+      };
+      for (let i = 0; i <= n; i++) {
+        const t = (len * i) / n, px = ax + (bx - ax) * t / len, pz = az + (bz - az) * t / len;
+        if (onLand(px, pz) || inOther(px, pz, r)) flush();
+        else if (run) run.b = t; else run = { a: t, b: t };
       }
+      flush();
     }
   };
-  deck(causeway, [zJ]);
-  deck(boardwalk, [0, ...parts.map(pt => pt.p.x)]);
-  for (const pt of parts) deck(pt.spur, [zJ]);
+  for (const r of rects) deck(r);
   const bridgeBlockers = [];
   B.build(root, bridgeBlockers);
 
@@ -144,6 +160,22 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     root.add(g);
     pt.gate = g;
     pt.gatePos = new THREE.Vector3(pt.p.x, 0, z);
+    // a door at the island end, for the figure that has to be rebuilt before you may leave
+    const d = new THREE.Group();
+    for (const s of [-1, 1]) { const m = new THREE.Mesh(gateGeo, wood); m.scale.set(0.28, 2.5, 0.28); m.position.set(s * (HW - 0.02), DECK + 1.25, 0); d.add(m); }
+    const lintel = new THREE.Mesh(gateGeo, wood); lintel.scale.set(HW * 2 + 0.3, 0.3, 0.34); lintel.position.set(0, DECK + 2.55, 0); d.add(lintel);
+    pt.leaves = [-1, 1].map(s => {
+      const hinge = new THREE.Group(); hinge.position.set(s * (HW - 0.16), DECK, 0);
+      const leaf = new THREE.Mesh(gateGeo, dark); leaf.scale.set(HW - 0.18, 2.2, 0.1); leaf.position.set(-s * (HW - 0.18) / 2, 1.1, 0); hinge.add(leaf);
+      const knob = new THREE.Mesh(gateGeo, toon(0xffd23f)); knob.scale.setScalar(0.12); knob.position.set(-s * (HW - 0.36), 1.05, 0.08); hinge.add(knob);
+      hinge.userData.s = s;
+      d.add(hinge);
+      return hinge;
+    });
+    d.position.set(pt.p.x, 0, pt.doorZ);
+    d.traverse(o => { o.castShadow = true; });
+    root.add(d);
+    pt.door = d;
   }
 
   let active = null;
@@ -211,6 +243,11 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     },
     update(dt, t, cam) {
       const c = cam ? cam.clone().add(A) : null;
+      if (beacon.visible) {
+        const { mark, beamMat } = beacon.userData;
+        mark.position.y = beacon.userData.top + Math.sin(t * 2.2) * 0.35;
+        beamMat.opacity = 0.28 + Math.sin(t * 1.6) * 0.08;
+      }
       for (const k of pieces) k.world.update(dt, t, c ? c.clone().sub(k.p) : null);
       // the sun's shadow follows you round the archipelago
       const sun = hubWorld.atmos.sun;
@@ -223,7 +260,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       for (const k of pieces) k.world.dispose();
       root.traverse(o => { if (o.parent && o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
       for (const d of displays.values()) d.geometry.dispose();
-      wood.dispose(); dark.dispose(); lockTex?.dispose();
+      wood.dispose(); dark.dispose(); lockTex?.dispose(); beacon.userData.tex.dispose();
     },
   };
   const sunDir = new THREE.Vector3(...hubWorld.theme.sunPos).normalize();
@@ -238,11 +275,38 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     return null;
   }
 
+  // a beacon over the next figure's island (or the portal): a tall column of light and a bobbing "?"
+  const beacon = new THREE.Group();
+  {
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0xffe9a0, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.6, 60, 20, 1, true), beamMat);
+    beam.position.y = 30;
+    beam.layers.set(LAYER_OVERLAY);
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#2a1f3d'; g.beginPath(); g.arc(64, 70, 56, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(64, 62, 52, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#2a1f3d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 72px Fredoka, sans-serif'; g.fillText('?', 64, 66);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true, fog: false }));
+    mark.scale.setScalar(2.4);
+    mark.layers.set(LAYER_OVERLAY); mark.renderOrder = 6;
+    beacon.add(beam, mark);
+    beacon.userData = { beam, mark, beamMat, tex };
+    beacon.visible = false;
+    root.add(beacon);
+  }
+  let beaconFor;
+
   const displays = new Map();
   function dress() {
     for (const pt of parts) {
       pt.open = isOpen(pt.level);
       pt.gate.visible = !pt.open;
+      pt.shut = doorShut(pt.level);
+      pt.door.visible = pt.shut || pt.hadDoor;
+      if (pt.shut) pt.hadDoor = true;
+      for (const h of pt.leaves) h.rotation.y = pt.shut ? 0 : h.userData.s * 1.75; // swung open
       const show = pt !== active && isDone(pt.level);
       if (show && !displays.has(pt)) {
         const m = new THREE.Mesh(mergeFigure(expandLevel(pt.level).cells), figureMaterial);
@@ -289,6 +353,27 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     portalPos() { const pz = hubWorld.portal?.z ?? 4; return new THREE.Vector3(hub.p.x - A.x, 1.8, hub.p.z + pz - A.z); },
     atPortal(x, z) { const p = arch.portalPos(); return Math.hypot(x - p.x, z - p.z) < 1.3; },
     // a locked spur's gate you're pressing against
+    // light the beacon over a figure's island (a level), the portal ('portal') or nothing (null)
+    setBeacon(target) {
+      if (target === beaconFor) return;
+      beaconFor = target;
+      beacon.visible = !!target;
+      if (!target) return;
+      if (target === 'portal') {
+        const pz = hubWorld.portal?.z ?? 4;
+        beacon.position.set(hub.p.x, 0, hub.p.z + pz);
+        beacon.userData.top = 5;
+      } else {
+        const pt = parts.find(p => p.level === target);
+        beacon.position.copy(pt.p);
+        beacon.userData.top = PEDESTAL_TOP + expandLevel(target).height * 0.6 + 3;
+      }
+      beacon.userData.mark.position.y = beacon.userData.top;
+    },
+    shutDoorAt(x, z) {
+      for (const pt of parts) if (pt.shut && Math.hypot(x + A.x - pt.p.x, z + A.z - pt.doorZ) < 2) return pt;
+      return null;
+    },
     lockedGateAt(x, z) {
       for (const pt of parts) if (!pt.open && Math.hypot(x + A.x - pt.gatePos.x, z + A.z - pt.gatePos.z) < 2.2) return pt;
       return null;

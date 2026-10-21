@@ -70,6 +70,7 @@ export default {
   "way.next": "Steek de bruggen over naar het eiland van het volgende figuur!",
   "way.nextWorld": "Deze wereld is weer opgebouwd! Stap in het portaal op het middelste eiland en reis naar {world}.",
   "way.carry": "Blokken blijven op hun eigen eiland. Leg ze neer voor je oversteekt.",
+  "way.door": "Deze deur gaat open zodra je de figuur op dit eiland weer hebt opgebouwd.",
   "way.locked": "Deze brug gaat open zodra je de figuren daarvoor weer hebt opgebouwd.",
   "complete.par": "doel {t}",
   "complete.time": "tijd",

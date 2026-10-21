@@ -224,6 +224,11 @@ export function init(ctx) {
     $('keys').innerHTML = lines.map(s => `<span>${s}</span>`).join('');
   }
   // the tutorial lines name the keys; main.js asks us for the current labels
+  // …and the single keys, so the coach can light each one up as it's used (none with a gamepad)
+  ctx.coachKeys = () => (padMode ? null : {
+    forward: L('forward'), left: L('left'), back: L('back'), right: L('right'), jump: L('jump'), drop: L('drop'), hint: L('hint'),
+    rightClick: t('access.key.rightClick'),
+  });
   ctx.coachLabels = () => (padMode
     ? { move: t('access.coach.leftStick'), look: t('access.coach.rightStick'), jump: 'A', drop: 'B', hint: 'Y' }
     : { move: moveLabel(), look: t('access.coach.mouse'), jump: L('jump'), drop: `${t('access.key.rightClick')} / ${L('drop')}`, hint: L('hint') });

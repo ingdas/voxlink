@@ -70,6 +70,7 @@ export default {
   "way.next": "Přejdi po mostech na ostrov další figurky!",
   "way.nextWorld": "Tenhle svět je zase celý! Vstup do portálu na prostředním ostrově a vydej se do dalšího světa: {world}.",
   "way.carry": "Kostky zůstávají na svém ostrově. Než přejdeš, polož je.",
+  "way.door": "Tyhle dveře se otevřou, až postavíš figurku na tomhle ostrově.",
   "way.locked": "Tenhle most se otevře, až postavíš figurky před ním.",
   "complete.par": "limit {t}",
   "complete.time": "čas",

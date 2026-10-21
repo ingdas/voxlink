@@ -70,6 +70,7 @@ export default {
   "way.next": "다리를 건너 다음 조각상의 섬으로 가요!",
   "way.nextWorld": "이 세계를 다 되살렸어요! 가운데 섬의 포털로 들어가 다음 세계로 가요: {world}.",
   "way.carry": "블록은 자기 섬에 남아야 해요. 건너기 전에 내려놓아요.",
+  "way.door": "이 문은 이 섬의 조각상을 다시 지으면 열려요.",
   "way.locked": "이 다리는 그 앞의 조각상들을 다시 지으면 열려요.",
   "complete.par": "목표 {t}",
   "complete.time": "시간",

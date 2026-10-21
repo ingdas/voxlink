@@ -70,6 +70,7 @@ export default {
   "way.next": "Đi qua những cây cầu đến hòn đảo của bức tượng tiếp theo nhé!",
   "way.nextWorld": "Thế giới này đã được xây lại! Bước vào cổng dịch chuyển trên hòn đảo ở giữa để đến {world} nhé.",
   "way.carry": "Các khối phải ở lại trên đảo của chúng. Hãy thả chúng xuống trước khi qua cầu nhé.",
+  "way.door": "Cánh cửa này sẽ mở khi bạn đã xây lại bức tượng trên đảo này.",
   "way.locked": "Cây cầu này sẽ mở khi bạn đã xây lại các bức tượng trước nó.",
   "complete.par": "chuẩn {t}",
   "complete.time": "thời gian",

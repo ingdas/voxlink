@@ -70,6 +70,7 @@ export default {
   "way.next": "Treci podurile până pe insula următoarei figurine!",
   "way.nextWorld": "Lumea asta e reconstruită! Intră în portalul de pe insula din mijloc ca să călătorești spre lumea următoare: {world}.",
   "way.carry": "Blocurile rămân pe insula lor. Lasă-le jos înainte să treci.",
+  "way.door": "Ușa asta se deschide după ce reconstruiești figurina de pe insula asta.",
   "way.locked": "Podul ăsta se deschide după ce reconstruiești figurinele dinaintea lui.",
   "complete.par": "țintă {t}",
   "complete.time": "timp",
