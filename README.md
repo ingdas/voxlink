@@ -111,6 +111,19 @@ then the CrazyGames SDK (`user.systemInfo.locale`), then the browser. English st
 `js/i18n/en/*.js`; each locale is `js/i18n/<code>.js`. Every new user-visible string needs a key
 in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (CI runs it).
 
+## Browser tests
+
+`tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
+all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
+phones and in Arabic, and keyboard / touch controls. Each suite starts its own static server.
+
+```
+PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tests/e2e/run.mjs          # everything
+PLAYWRIGHT_DIR=… node tests/e2e/run.mjs gift hud                                   # some suites
+```
+
+Playwright isn't a dependency of the game; point `PLAYWRIGHT_DIR` at any folder whose `node_modules` has it.
+
 ## Debug mode
 
 Open with `?debug` for a panel to play any figure, quick-solve, solve a part, win instantly,
