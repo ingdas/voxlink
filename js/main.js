@@ -152,6 +152,7 @@ const game = new Game({
     pause: () => pause(),
     magnet: (n, gained) => renderMagnet(n, gained),
     express: (n, gained) => renderTool('btn-express', 'express-n', n, gained),
+    tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); },
     tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
     saveSession: data => { if (!game.level.kind) { save.session = data; persist(); } },
@@ -262,13 +263,13 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-const COACH = {
-  1: () => (mobile ? t('coach.1.touch') : t('coach.1.desk', { move: 'WASD', look: t('coach.mouse'), ...ctx.coachLabels?.() })),
-  2: () => t(mobile ? 'coach.2.touch' : 'coach.2.desk'),
-  3: () => t(mobile ? 'coach.3.touch' : 'coach.3.desk'),
-  4: () => t('coach.4'),
-};
-let coachStep = -1, coachTimer = 0;
+// tutorial steps (game.TUTORIAL): the coach line names the player's own keys / gamepad buttons
+const coachText = step => (step === 'done' ? t('coach.done') : t(`coach.${step}.${mobile ? 'touch' : 'desk'}`, {
+  move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', ...ctx.coachLabels?.(),
+}));
+// the on-screen button each step teaches gets a pulsing ring
+const COACH_BTN = { jump: 'btn-jump', drop: 'btn-drop', hint: 'btn-hint' };
+let coachStep = null;
 const edgeV = new THREE.Vector3();
 function placeEdge(el, pos, show) {
   if (!show) { el.classList.remove('on'); return; }
@@ -292,15 +293,15 @@ function placeEdge(el, pos, show) {
 const homePos = new THREE.Vector3(0, 1.2, 0);
 function tickHud(g) {
   if (g.tutorial !== coachStep) {
+    $(COACH_BTN[coachStep])?.classList.remove('tut-focus');
     coachStep = g.tutorial;
-    const el = $('coach');
-    if (COACH[coachStep]) { el.innerHTML = COACH[coachStep](); el.classList.add('show'); coachTimer = 0; }
-    else el.classList.remove('show');
+    $(COACH_BTN[coachStep])?.classList.add('tut-focus');
+    $('coach').classList.toggle('show', !!coachStep);
+    if (coachStep === 'done' && !save.seen.tutorial) { save.seen.tutorial = true; persist(); }
   }
-  if (coachStep === 4) { coachTimer += g.lastDt; if (coachTimer > 4.5) g.tutorial = 5; }
-  if (coachStep === 1) { const html = COACH[1](); if ($('coach').innerHTML !== html) $('coach').innerHTML = html; }
+  if (coachStep) { const html = coachText(coachStep); if ($('coach').innerHTML !== html) $('coach').innerHTML = html; }
   $('hint-cd').style.setProperty('--p', `${g.hintCooldown > 0 ? (g.hintCooldown / (g.hintMax || 8)) * 100 : 0}%`);
-  if (!mobile && g.elapsed > 16) $('keys').classList.add('fade');
+  if (!mobile && (g.elapsed > 16 || g.tutorial)) $('keys').classList.add('fade');
   const far = g.player.pos.length() > 7;
   placeEdge($('edge-home'), homePos, far && g.hasFitInPack());
   placeEdge($('edge-hint'), fx.beamTarget?.position ?? homePos, !!fx.beamTarget);
@@ -413,7 +414,8 @@ function startLevel(index, resume = false) {
   lastNeeds = '';
   renderNeeds();
   renderFocus(null);
-  coachStep = -1;
+  // first play of the first figure: the step-by-step controls tutorial (players who finished it before skip it)
+  game.tutorial = lvl === LEVELS[0] && !session && !save.seen.tutorial && !isDone(lvl.id) ? 'look' : null;
   $('keys').classList.remove('fade');
   $('hud').classList.remove('off');
   document.body.classList.remove('celebrating');
@@ -897,11 +899,19 @@ async function boot() {
   await new Promise(r => setTimeout(r, 30));
   bindSettings();
   for (const f of FEATURES) f.init?.(ctx);
-  enterTitle();
+  // first launch: straight from the loading bar into the opening cutscene, no title screen
+  const firstRun = !save.seen.prologue && !document.body.classList.contains('debug') && !location.search.includes('thumbs');
+  if (!firstRun) enterTitle();
   renderer.gl.compile(scene, camera);
   fill.style.width = '100%';
   await new Promise(r => setTimeout(r, 250));
   lastTime = performance.now();
+  if (firstRun) {
+    playPrologue();
+    // browsers keep audio locked until the first click or key press
+    const wake = () => { if (app === 'cinema') audio.unlock(); };
+    for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, wake, { capture: true, once: true });
+  }
   requestAnimationFrame(frame);
   if (location.search.includes('thumbs')) {
     document.body.insertAdjacentHTML('beforeend', `<div style="position:fixed;inset:0;z-index:99;background:#fff4e0;display:grid;grid-template-columns:repeat(4,1fr);overflow:auto">${thumbs.map((t, i) => `<div style="text-align:center;font:700 14px Fredoka"><img src="${t}" style="width:100%"><br>${LEVELS[i].name}</div>`).join('')}</div>`);

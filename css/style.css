@@ -203,6 +203,11 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 }
 .coach.show { opacity: 1; transform: translate(-50%, 0); }
 .coach b { color: var(--sun); }
+/* tutorial: a control that isn't unlocked yet shakes the coach line; the button the step teaches pulses */
+.coach.nudge { animation: coach-nudge .4s ease-in-out; }
+@keyframes coach-nudge { 20%, 60% { translate: -7px 0; scale: 1.05; } 40%, 80% { translate: 7px 0; scale: 1.05; } }
+.btn.tut-focus { box-shadow: 0 var(--lift) 0 var(--ink), 0 0 0 6px rgba(255, 201, 60, .7); animation: tut-ring 1.2s ease-in-out infinite; }
+@keyframes tut-ring { 50% { box-shadow: 0 var(--lift) 0 var(--ink), 0 0 0 13px rgba(255, 201, 60, .2); } }
 
 #crosshair { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
 #crosshair i {

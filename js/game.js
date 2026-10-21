@@ -11,6 +11,10 @@ export const PACK_SIZE = 4;
 const _e = new THREE.Euler();
 const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
 const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
+// First-play tutorial: one control per step. A control unlocks at the step that teaches it and stays
+// unlocked; anything not taught yet is blocked (and nudges the coach line). Looking around and pausing always work.
+export const TUTORIAL = ['look', 'move', 'jump', 'grab', 'link', 'drop', 'hint', 'done'];
+const NEEDS = { jump: 'jump', drop: 'drop', hint: 'hint', slot: 'grab', cycle: 'grab', magnet: 'done', express: 'done' };
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
@@ -244,7 +248,9 @@ export class Game {
     this.focus = null;
     this.focusKey = '';
     this.waved = false;
-    this.tutorial = this.levelIndex === 0 ? 1 : 0;
+    this.tutorial = null; // set by main.js for a first play
+    this.tutNext = null;
+    this.tutAcc = 0;
     this.packTipShown = false;
     this.barked = new Set();
     this.chainQueue = [];
@@ -842,6 +848,7 @@ export class Game {
     if (!h) return;
     if (h.far) { this.events.toast?.(t('toast.far')); this.audio.wrong(); return; }
     if (h.kind === 'loose') {
+      if (!this.tutAllows('grab')) return this.tutNudge();
       if (this.puzzler) {
         const k = this.attachSlot(h.i);
         if (k >= 0) return this.attach(k, h.i);
@@ -850,7 +857,7 @@ export class Game {
       return this.grab(h.i);
     }
     if (h.kind === 'socket') {
-      if (this.carrying(h.child)) return this.launch(h.child);
+      if (this.carrying(h.child)) return this.tutAllows('link') ? this.launch(h.child) : this.tutNudge();
       const num = this.voxels[h.child].num;
       this.audio.wrong();
       this.shakeSocket(h.child);
@@ -887,7 +894,7 @@ export class Game {
     }
     this.audio.pickup();
     this.events.vibrate?.(10);
-    if (this.tutorial === 1 || this.tutorial === 2) this.tutorial = this.sockets.has(i) ? 3 : 2;
+    if (this.tutorial === 'grab' && this.sockets.has(i)) this.tutAdvance('link');
     if (this.pack.length === 2 && !this.packTipShown && this.levelIndex >= 0 && this.levelIndex <= 4) {
       this.packTipShown = true;
       this.events.toast?.(t('toast.carry', { n: PACK_SIZE }));
@@ -938,6 +945,7 @@ export class Game {
     this.pack.splice(this.active, 1);
     this.active = Math.max(0, Math.min(this.active, this.pack.length - 1));
     this.audio.drop();
+    if (this.tutorial === 'drop') this.tutAdvance('hint');
     this.emitPack();
   }
 
@@ -950,7 +958,7 @@ export class Game {
     else this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), Math.min(1.6, 0.34 + v.mesh.position.distanceTo(v.target) * 0.03));
     this.ghost.visible = false;
     this.audio.tone({ f: 500, f2: 900, type: 'sine', dur: 0.2, vol: 0.08 });
-    if (this.tutorial === 3) this.tutorial = 4;
+    if (this.tutorial === 'link') this.tutAdvance('drop');
     this.emitPack();
   }
 
@@ -961,6 +969,9 @@ export class Game {
 
   hint() {
     if (this.mode !== 'play') return;
+    // the tutorial's practice hint is free
+    const practice = this.tutorial === 'hint';
+    if (practice) this.tutAdvance('done');
     const fitInPack = this.carriedAll().find(i => this.sockets.has(i));
     if (fitInPack !== undefined) {
       // free: you're already carrying a fitting block, just point at its bubble
@@ -975,7 +986,7 @@ export class Game {
     const fits = this.voxels.filter(v => v.state === 'loose' && this.sockets.has(v.i));
     if (!fits.length) return;
     this.hintCooldown = this.hintMax;
-    this.hintsUsed++;
+    if (!practice) this.hintsUsed++;
     this.audio.hint();
     const pp = this.player.pos;
     fits.sort((a, b) => a.mesh.position.distanceToSquared(pp) - b.mesh.position.distanceToSquared(pp));
@@ -1072,10 +1083,51 @@ export class Game {
     }
   }
 
+  // ---------- tutorial ----------
+  tutAllows(what) {
+    const k = this.tutorial ? TUTORIAL.indexOf(this.tutorial) : -1;
+    return k < 0 || TUTORIAL.indexOf(what) <= k;
+  }
+  tutNudge() {
+    if (this.t - (this.tutNudgeT ?? -9) < 0.8) return;
+    this.tutNudgeT = this.t;
+    this.audio.wrong();
+    this.events.tutorialNudge?.();
+  }
+  // a finished step ticks over after a short beat, so the player sees it worked
+  tutAdvance(step, delay = 0.6) {
+    if (this.tutNext) return;
+    this.tutNext = { step, at: this.elapsed + delay };
+    this.audio.tone({ f: 660, f2: 990, type: 'triangle', dur: 0.18, vol: 0.1, wet: 0.3 });
+  }
+  updateTutorial(dt, look, moved) {
+    const tut = this.tutorial;
+    if (this.tutNext && this.elapsed >= this.tutNext.at) {
+      this.tutorial = this.tutNext.step;
+      this.tutNext = null;
+      this.tutAcc = 0;
+      return;
+    }
+    if (this.tutNext) return;
+    if (tut === 'look' && (this.tutAcc += Math.abs(look.x) + Math.abs(look.y)) > 1.4) this.tutAdvance('move');
+    else if (tut === 'move' && (this.tutAcc += moved) > 3.5) this.tutAdvance('jump');
+    else if (tut === 'done' && (this.tutAcc += dt) > 4.5) this.tutorial = null;
+  }
+
   updatePlay(dt) {
     const look = this.input.poll();
+    if (this.tutorial) {
+      const m = this.input.move;
+      if (!this.tutAllows('move')) {
+        if ((m.x || m.y) && !this.tutHeld) this.tutNudge();
+        this.tutHeld = !!(m.x || m.y);
+        m.x = m.y = 0; m.sprint = false;
+      }
+      if (!this.tutAllows('jump')) this.input.jumpHeld = false;
+    }
     for (const a of this.input.takeActions()) {
-      if (a.type === 'jump') this.player.jumpBuffer = 0.14;
+      if (NEEDS[a.type] && !this.tutAllows(NEEDS[a.type])) { this.tutNudge(); continue; }
+      if (a.type === 'jump') { this.player.jumpBuffer = 0.14; if (this.tutorial === 'jump') this.tutAdvance('grab', 0.9); }
       else if (a.type === 'interact') this.interact(a.x, a.y);
       else if (a.type === 'drop') this.drop();
       else if (a.type === 'hint') this.hint();
@@ -1088,7 +1140,9 @@ export class Game {
     const r = Math.hypot(this.player.pos.x, this.player.pos.z);
     const lift = this.liftR && r < this.liftR ? { maxY: this.liftTop } : null;
     if (this.liftR && !this.liftTold && (lift || this.elapsed > 8)) { this.liftTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
+    const px = this.player.pos.x, pz = this.player.pos.z;
     this.player.update(dt, this.input, look, this.colliders, this.world, lift);
+    if (this.tutorial) this.updateTutorial(dt, look, Math.hypot(this.player.pos.x - px, this.player.pos.z - pz));
     if (this.liftFx) this.liftFx.update(dt, this.t, !!lift, this.player.floating);
     this.player.applyCamera(this.camera);
     if (this.kick > 0.001 || this.camera.fov !== this.camera.userData.baseFov) {
@@ -1109,7 +1163,6 @@ export class Game {
       if (!express && this.chain >= 2) this.events.toast?.(t('toast.chain', { n: this.chain + 1 }));
     }
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
-    if (this.tutorial === 1 && this.elapsed > 3) this.tutorial = 2;
     if (this.stageCount > 1 && !this.districtTip && this.elapsed > 2.5) { this.districtTip = true; this.events.tip?.('districts'); }
 
     this.setFocus(this.input.mobile ? null : this.rayFrom());

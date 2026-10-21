@@ -223,10 +223,10 @@ export function init(ctx) {
     ];
     $('keys').innerHTML = lines.map(s => `<span>${s}</span>`).join('');
   }
-  // the first tutorial line names the keys; main.js asks us for the current labels
+  // the tutorial lines name the keys; main.js asks us for the current labels
   ctx.coachLabels = () => (padMode
-    ? { move: t('access.coach.leftStick'), look: t('access.coach.rightStick') }
-    : { move: moveLabel(), look: t('access.coach.mouse') });
+    ? { move: t('access.coach.leftStick'), look: t('access.coach.rightStick'), jump: 'A', drop: 'B', hint: 'Y' }
+    : { move: moveLabel(), look: t('access.coach.mouse'), jump: L('jump'), drop: `${t('access.key.rightClick')} / ${L('drop')}`, hint: L('hint') });
 
   // ---------- gamepad ----------
   let padMode = false;

@@ -62,6 +62,9 @@ Workshop editor:
 - Each world has its own twist: icy lakes (Frost), wading (Reef), low gravity and jump pads
   (Starfall), wind gusts (Storm). Dropped blocks stack instead of overlapping.
 - Design decisions and the simulator behind them: `docs/design-notes.md`, `tools/design-sim.mjs`.
+- First launch skips the title screen and goes straight into the opening cutscene, then the Sprout with
+  a step-by-step controls tutorial (look, walk, jump, grab, link, drop, hint). Each step only unlocks
+  the control it teaches; anything else shakes the coach line. Its practice hint is free.
 - The story opens with a cutscene (the Keeper Colossus loses the storm, the storm smashes the first
   figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).

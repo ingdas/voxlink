@@ -69,8 +69,9 @@ export class Audio {
     if (prev !== this.world || !this.ambNodes) { this.chordIdx = 0; this.startAmbience(); }
   }
 
+  // one-shots are dropped while the context is locked or suspended, so they don't all burst out on resume
   tone({ f = 440, f2 = null, type = 'sine', t = 0, dur = 0.2, vol = 0.3, attack = 0.005, out = null, wet = 0 }) {
-    const c = this.ctx; if (!c) return;
+    const c = this.ctx; if (!c || c.state !== 'running') return;
     const t0 = c.currentTime + t;
     const o = c.createOscillator(), g = c.createGain();
     o.type = type;
@@ -85,7 +86,7 @@ export class Audio {
   }
 
   noise({ t = 0, dur = 0.08, vol = 0.2, freq = 1200, q = 1, type = 'bandpass', f2 = null, attack = 0, out = null }) {
-    const c = this.ctx; if (!c) return;
+    const c = this.ctx; if (!c || c.state !== 'running') return;
     const t0 = c.currentTime + t;
     const s = c.createBufferSource(); s.buffer = this.noiseBuf;
     const f = c.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t0); f.Q.value = q;
