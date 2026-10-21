@@ -161,7 +161,7 @@ export class Game {
     const R = Math.max(12 + Math.sqrt(cells.length) * 0.95, this.footR + 12);
     this.world = buildWorld({
       rng: layoutRng, radius: R, seed: (hashId(level.id) % 97) + 1, quality: this.renderer.mobile ? 'low' : 'high', clearR: this.footR,
-      theme: themeId, difficulty: Math.min(1, (level.chapter ?? 1) / 3 + (level.indexInChapter ?? 1) * 0.08),
+      theme: themeId, difficulty: Math.min(1, (level.chapter ?? 2) * 0.16 + (level.chapterProgress ?? 0.33) * 0.24),
     });
     this.scene.add(this.world.group);
     this.world.onFlash = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.thunder(); };
@@ -202,7 +202,7 @@ export class Game {
     this.active = 0;
     this.computeStages();
     this.stage = 0;
-    this.scatter(rng, Math.min(0.5, 0.18 + (level.chapter ?? 1) * 0.08), !!resume?.id && !resume.v);
+    this.scatter(rng, Math.min(0.5, 0.18 + (level.chapter ?? 2) * 0.04), !!resume?.id && !resume.v);
     if (this.levelIndex === 0) {
       // tutorial: put the first block right in front of the player
       const first = this.voxels[this.puzzle.children[this.puzzle.root][0]];

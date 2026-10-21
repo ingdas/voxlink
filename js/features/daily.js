@@ -17,7 +17,7 @@ function dailyLevel(ctx, key) {
     level: {
       id: `daily-${key}`, kind: 'daily', name: known ? t('daily.named', { name: base.name }) : t('daily.figure'), realName: t('daily.named', { name: base.name }), shortName: base.name, baseId: base.id, tag: base.tag,
       figure: figureOf(base.id), theme: THEME_IDS[Math.floor(seed / 7) % THEME_IDS.length],
-      chapter: base.chapter, indexInChapter: 2, intro: '', outro: '',
+      chapter: base.chapter, chapterProgress: 0.67, intro: '', outro: '',
     },
     seed,
   };

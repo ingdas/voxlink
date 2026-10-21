@@ -4,7 +4,7 @@ A cozy first-person, cel-shaded voxel puzzle for desktop and mobile browsers.
 
 A storm smashed the Great Figures of the Archipelago into loose blocks. Every block face that
 carries a number belongs against the face with the same number on another block. Grab blocks, link
-matching numbers onto the growing figure, and rebuild all 20 figures across 5 island chapters
+matching numbers onto the growing figure, and rebuild all 50 figures across 10 island worlds (5 each)
 with Kubo, the last Keeper. The finale is the 330-block Keeper Colossus.
 
 Live: https://dasseville.me/voxlink/ (every push to `main` deploys through GitHub Actions).
@@ -59,8 +59,11 @@ Workshop editor:
   backpack; **Kubo Express** (F / paper plane) sends every fitting carried block to the figure from
   anywhere. Linking a block also pulls in carried blocks that belong on it (chain links).
 - Tall figures get the Keeper's updraft (hold jump inside the glowing ring).
-- Each world has its own twist: icy lakes (Frost), wading (Reef), low gravity and jump pads
-  (Starfall), wind gusts (Storm). Dropped blocks stack instead of overlapping.
+- Each world has its own look, music and twist: Meadow (none, the tutorial), Windmill Farm (hay
+  trampolines), Frost (icy lakes), Frostwood (deep snowdrifts slow you, a slippery stream), Sunset Reef
+  (wading), Shipwreck Cove (giant clams toss you up the rocks), Starfall (low gravity and jump pads),
+  Moon Isle (very low gravity), Gale Cliffs and Eye of the Storm (wind gusts). Dropped blocks stack
+  instead of overlapping.
 - Design decisions and the simulator behind them: `docs/design-notes.md`, `tools/design-sim.mjs`.
 - First launch skips the title screen and goes straight into the opening cutscene, then the Sprout with
   a step-by-step controls tutorial (look, walk, jump, grab, link, drop, hint). Each step only unlocks

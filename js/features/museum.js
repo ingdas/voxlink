@@ -10,13 +10,14 @@ const gardenName = () => t('museum.name');
 const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
 // .one / .other key for n (English uses the same text for both)
 const plural = (key, n) => `${key}.${n === 1 ? 'one' : 'other'}`;
-const K = 0.65; // figures stand at two-thirds size so all 16 fit around the plaza
-const RING = 16; // pedestal ring radius
-const ISLAND_R = 32;
+const K = 0.65; // figures stand at two-thirds size
 const PED_H = 0.6; // pedestal top
 const GAP = 1.3; // space between neighbouring pedestals
-// chapter galleries sit in the four diagonals (atan2(z, x)); the gaps between them are paths
-const CHAPTER_ANGLE = [225, 315, 45, 135].map(d => (d * Math.PI) / 180);
+const PATH = 4.5; // open path between two chapter galleries
+// Chapter galleries are arcs on two rings around the plaza: the first four chapters inside, the rest outside.
+// Every ring leaves a path open to the south, where you arrive.
+const RINGS = [[0, 1, 2, 3], [4, 5, 6, 7, 8, 9]];
+const INNER_R = 16, RING_STEP = 11;
 const NEAR = 2.4; // how close (beyond the pedestal edge) before the info card shows
 
 let ctx, THREE, $;
@@ -231,9 +232,31 @@ class Garden {
     const { renderer, scene, camera, save, LEVELS, CHAPTERS, expandLevel } = ctx;
     this.t = 0;
     this.disposables = [];
+    // measure every gallery first: the rings grow to fit them
+    const galleries = CHAPTERS.map(ch => {
+      const items = ch.levels.map(l => {
+        const { cells, height } = expandLevel(l);
+        const reach = Math.max(...cells.map(cc => Math.hypot(cc.x, cc.z))) * S * K + S * K * 0.72;
+        return { level: l, cells, height, r: Math.max(1.0, (reach + 0.3) / 0.924) };
+      });
+      return { items, L: items.reduce((n, it) => n + it.r * 2, 0) + GAP * (items.length - 1) };
+    });
+    let ringR = 0;
+    RINGS.forEach((chs, ri) => {
+      const need = chs.reduce((n, c) => n + (galleries[c]?.L ?? 0) + PATH, 0) / (Math.PI * 2);
+      const R = Math.max(ri ? ringR + RING_STEP : INNER_R, need);
+      let a = Math.PI / 2 + PATH / 2 / R; // just past the south path
+      for (const c of chs) {
+        if (!galleries[c]) continue;
+        Object.assign(galleries[c], { R, start: a, mid: a + galleries[c].L / 2 / R });
+        a += (galleries[c].L + PATH) / R;
+      }
+      ringR = R;
+    });
+    this.outerR = ringR;
     this.world = buildWorld({
-      rng: mulberry32(424242), radius: ISLAND_R, seed: 11, quality: renderer.mobile ? 'low' : 'high',
-      theme: 'meadow', clearR: RING + 3.4, plain: true,
+      rng: mulberry32(424242), radius: ringR + 16, seed: 11, quality: renderer.mobile ? 'low' : 'high',
+      theme: 'meadow', clearR: ringR + 3.4, plain: true,
     });
     scene.add(this.world.group);
     scene.fog.color.setHex(this.world.theme.skyHorizon);
@@ -261,13 +284,8 @@ class Garden {
 
     CHAPTERS.forEach((ch, c) => {
       const T = THEMES[ch.theme];
-      const items = ch.levels.map(l => {
-        const { cells, height } = expandLevel(l);
-        const reach = Math.max(...cells.map(cc => Math.hypot(cc.x, cc.z))) * S * K + S * K * 0.72;
-        return { level: l, cells, height, r: Math.max(1.0, (reach + 0.3) / 0.924) };
-      });
-      const L = items.reduce((n, it) => n + it.r * 2, 0) + GAP * (items.length - 1);
-      let a = CHAPTER_ANGLE[c] - L / 2 / RING, cum = 0;
+      const { items, R: RING, start: a } = galleries[c];
+      let cum = 0;
       items.forEach(it => {
         const th = a + (cum + it.r) / RING;
         cum += it.r * 2 + GAP;
@@ -313,7 +331,7 @@ class Garden {
       });
       // a little sign in front of each chapter gallery
       const nDone = ch.levels.filter(l => save.stars[l.id]?.done).length;
-      this.addSign(ch, c, nDone, T, mat);
+      this.addSign(ch, c, nDone, T, mat, galleries[c]);
     });
 
     this.addKubo(mat);
@@ -341,8 +359,8 @@ class Garden {
     renderer.gl.compile(scene, camera);
   }
 
-  addSign(ch, c, nDone, T, mat) {
-    const th = CHAPTER_ANGLE[c], r = RING - 4.6;
+  addSign(ch, c, nDone, T, mat, gallery) {
+    const th = gallery.mid, r = gallery.R - 4.6;
     const x = Math.cos(th) * r, z = Math.sin(th) * r;
     const g = new THREE.Group();
     g.position.set(x, 0, z);

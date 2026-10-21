@@ -50,6 +50,15 @@ document.body.classList.toggle('mobile', mobile);
 const SAVE_KEY = 'voxlink.v2';
 const save = Object.assign({ unlocked: 1, best: {}, stars: {}, seen: {}, settings: {} }, safeParse(localStorage.getItem(SAVE_KEY)));
 save.settings = Object.assign({ sens: 1, sfx: 0.8, music: 0.45, invert: false, outline: true, full: mobile }, save.settings);
+// Saves from the 20-figure campaign: `unlocked` counted figures in the old order. Unlock up to the furthest
+// figure the player had reached, so the new figures before it open up and nothing reached is lost.
+const OLD_ORDER = ['sprout', 'mushroom', 'duck', 'windmill', 'penguin', 'snowman', 'frostpine', 'polarbear', 'crab', 'palm',
+  'sailboat', 'whale', 'robot', 'castle', 'rocket', 'dragon', 'lighthouse', 'balloon', 'octopus', 'colossus'];
+if ((save.campaign ?? 1) < 2) {
+  const reached = OLD_ORDER.slice(0, save.unlocked).map(id => LEVELS.findIndex(l => l.id === id));
+  save.unlocked = Math.max(1, ...reached.map(i => i + 1));
+  save.campaign = 2;
+}
 function safeParse(s) { try { return JSON.parse(s) || {}; } catch { return {}; } }
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { /* private mode */ } }
 const starsOf = id => { const s = save.stars[id]; return s ? (s.done ? 1 : 0) + (s.fast ? 1 : 0) + (s.clean ? 1 : 0) : 0; };
@@ -519,19 +528,22 @@ function showComplete(o) {
 
 // ---------- world map ----------
 let thumbs = [];
-const SECTION_H = 820, TOP_PAD = 86, BOT_PAD = 70;
+const NODE_GAP = 152, TOP_PAD = 86, BOT_PAD = 70;
+// each chapter is a band of the map: room for its heading, then its islands snaking upwards
+const sectionH = ch => 212 + ch.levels.length * NODE_GAP;
 const mapPos = [];
 function buildMap() {
   const inner = $('map-inner');
   const W = inner.clientWidth || innerWidth;
   const colW = Math.min(500, W - 190);
   const cx = W / 2;
-  const H = TOP_PAD + SECTION_H * CHAPTERS.length + BOT_PAD;
+  const H = TOP_PAD + CHAPTERS.reduce((n, ch) => n + sectionH(ch), 0) + BOT_PAD;
   inner.style.height = `${H}px`;
   let html = '';
   const xs = [0, 0.42, 0.05, -0.4];
   CHAPTERS.forEach((ch, c) => {
-    const top = TOP_PAD + (CHAPTERS.length - 1 - c) * SECTION_H;
+    const SECTION_H = sectionH(ch);
+    const top = TOP_PAD + CHAPTERS.slice(c + 1).reduce((n, h) => n + sectionH(h), 0);
     const T = THEMES[ch.theme];
     const first = LEVELS.find(l => l.chapter === c);
     const locked = first.index >= save.unlocked;
@@ -542,8 +554,8 @@ function buildMap() {
     html += `<div class="chapter-head ${locked ? 'locked' : ''}" style="top:${top + 22}px"><small>${t('map.chapter', { n: c + 1 })}</small><b>${ch.name}</b>
       <span>${locked ? `<svg><use href="#i-lock"/></svg> ${t('map.locked')}` : `<svg><use href="#i-star"/></svg> ${st} / ${ch.levels.length * 3} · ${ch.blurb}`}</span></div>`;
     ch.levels.forEach((l, k) => {
-      const x = cx + xs[k] * colW * (c % 2 ? -1 : 1);
-      const y = top + SECTION_H - 110 - k * 152;
+      const x = cx + xs[k % xs.length] * colW * (c % 2 ? -1 : 1);
+      const y = top + SECTION_H - 110 - k * NODE_GAP;
       mapPos[l.index] = { x, y };
     });
   });

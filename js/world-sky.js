@@ -78,6 +78,7 @@ export function buildSky(T, rng, group, updaters) {
     updaters.push((dt, t) => { stars.material.opacity = 0.75 + 0.25 * Math.sin(t * 0.7); });
   }
   if (S.moon) addMoonAndPlanet(group, updaters);
+  if (S.earth) addEarth(group, updaters);
   const vortex = S.vortex ? addVortex(group, updaters, uniforms) : null;
   if (S.cloudSea) addCloudSea(group, updaters, S.cloudSea);
   return { sky, uniforms, vortex };
@@ -130,6 +131,34 @@ function addMoonAndPlanet(group, updaters) {
   planet.traverse(o => { o.layers.set(LAYER_FX); o.renderOrder = -8; });
   group.add(planet);
   updaters.push((dt) => { ball.rotation.y += dt * 0.03; });
+}
+
+// a blue-green planet hanging over the moon
+function addEarth(group, updaters) {
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#3f8ee8'; g.fillRect(0, 0, 256, 128);
+  const r = mulberry32(11);
+  for (let i = 0; i < 14; i++) {
+    const x = r() * 256, y = 20 + r() * 88, s = 10 + r() * 26;
+    g.fillStyle = r() < 0.7 ? '#5fc46a' : '#d9c27a';
+    g.beginPath(); g.ellipse(x, y, s, s * (0.5 + r() * 0.5), r() * 3, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = 'rgba(255,255,255,0.75)';
+  for (let i = 0; i < 22; i++) { g.beginPath(); g.ellipse(r() * 256, r() * 128, 14 + r() * 30, 3 + r() * 5, 0, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 8); g.fillRect(0, 120, 256, 8);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const earth = new THREE.Mesh(new THREE.SphereGeometry(46, 32, 20), new THREE.MeshBasicMaterial({ map: t, fog: false }));
+  earth.position.set(-220, 140, -290);
+  earth.rotation.z = 0.4;
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: sharedDot(), color: 0x8fd0ff, transparent: true, opacity: 0.45, depthWrite: false, fog: false }));
+  halo.scale.setScalar(150);
+  halo.position.copy(earth.position).multiplyScalar(1.02);
+  for (const o of [earth, halo]) { o.layers.set(LAYER_FX); o.renderOrder = -8; group.add(o); }
+  halo.renderOrder = -9;
+  updaters.push(dt => { earth.rotation.y += dt * 0.02; });
 }
 
 const NOISE = `float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }

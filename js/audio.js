@@ -1,17 +1,28 @@
 // Tiny synthesised sound kit + generative ambient music. No assets needed.
 // Each world has its own music flavour (chords, tempo, instrument) and an ambient bed
-// (breeze and birds, howling wind, waves and gulls, starry shimmer, rain and wind).
+// (breeze and birds, farmyard, howling wind, hushed forest, waves and gulls, creaking cove, starry shimmer,
+// moon hum, cliff-top wind, rain and wind).
 const PENTA = [0, 2, 4, 7, 9];
 
 const MUSIC = {
   // C G Am F: bright plucks
   meadow: { chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]], beat: 0.4, voice: 'pluck', density: 0.55, up: 12 },
+  // G D Em C: a bouncy country pluck with a swing
+  farm: { chords: [[55, 59, 62], [62, 66, 69], [52, 55, 59], [60, 64, 67]], beat: 0.34, voice: 'pluck', density: 0.6, up: 12, swing: 0.12, bass: 'offbeat' },
   // Dmaj7 Bm7 Gmaj7 A: slow music-box bells
   frost: { chords: [[62, 66, 69, 73], [59, 62, 66, 69], [55, 59, 62, 66], [57, 61, 64, 69]], beat: 0.56, voice: 'bell', density: 0.38, up: 24 },
+  // Am F C G: soft bells drifting through a quiet forest
+  frostwood: { chords: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]], beat: 0.6, voice: 'bell', density: 0.32, up: 24, pad: 'wide' },
   // F Bb C Dm: bouncy marimba with a swing and a little bass line
   reef: { chords: [[53, 57, 60], [58, 62, 65], [60, 64, 67], [62, 65, 69]], beat: 0.33, voice: 'marimba', density: 0.62, up: 12, swing: 0.1, bass: 'offbeat' },
+  // Dm Bb F C: a swaying sea shanty
+  cove: { chords: [[62, 65, 69], [58, 62, 65], [53, 57, 60], [60, 64, 67]], beat: 0.38, voice: 'marimba', density: 0.55, up: 12, swing: 0.16, bass: 'offbeat' },
   // Cmaj7#11 D/C Em7 D: floaty glass tones over wide pads
   starfall: { chords: [[60, 64, 67, 71], [62, 66, 69, 74], [64, 67, 71, 74], [62, 66, 69, 72]], beat: 0.62, voice: 'glass', density: 0.34, up: 12, pad: 'wide' },
+  // Fmaj7 G6 Em7 Am: very slow, sparse glass in the void
+  moon: { chords: [[53, 57, 60, 64], [55, 59, 62, 64], [52, 55, 59, 62], [57, 60, 64, 67]], beat: 0.75, voice: 'glass', density: 0.24, up: 12, pad: 'wide' },
+  // D A Bm G: a brisk folk pluck over a pulse
+  cliffs: { chords: [[62, 66, 69], [57, 61, 64], [59, 62, 66], [55, 59, 62]], beat: 0.33, voice: 'pluck', density: 0.55, up: 12, bass: 'pulse' },
   // Am F Dm E: a steady pulse under minor plucks
   storm: { chords: [[57, 60, 64], [53, 57, 60], [50, 53, 57], [52, 56, 59]], beat: 0.36, voice: 'pluck', density: 0.5, up: 12, bass: 'pulse' },
 };
@@ -64,7 +75,7 @@ export class Audio {
   setWorld(id) {
     const prev = this.world;
     this.world = MUSIC[id] ? id : 'meadow';
-    this.surface = { frost: 'snow', reef: 'sand', storm: 'grass' }[this.world] || 'grass';
+    this.surface = { frost: 'snow', frostwood: 'snow', reef: 'sand', cove: 'sand', moon: 'sand', storm: 'grass' }[this.world] || 'grass';
     this.delay && (this.delay.delayTime.value = this.world === 'starfall' ? 0.5 : this.world === 'frost' ? 0.45 : 0.38);
     if (prev !== this.world || !this.ambNodes) { this.chordIdx = 0; this.startAmbience(); }
   }
@@ -211,7 +222,16 @@ export class Audio {
       }
     };
     const w = this.world;
-    if (w === 'meadow') layer('bandpass', 520, 0.6, 0.018, 0.07, 0.01);
+    if (w === 'meadow' || w === 'farm') layer('bandpass', 520, 0.6, 0.018, 0.07, 0.01);
+    else if (w === 'frostwood') layer('bandpass', 380, 1.5, 0.03, 0.06, 160, true);
+    else if (w === 'cove') { layer('lowpass', 520, 0.5, 0.06, 0.09, 0.05); layer('highpass', 3200, 0.4, 0.006, 0.09, 0.005); }
+    else if (w === 'moon') {
+      for (const f of [55, 82.5]) {
+        const o = c.createOscillator(); o.frequency.value = f; o.type = 'sine';
+        const g = c.createGain(); g.gain.value = 0.012;
+        o.connect(g).connect(out); o.start(); stop.push(o);
+      }
+    } else if (w === 'cliffs') { layer('highpass', 2400, 0.5, 0.02, 0.12, 0.012); layer('bandpass', 420, 1.0, 0.025, 0.05, 0.015); }
     else if (w === 'frost') { layer('bandpass', 420, 3, 0.05, 0.09, 260, true); layer('bandpass', 900, 5, 0.012, 0.13, 400, true); }
     else if (w === 'reef') { layer('lowpass', 650, 0.5, 0.05, 0.11, 0.045); layer('highpass', 3500, 0.4, 0.006, 0.11, 0.005); }
     else if (w === 'starfall') {
@@ -236,6 +256,33 @@ export class Audio {
       const base = 2600 + r() * 1400, n = 2 + Math.floor(r() * 4);
       for (let i = 0; i < n; i++) this.tone({ f: base, f2: base * (1.2 + r() * 0.3), type: 'sine', t: i * 0.11, dur: 0.07, vol: 0.025, out: o });
       this.ambEventT = 1.5 + r() * 4;
+    } else if (w === 'farm') {
+      if (r() < 0.25) {
+        // a far-off moo
+        this.tone({ f: 150, f2: 118, type: 'triangle', dur: 0.9, vol: 0.03, attack: 0.15, out: o });
+        this.tone({ f: 300, f2: 236, type: 'sine', dur: 0.9, vol: 0.008, attack: 0.15, out: o });
+      } else {
+        const base = 2600 + r() * 1400, n = 2 + Math.floor(r() * 4);
+        for (let i = 0; i < n; i++) this.tone({ f: base, f2: base * (1.2 + r() * 0.3), type: 'sine', t: i * 0.11, dur: 0.07, vol: 0.025, out: o });
+      }
+      this.ambEventT = 2 + r() * 4;
+    } else if (w === 'frostwood') {
+      // an owl: hoo-hoo
+      for (let i = 0; i < 2; i++) this.tone({ f: 410, f2: 380, type: 'sine', t: i * 0.42, dur: 0.32, vol: 0.02, attack: 0.05, wet: 0.5, out: o });
+      this.ambEventT = 8 + r() * 9;
+    } else if (w === 'cove') {
+      // creaking timbers, sometimes a gull
+      if (r() < 0.5) this.noise({ dur: 0.5, vol: 0.02, freq: 240 + r() * 120, f2: 180, q: 6, out: o });
+      else { const f = 1300 + r() * 300; for (let i = 0; i < 2; i++) this.tone({ f, f2: f * 0.7, type: 'triangle', t: i * 0.28, dur: 0.22, vol: 0.02, out: o }); }
+      this.ambEventT = 5 + r() * 7;
+    } else if (w === 'moon') {
+      // the base beeps now and then
+      for (let i = 0; i < 2; i++) this.tone({ f: 1760, type: 'sine', t: i * 0.16, dur: 0.06, vol: 0.008, out: o });
+      this.ambEventT = 7 + r() * 8;
+    } else if (w === 'cliffs') {
+      const f = 1400 + r() * 300;
+      for (let i = 0; i < 2 + Math.floor(r() * 2); i++) this.tone({ f, f2: f * 0.7, type: 'triangle', t: i * 0.26, dur: 0.2, vol: 0.02, out: o });
+      this.ambEventT = 6 + r() * 7;
     } else if (w === 'frost') {
       [0, 7, 12].forEach((nn, i) => this.tone({ f: this.midi(88 + nn + (r() < 0.5 ? 2 : 0)), type: 'sine', t: i * 0.09, dur: 0.6, vol: 0.012, wet: 0.6, out: o }));
       this.ambEventT = 5 + r() * 6;

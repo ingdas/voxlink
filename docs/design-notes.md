@@ -79,3 +79,41 @@ has its own layout, landmarks, sky, music, ambience and one gentle twist:
 
 A reachability check (flood-fill + jump/step rules) confirms every block on every level can be
 reached, also after combining the new layouts with districts.
+
+## 2026-10-21 · 50 figures
+
+The campaign grew from 20 to 50 figures: 10 per world instead of 4. Each world still ramps from small
+to its finale (Windmill, Polar Bear, Whale, Star Dragon, Keeper Colossus), and the new figures fill the
+gaps in that ramp, so every world opens with a short figure (11–38 blocks) after the previous finale.
+Story lines that point at the next figure ("One figure left…", "I can see the Colossus") stay right
+before it. Total par time is about 6 hours (was about 2.5).
+
+- **Saves.** `unlocked` counts figures in campaign order, so old saves are migrated once
+  (`save.campaign = 2`): everything up to the furthest figure the player had reached opens up,
+  including the new figures before it.
+- **Map.** Each chapter band is as tall as its number of islands.
+- **Garden.** 50 pedestals don't fit one ring at a comfortable size (it would need a 43 m radius), so
+  the first two chapters stand on an inner ring and the last three on an outer ring, both open to the
+  south. This also fixed the fifth chapter's figures, which had no gallery angle and never appeared.
+- **Island difficulty** follows the figure's position within its chapter (`chapterProgress`, 0–1)
+  instead of its index, so ten figures per chapter don't max it out early.
+
+## 2026-10-21 · Ten worlds of five
+
+Ten figures per world made each world long (up to an hour of par time) before the scenery changed, so
+every world was split in two: 10 worlds of 5 figures, each ending on its biggest figure. The figure order
+is unchanged, so saves (which count figures in order) carry over as they are.
+
+| New world | Between | Layout & landmarks | Twist |
+|---|---|---|---|
+| Windmill Farm | Meadow → Frost | fenced crop fields, red barn and silo, a turning windmill, sheep | hay trampolines onto tall hay stacks |
+| Frostwood | Frost → Reef | dense snowy pines, log cabin, a frozen stream | deep snowdrifts slow you; the stream is slippery |
+| Shipwreck Cove | Reef → Starfall | rocky crescent round a deep bay, a half-sunk wreck, tide pools | giant clams toss you onto rock stacks |
+| Moon Isle | Starfall → Storm | cratered moon over the void, moon base, Earth in the sky | very low gravity (0.42 g): one jump reaches the mesas |
+| Gale Cliffs | Starfall/Moon → Storm | chalk sea cliffs, terraced hills, dry-stone walls, cottages, kites | wind gusts |
+
+Bounce pads (farm, cove) reuse Starfall's launch maths with normal gravity; every pad was checked to land
+the player on its target. The share of blocks placed up high and the island difficulty were rescaled for
+twice as many chapters (`chapter * 0.04` and `chapter * 0.16`), so each figure keeps its old values. The
+workshop and the daily figure keep the original four themes: a workshop share code stores the theme in two
+bits.
