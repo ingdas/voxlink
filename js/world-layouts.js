@@ -309,7 +309,8 @@ function meadow(W) {
     const y = W.floorAt(x, z), ry = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
     const fwd = new THREE.Vector3(Math.sin(ry), 0, Math.cos(ry));
     put(W, GEO.box(), 0xfff1dc, x, y + 1.0, z, { sx: 2.8, sy: 2.0, sz: 2.4, ry });
-    put(W, GEO.cyl(3), 0xe0604f, x, y + 2.45, z, { sx: 1.75, sy: 3.1, sz: 1.0, rz: Math.PI / 2, ry: ry + Math.PI / 2 });
+    // gable roof: a three-sided cylinder tipped onto its side with the apex up, ridge along the long wall
+    putQ(W, GEO.cyl(3), 0xe0604f, V.set(x, y + 2.45, z), Q.setFromEuler(E.set(-Math.PI / 2, ry + Math.PI / 2, 0, 'YXZ')), new THREE.Vector3(1.75, 3.1, 1.0));
     put(W, GEO.box(), 0x9a6b4f, x + fwd.x * 1.21, y + 0.6, z + fwd.z * 1.21, { sx: 0.7, sy: 1.2, sz: 0.06, ry });
     for (const s of [-1, 1]) {
       const sx = Math.cos(ry) * s * 0.9, sz = -Math.sin(ry) * s * 0.9;
