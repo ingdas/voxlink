@@ -120,12 +120,31 @@ try {
 }
 let healthy = 0; // seconds of rendered 3D frames this visit
 addEventListener('pagehide', () => { if (gfxState.booting) { gfxState.booting = 0; saveGfx(); } });
+// Phones drop the GPU context of a tab in the background (or under memory pressure) and give it back later:
+// wait for it (three.js re-uploads everything itself). Only a context that stays gone while on screen is fatal.
+let ctxLost = false, lostOnScreen = false, lostTimer = 0;
+const watchLost = () => {
+  clearTimeout(lostTimer);
+  if (ctxLost && !document.hidden) lostTimer = setTimeout(() => { if (ctxLost) showFatal('webgl', 'WebGL context lost'); }, 5000);
+};
 canvas.addEventListener('webglcontextlost', e => {
-  e.preventDefault();
-  if (!gfxState.safe) { gfxState.safe = true; gfxState.auto = true; }
+  e.preventDefault(); // without this the browser never restores the context
+  ctxLost = true;
+  // lost while playing (not just backgrounded): the GPU ran out of memory or crashed, so go lighter
+  lostOnScreen = !document.hidden;
+  if (lostOnScreen && !gfxState.safe) { gfxState.safe = true; gfxState.auto = true; }
   gfxState.booting = 0; saveGfx();
-  showFatal('webgl', 'WebGL context lost');
+  watchLost();
 });
+canvas.addEventListener('webglcontextrestored', () => {
+  ctxLost = false;
+  clearTimeout(lostTimer);
+  if (lostOnScreen) renderer.lighten();
+  renderer.restored();
+  if (fatalKind === 'webgl') { $('fatal')?.remove(); fatalKind = null; }
+  lastTime = performance.now();
+});
+document.addEventListener('visibilitychange', watchLost);
 renderer.outlines = save.settings.outline;
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xffe3c4, 0.0085);

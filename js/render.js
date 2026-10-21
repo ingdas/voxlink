@@ -188,6 +188,18 @@ export class Renderer {
     return lit === 0;
   }
 
+  // after a context loss on screen: 1x resolution and no shadows from now on (everything recompiles anyway)
+  lighten() {
+    this.safe = true;
+    this.gl.shadowMap.enabled = false;
+    this.setSize(this.w, this.h);
+  }
+
+  // the context came back: three.js re-creates its GPU objects; check the pipeline again
+  restored() {
+    if (!this.direct) this.verifyFrames = 2;
+  }
+
   dprCap() { return Math.min(window.devicePixelRatio || 1, this.safe ? 1 : this.mobile ? 1.5 : 2); }
 
   get pixelRatio() { return this.maxDpr * this.scale; }
@@ -221,6 +233,8 @@ export class Renderer {
 
   render(scene, camera, target = null, size = null) {
     const r = this.gl;
+    // three.js skips drawing while the context is lost; don't mistake that for a broken pipeline
+    if (r.getContext().isContextLost()) return;
     if (this.direct) {
       // fallback without post-processing: everything straight to the screen
       const mask = camera.layers.mask;

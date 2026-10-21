@@ -119,7 +119,7 @@ in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (
 
 `tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
 all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
-phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you. Each suite starts its own static server.
+phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, and the 3D picking up again after the phone drops the WebGL context. Each suite starts its own static server.
 
 ```
 PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tests/e2e/run.mjs          # everything
