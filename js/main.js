@@ -152,6 +152,8 @@ const game = new Game({
     pause: () => pause(),
     magnet: (n, gained) => renderMagnet(n, gained),
     express: (n, gained) => renderTool('btn-express', 'express-n', n, gained),
+    waystones: level => waystonesFor(level),
+    waystone: d => openWaystone(d),
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); },
     tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
@@ -309,6 +311,8 @@ function tickHud(g) {
   const inDistrict = flag && Math.hypot(g.player.pos.x - flag.pos.x, g.player.pos.z - flag.pos.z) < 9;
   placeEdge($('edge-district'), flag?.pos ?? homePos, !!flag && !inDistrict && !g.hasFitInPack?.() && !fx.beamTarget);
   if (flag) $('edge-district').style.background = flag.color;
+  const way = g.roaming ? g.wayTarget?.() : null;
+  placeEdge($('edge-next'), way ?? homePos, !!way && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 3);
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
 }
@@ -330,6 +334,8 @@ function showcase(idx) {
 function enterTitle() {
   audio.suspend(false);
   app = 'title';
+  briefFromIsland = false;
+  document.body.classList.remove('roaming');
   input.enabled = false;
   input.exitLock();
   document.body.classList.remove('playing');
@@ -400,6 +406,8 @@ function startLevel(index, resume = false) {
   audio.unlock();
   audio.suspend(false);
   const lvl = levelOf(index);
+  briefFromIsland = false;
+  document.body.classList.remove('roaming');
   const session = resume === true ? (save.session?.id === lvl.id ? save.session : null) : resume || null;
   if (!session && !lvl.kind) { delete save.session; persist(); }
   // the title showcase and the prologue already have this figure's island loaded and its blocks scattered
@@ -479,7 +487,9 @@ function onComplete(stats) {
   if (isBest) { save.best[lvl.id] = stats.time; save.splits[lvl.id] = stats.splits; }
   const oldUnlocked = save.unlocked;
   save.unlocked = Math.max(save.unlocked, Math.min(LEVELS.length, idx + 2));
-  pendingUnlock = save.unlocked > oldUnlocked ? { from: idx, to: save.unlocked - 1 } : null;
+  // the map animates Kubo to a newly opened world
+  const newCh = LEVELS[save.unlocked - 1].chapter;
+  pendingUnlock = save.unlocked > oldUnlocked && newCh !== lvl.chapter ? { from: lvl.chapter, to: newCh } : null;
   delete save.session;
   persist();
   const finale = idx === LEVELS.length - 1 && firstClear;
@@ -487,7 +497,7 @@ function onComplete(stats) {
     name: lvl.name, img: thumbs[idx], reveal: firstClear, time: stats.time, par, hints: stats.hints,
     stars: [run.done, run.fast, run.clean], best: isBest && !firstClear ? t('complete.newBest') : '', say: lvl.outro,
     splits: stats.splits, prevSplits,
-    nextLabel: t(finale ? 'complete.epilogue' : 'complete.continue'), onNext: finale ? showEnding : openMap, onMap: openMap,
+    nextLabel: t(finale ? 'complete.epilogue' : 'complete.walkOn'), onNext: finale ? showEnding : walkOn, onMap: openMap,
     onRetry: () => { pendingUnlock = null; startLevel(lvl); },
   }), 2600);
 }
@@ -528,72 +538,63 @@ function showComplete(o) {
 }
 
 // ---------- world map ----------
+// A world select: one island per world, showing the figure you're on there. Inside a world you walk between
+// its figures on the islands themselves (waystones).
 let thumbs = [];
-const NODE_GAP = 152, TOP_PAD = 86, BOT_PAD = 70;
-// each chapter is a band of the map: room for its heading, then its islands snaking upwards
-const sectionH = ch => 212 + ch.levels.length * NODE_GAP;
-const mapPos = [];
+const BAND_H = 360, TOP_PAD = 86, BOT_PAD = 70;
+const mapPos = []; // per chapter
+const chapterUnlocked = c => CHAPTERS[c].levels[0].index < save.unlocked;
 function buildMap() {
   const inner = $('map-inner');
   const W = inner.clientWidth || innerWidth;
   const colW = Math.min(500, W - 190);
   const cx = W / 2;
-  const H = TOP_PAD + CHAPTERS.reduce((n, ch) => n + sectionH(ch), 0) + BOT_PAD;
+  const H = TOP_PAD + CHAPTERS.length * BAND_H + BOT_PAD;
   inner.style.height = `${H}px`;
   let html = '';
-  const xs = [0, 0.42, 0.05, -0.4];
+  const xs = [0, 0.38, -0.05, -0.36];
+  const cur = LEVELS[nextLevelIndex()].chapter;
   CHAPTERS.forEach((ch, c) => {
-    const SECTION_H = sectionH(ch);
-    const top = TOP_PAD + CHAPTERS.slice(c + 1).reduce((n, h) => n + sectionH(h), 0);
+    const top = TOP_PAD + (CHAPTERS.length - 1 - c) * BAND_H;
     const T = THEMES[ch.theme];
-    const first = LEVELS.find(l => l.chapter === c);
-    const locked = first.index >= save.unlocked;
+    const locked = !chapterUnlocked(c);
     const st = ch.levels.reduce((n, l) => n + starsOf(l.id), 0);
-    html += `<div class="map-chapter" style="position:absolute;left:0;right:0;top:${top - (c === CHAPTERS.length - 1 ? TOP_PAD : 0)}px;height:${SECTION_H + (c === CHAPTERS.length - 1 ? TOP_PAD : 0) + (c === 0 ? BOT_PAD : 0)}px;
+    const done = ch.levels.filter(l => isDone(l.id)).length;
+    html += `<div class="map-chapter" style="position:absolute;left:0;right:0;top:${top - (c === CHAPTERS.length - 1 ? TOP_PAD : 0)}px;height:${BAND_H + (c === CHAPTERS.length - 1 ? TOP_PAD : 0) + (c === 0 ? BOT_PAD : 0)}px;
       background:linear-gradient(to top, ${hex(T.water)}, ${hex(T.skyHorizon)} 55%, ${hex(T.skyTop)});${locked ? 'filter:saturate(.35) brightness(.85);' : ''}">
       <div class="waves"></div></div>`;
     html += `<div class="chapter-head ${locked ? 'locked' : ''}" style="top:${top + 22}px"><small>${t('map.chapter', { n: c + 1 })}</small><b>${ch.name}</b>
       <span>${locked ? `<svg><use href="#i-lock"/></svg> ${t('map.locked')}` : `<svg><use href="#i-star"/></svg> ${st} / ${ch.levels.length * 3} · ${ch.blurb}`}</span></div>`;
-    ch.levels.forEach((l, k) => {
-      const x = cx + xs[k % xs.length] * colW * (c % 2 ? -1 : 1);
-      const y = top + SECTION_H - 110 - k * NODE_GAP;
-      mapPos[l.index] = { x, y };
-    });
+    const x = cx + xs[c % xs.length] * colW, y = top + BAND_H - 120;
+    mapPos[c] = { x, y };
+    const fig = LEVELS[firstOpenIn(c)], solved = isDone(fig.id);
+    const unlocking = pendingUnlock && c === pendingUnlock.to;
+    const pips = ch.levels.map(l => `<i class="${isDone(l.id) ? 'on' : ''}"></i>`).join('');
+    html += `<button class="node world ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${c === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" data-c="${c}" style="left:${x}px;top:${y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
+      <div class="island">${locked ? '<svg><use href="#i-lock"/></svg>' : `<img src="${thumbs[fig.index] || ''}" alt="">${solved ? '' : '<span class="q">?</span>'}`}<span class="num">${c + 1}</span></div>
+      ${locked ? '' : `<div class="pips">${pips}</div>`}
+      <div class="name">${locked ? '???' : `${done} / ${ch.levels.length}`}</div></button>`;
   });
-  // path
-  let bed = '', done = '', open = '';
-  for (let i = 0; i < LEVELS.length - 1; i++) {
-    const a = mapPos[i], b = mapPos[i + 1];
+  // path from world to world
+  let bed = '', doneP = '', open = '';
+  for (let c = 0; c < CHAPTERS.length - 1; c++) {
+    const a = mapPos[c], b = mapPos[c + 1];
     const dy = b.y - a.y;
     const d = `M${a.x},${a.y} C${a.x},${a.y + dy * 0.55} ${b.x},${b.y - dy * 0.55} ${b.x},${b.y}`;
     bed += d;
-    const anim = pendingUnlock && i + 1 === pendingUnlock.to;
-    if (i + 1 < save.unlocked) done += `<path class="done ${anim ? 'draw' : ''}" d="${d}"/>`;
+    const anim = pendingUnlock && c + 1 === pendingUnlock.to;
+    if (chapterUnlocked(c + 1)) doneP += `<path class="done ${anim ? 'draw' : ''}" d="${d}"/>`;
     else open += `<path class="open" d="${d}"/>`;
   }
-  html += `<svg class="map-path" style="width:${W}px;height:${H}px" viewBox="0 0 ${W} ${H}"><path class="bed" d="${bed}"/>${open}${done}</svg>`;
-  const cur = nextLevelIndex();
-  LEVELS.forEach((l, i) => {
-    const p = mapPos[i];
-    const locked = i >= save.unlocked;
-    const solved = isDone(l.id);
-    const s = save.stars[l.id] || {};
-    const stars = [s.done, s.fast, s.clean].map(on => `<svg class="${on ? 'on' : ''}"><use href="#i-star"/></svg>`).join('');
-    const unlocking = pendingUnlock && i === pendingUnlock.to;
-    const T = THEMES[CHAPTERS[l.chapter].theme];
-    html += `<button class="node ${l.boss ? 'boss' : ''} ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${i === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" data-i="${i}" style="left:${p.x}px;top:${p.y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
-      <div class="island">${locked ? '<svg><use href="#i-lock"/></svg>' : `<img src="${thumbs[i] || ''}" alt="">${solved ? '' : '<span class="q">?</span>'}`}<span class="num">${i + 1}</span></div>
-      ${locked ? '' : `<div class="stars">${stars}</div>`}
-      <div class="name">${solved ? l.name : locked ? '???' : l.tag}</div></button>`;
-  });
+  html += `<svg class="map-path" style="width:${W}px;height:${H}px" viewBox="0 0 ${W} ${H}"><path class="bed" d="${bed}"/>${open}${doneP}</svg>`;
   const kp = pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[cur];
   html += `<div class="map-kubo" id="map-kubo" style="left:${kp.x}px;top:${kp.y}px"><div class="kubo"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div></div>`;
   inner.innerHTML = html;
   inner.querySelectorAll('.map-path .draw').forEach(p => p.style.setProperty('--len', p.getTotalLength()));
   inner.querySelectorAll('.node').forEach(b => b.addEventListener('click', () => {
-    const i = +b.dataset.i;
-    if (i >= save.unlocked) { audio.wrong(); b.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 250 }); return; }
-    selectLevel(i);
+    const c = +b.dataset.c;
+    if (!chapterUnlocked(c)) { audio.wrong(); b.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 250 }); return; }
+    selectLevel(firstOpenIn(c));
   }));
   $('map-stars').textContent = `${totalStars()} / ${LEVELS.length * 3}`;
 }
@@ -601,6 +602,8 @@ function buildMap() {
 function openMap() {
   audio.suspend(false);
   app = 'menu';
+  briefFromIsland = false;
+  document.body.classList.remove('roaming');
   input.enabled = false;
   input.exitLock();
   document.body.classList.remove('playing');
@@ -608,7 +611,7 @@ function openMap() {
   setBase('screen-map');
   buildMap();
   const scroll = $('map-scroll');
-  const focus = pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[nextLevelIndex()];
+  const focus = pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[LEVELS[nextLevelIndex()].chapter];
   scroll.scrollTop = focus.y - scroll.clientHeight * 0.55;
   if (pendingUnlock) {
     const { to } = pendingUnlock;
@@ -622,7 +625,7 @@ function openMap() {
       audio.tone({ f: 600, f2: 900, type: 'triangle', dur: 0.25, vol: 0.12 });
     }, 500);
     setTimeout(() => { audio.star(1); }, 1250);
-    setTimeout(() => { if (base === 'screen-map' && !overlays.length) selectLevel(to); }, 2300);
+    setTimeout(() => { if (base === 'screen-map' && !overlays.length) selectLevel(firstOpenIn(to)); }, 2300);
   }
 }
 
@@ -658,13 +661,71 @@ function openBrief(i) {
     <div class="goal ${s.fast ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.fast', { t: fmt(parTime(l)) })}<em>${best ? t('brief.best', { t: fmt(best) }) : ''}</em></div>
     <div class="goal ${s.clean ? 'on' : ''}"><svg><use href="#i-star"/></svg>${t('brief.goal.clean')}</div>
     ${partsFor(n) > 1 ? `<div class="goal info"><svg><use href="#i-map"/></svg>${t('brief.parts', { n: partsFor(n) })}</div>` : ''}`;
-  $('brief-say').innerHTML = l.intro;
+  // leaving a figure half built (from a waystone) loses its progress
+  const leaving = briefFromIsland && !game.roaming && game.level && game.level !== l && game.linkOrder?.length > 0;
+  $('brief-say').innerHTML = leaving ? `${l.intro}<br><em class="brief-leave">${t('brief.leave')}</em>` : l.intro;
   const ses = save.session?.id === l.id ? save.session : null;
   $('btn-brief-go').innerHTML = ses
     ? `<svg><use href="#i-play"/></svg>${t('brief.resume', { k: ses.done, n: ses.n })}`
     : `<svg><use href="#i-play"/></svg>${t('brief.start')}`;
   $('btn-brief-fresh').classList.toggle('hidden', !ses);
   pushOverlay('screen-brief');
+}
+
+// ---------- walking between figures ----------
+// Each island shows the world's other figures on waystones (and a gate to the next world): walk up to one to open it.
+const firstOpenIn = c => {
+  const ls = CHAPTERS[c].levels.filter(l => l.index < save.unlocked);
+  return (ls.find(l => !isDone(l.id)) || ls[0] || CHAPTERS[c].levels[0]).index;
+};
+function waystonesFor(level) {
+  if (level.kind || level.chapter === undefined) return [];
+  const ch = CHAPTERS[level.chapter];
+  const list = ch.levels.filter(l => l !== level).map(l => ({
+    kind: 'figure', id: l.id, index: l.index, num: l.index + 1, slot: l.indexInChapter - level.indexInChapter,
+    cells: expandLevel(l).cells, state: isDone(l.id) ? 'done' : l.index < save.unlocked ? 'open' : 'locked',
+  }));
+  const next = CHAPTERS[level.chapter + 1];
+  if (next) list.push({ kind: 'gate', id: `gate-${next.id}`, chapter: level.chapter + 1, label: next.name, state: next.levels[0].index < save.unlocked ? 'open' : 'locked' });
+  return list;
+}
+let briefFromIsland = false;
+function openWaystone(d) {
+  if (app !== 'playing' || overlays.length) return;
+  if (d.state === 'locked') { audio.wrong(); toast(t(d.kind === 'gate' ? 'way.gateLocked' : 'way.locked')); return; }
+  audio.click();
+  briefFromIsland = true;
+  app = 'menu';
+  input.enabled = false;
+  input.reset();
+  input.exitLock();
+  selectLevel(d.kind === 'gate' ? firstOpenIn(d.chapter) : d.index);
+}
+// the brief (or a chapter talk) opened from the island was closed without starting: walk on
+// (lock: re-capture the mouse; not after Esc, which browsers refuse right after leaving pointer lock)
+function backToIsland(lock = true) {
+  if (!briefFromIsland || overlays.length) return;
+  briefFromIsland = false;
+  app = 'playing';
+  input.enabled = true;
+  document.body.classList.add('playing');
+  if (lock && !mobile) input.requestLock();
+}
+// after the results panel: back onto the island, the next waystone lit
+function walkOn() {
+  setBase(null);
+  document.body.classList.remove('celebrating');
+  document.body.classList.add('roaming');
+  $('hud').classList.remove('off');
+  app = 'intro';
+  game.walkOn(waystonesFor(game.level));
+  if (!mobile) input.requestLock();
+  const lvl = game.level, nextCh = CHAPTERS[lvl.chapter + 1];
+  const openFig = CHAPTERS[lvl.chapter].levels.some(l => l !== lvl && !isDone(l.id) && l.index < save.unlocked);
+  setTimeout(() => {
+    if (openFig) kuboSays(t('way.next'));
+    else if (nextCh && nextCh.levels[0].index < save.unlocked) kuboSays(t('way.nextWorld', { world: `<b>${nextCh.name}</b>` }));
+  }, 1700);
 }
 
 // ---------- prologue / ending ----------
@@ -791,7 +852,7 @@ document.addEventListener('pointerdown', e => {
 $('btn-play').onclick = () => {
   audio.unlock();
   if (!save.seen.prologue) { playPrologue(); return; }
-  openMap();
+  selectLevel(nextLevelIndex());
 };
 $('btn-map').onclick = () => openMap();
 $('btn-map-back').onclick = () => enterTitle();
@@ -812,7 +873,7 @@ function renderTool(btn, count, n, gained) {
   if (gained) b.animate([{ transform: 'scale(1.4) rotate(-10deg)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' });
 }
 const renderMagnet = (n, gained) => renderTool('btn-magnet', 'magnet-n', n, gained);
-$('btn-brief-back').onclick = () => popOverlay('screen-brief');
+$('btn-brief-back').onclick = () => { popOverlay('screen-brief'); backToIsland(); };
 $('btn-brief-go').onclick = () => startLevel(briefIdx, true);
 $('btn-brief-fresh').onclick = () => startLevel(briefIdx, false);
 $('btn-c-map').onclick = () => (completeActions.onMap || openMap)();
@@ -831,7 +892,7 @@ document.addEventListener('dblclick', e => e.preventDefault());
 addEventListener('keydown', e => {
   if (overlays.includes('screen-talk')) return;
   if (e.code === 'Escape') {
-    if (overlays.length) { popOverlay(); return; }
+    if (overlays.length) { popOverlay(); backToIsland(false); return; }
     if (base === 'screen-map') { enterTitle(); return; }
     if (app === 'paused' && !mobile) return; // browsers swallow this Esc for pointer lock anyway
   }

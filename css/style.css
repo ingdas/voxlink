@@ -529,6 +529,14 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 #btn-magnet .charges, #btn-express .charges { position: absolute; bottom: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--ink); color: var(--paper); font-style: normal; font-weight: 700; font-size: 13px; display: grid; place-items: center; border: 2.5px solid var(--paper); }
 #btn-magnet.empty, #btn-express.empty { filter: saturate(.2); opacity: .7; }
 .edge.district { border-width: 3px; }
+.edge.next { background: var(--mint); animation: radar-pulse 1.4s ease-in-out infinite; }
+/* walking on after a figure: the puzzle tools step aside */
+body.roaming :is(#needs, .pack-wrap, #btn-hint, #btn-magnet, #btn-express, #tooltip, .touch-btns #btn-drop) { display: none !important; }
+.brief-leave { display: inline-block; margin-top: 6px; font-style: normal; font-size: .9em; color: #b8433d; font-weight: 700; }
+/* world select: five pips per world */
+.node .pips { display: flex; gap: 4px; margin-top: 6px; }
+.node .pips i { width: 12px; height: 12px; border-radius: 50%; background: rgba(42, 31, 61, .25); border: 2px solid var(--ink); }
+.node .pips i.on { background: var(--sun); }
 
 /* ---------- Small screens: keep Kubo's tips clear of the bubble list ---------- */
 @media (max-height: 500px) {

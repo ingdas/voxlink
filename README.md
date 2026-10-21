@@ -49,6 +49,9 @@ Workshop editor:
 
 ## How it plays
 
+- You walk between figures: every island shows its world's other figures on little pedestals (waystones)
+  and a gate to the next world. Walk up to one to open its briefing; after finishing a figure you stay on
+  the island and an arrow points to the next one. The map is a world select.
 - Floating **bubbles** on the figure show which numbers are open right now.
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.

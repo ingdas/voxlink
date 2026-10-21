@@ -127,3 +127,19 @@ twice as many chapters (`chapter * 0.04` and `chapter * 0.16`), so each figure k
 - **Workshop worlds.** Custom figures can stand on any of the ten worlds. Share codes stay readable: codes
   for the first four worlds are still version 1 (2-bit theme); the others are version 2 (4-bit theme).
 - **Daily figure removed** (code, styles and its 17 strings per locale). Old saves lose their daily stats.
+
+## 2026-10-21 · Walking between figures
+
+A generic level select broke the feeling of being on the islands, so you now walk from figure to figure.
+
+- **Waystones.** Every island shows its world's other four figures on pedestals around the rim, ordered from
+  the spawn: later figures clockwise, earlier ones counter-clockwise. Finished figures stand in miniature,
+  the next one to play is a glowing silhouette with a "?", later ones are locked. A gate on the far side
+  leads to the next world. Walking into a pedestal (or through the gate) opens the figure's briefing;
+  Back returns you to the island. Starting another figure while one is half built warns that its progress
+  is lost.
+- **After a figure** the results panel's main button is "Walk on": you're back on the island with the
+  finished figure, the puzzle HUD steps aside, the next waystone lights up and an edge arrow points to it.
+- **Map → world select.** One island per world (the figure you're on there, five progress pips); the
+  title's Play goes straight to your next figure's briefing.
+- Waystones are placed with the same free-ground test as loose blocks, which then keep clear of them.
