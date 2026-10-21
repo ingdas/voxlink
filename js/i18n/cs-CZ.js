@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · kostky: {n}",
   "aria.magnet": "Magnet",
   "magnet.none": "Nic, co pasuje, není dost blízko",
+  "magnet.full": "Batoh je plný: nejdřív kostku připoj nebo polož",
   "magnet.got.one": "Magnet! Přitáhl 1 kostku",
   "magnet.got.other": "Magnet! Přitažené kostky: {n}",
   "kubo.magnet.desk": "Získal jsi <b>magnet</b>! Zmáčkni <b>R</b> a přitáhneš všechny pasující kostky poblíž.",

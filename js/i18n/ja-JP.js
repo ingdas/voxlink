@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · ブロック{n}こ",
   "aria.magnet": "マグネット",
   "magnet.none": "ちかくに ぴったりのブロックがないよ",
+  "magnet.full": "バッグがいっぱい — さきに ブロックを つなぐか おいてね",
   "magnet.got.one": "マグネット！ ブロックを1こ ひきよせた",
   "magnet.got.other": "マグネット！ ブロックを{n}こ ひきよせた",
   "kubo.magnet.desk": "<b>マグネット</b>をゲット！ <b>R</b>をおすと、ちかくのぴったりブロックをぜんぶ ひきよせるよ。",

@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} blokken",
   "aria.magnet": "Magneet",
   "magnet.none": "Niets wat past is dichtbij genoeg",
+  "magnet.full": "Rugzak vol: koppel of laat eerst een blok vallen",
   "magnet.got.one": "Magneet! 1 blok aangetrokken",
   "magnet.got.other": "Magneet! {n} blokken aangetrokken",
   "kubo.magnet.desk": "Je hebt een <b>magneet</b>! Druk op <b>R</b> om alle passende blokken in de buurt aan te trekken.",

@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} bloques",
   "aria.magnet": "Imán",
   "magnet.none": "No hay nada que encaje lo bastante cerca",
+  "magnet.full": "Mochila llena: primero encaja o suelta un bloque",
   "magnet.got.one": "¡Imán! 1 bloque atraído",
   "magnet.got.other": "¡Imán! {n} bloques atraídos",
   "kubo.magnet.desk": "¡Has ganado un <b>imán</b>! Pulsa <b>R</b> para atraer todos los bloques cercanos que encajan.",

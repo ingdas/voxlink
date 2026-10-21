@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · blok: {n}",
   "aria.magnet": "Mıknatıs",
   "magnet.none": "Yakında uyan bir şey yok",
+  "magnet.full": "Sırt çantası dolu: önce bir blok bağla ya da bırak",
   "magnet.got.one": "Mıknatıs! 1 blok çekildi",
   "magnet.got.other": "Mıknatıs! Çekilen blok: {n}",
   "kubo.magnet.desk": "Bir <b>mıknatıs</b> kazandın! Yakındaki uyan tüm blokları çekmek için <b>R</b>’ye bas.",

@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · kockák: {n}",
   "aria.magnet": "Mágnes",
   "magnet.none": "Nincs elég közel illő kocka",
+  "magnet.full": "Tele a hátizsák: előbb illessz be vagy tegyél le egy kockát",
   "magnet.got.one": "Mágnes! 1 kocka behúzva",
   "magnet.got.other": "Mágnes! Behúzott kockák: {n}",
   "kubo.magnet.desk": "Kaptál egy <b>mágnest</b>! Nyomd meg az <b>R</b> gombot, és magadhoz húzza a közeli illő kockákat.",

@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} blocchi",
   "aria.magnet": "Calamita",
   "magnet.none": "Niente di adatto è abbastanza vicino",
+  "magnet.full": "Zaino pieno: prima collega o posa un blocco",
   "magnet.got.one": "Calamita! 1 blocco attirato",
   "magnet.got.other": "Calamita! {n} blocchi attirati",
   "kubo.magnet.desk": "Hai guadagnato una <b>calamita</b>! Premi <b>R</b> per attirare tutti i blocchi vicini che si incastrano.",

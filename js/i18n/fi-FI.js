@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · palikoita {n}",
   "aria.magnet": "Magneetti",
   "magnet.none": "Mikään sopiva palikka ei ole tarpeeksi lähellä",
+  "magnet.full": "Reppu täynnä: liitä tai pudota ensin palikka",
   "magnet.got.one": "Magneetti! 1 palikka vedettiin",
   "magnet.got.other": "Magneetti! Palikoita vedettiin: {n}",
   "kubo.magnet.desk": "Sait <b>magneetin</b>! Paina <b>R</b>, niin se vetää luoksesi kaikki lähellä olevat sopivat palikat.",

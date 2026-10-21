@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} klossar",
   "aria.magnet": "Magnet",
   "magnet.none": "Inget som passar är tillräckligt nära",
+  "magnet.full": "Ryggsäcken är full: fäst eller släpp en kloss först",
   "magnet.got.one": "Magnet! 1 kloss indragen",
   "magnet.got.other": "Magnet! {n} klossar indragna",
   "kubo.magnet.desk": "Du har fått en <b>magnet</b>! Tryck på <b>R</b> för att dra till dig alla klossar i närheten som passar.",

@@ -47,6 +47,7 @@ export default {
   "kubo.express.touch": "<b>Kubo Express</b> unlocked! Tap the <b>paper plane</b> to send every carried block that fits straight to the figure — from anywhere.",
   "kubo.districts": "A big one! Its blocks are sorted into <b>districts</b> with numbered flags. The <b>compass</b> points to where blocks fit right now.",
   "magnet.none": "Nothing that fits is close enough",
+  "magnet.full": "Backpack full: link or drop a block first",
   "magnet.got.one": "Magnet! 1 block pulled in",
   "magnet.got.other": "Magnet! {n} blocks pulled in",
   "kubo.magnet.desk": "You earned a <b>magnet</b>! Press <b>R</b> to pull in every nearby block that fits.",

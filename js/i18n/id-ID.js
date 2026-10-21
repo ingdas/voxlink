@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} balok",
   "aria.magnet": "Magnet",
   "magnet.none": "Tidak ada yang cocok di dekat sini",
+  "magnet.full": "Tas penuh: pasang atau jatuhkan balok dulu",
   "magnet.got.one": "Magnet! 1 balok tertarik",
   "magnet.got.other": "Magnet! {n} balok tertarik",
   "kubo.magnet.desk": "Kamu dapat <b>magnet</b>! Tekan <b>R</b> untuk menarik semua balok cocok di dekatmu.",

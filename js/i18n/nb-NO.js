@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} klosser",
   "aria.magnet": "Magnet",
   "magnet.none": "Ingenting som passer er nær nok",
+  "magnet.full": "Ryggsekken er full: fest eller slipp en kloss først",
   "magnet.got.one": "Magnet! 1 kloss trukket inn",
   "magnet.got.other": "Magnet! {n} klosser trukket inn",
   "kubo.magnet.desk": "Du har fått en <b>magnet</b>! Trykk <b>R</b> for å trekke til deg alle klosser i nærheten som passer.",

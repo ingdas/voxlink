@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · klocki: {n}",
   "aria.magnet": "Magnes",
   "magnet.none": "Nic pasującego nie jest dość blisko",
+  "magnet.full": "Plecak pełny: najpierw dołącz lub odłóż klocek",
   "magnet.got.one": "Magnes! Przyciągnięto 1 klocek",
   "magnet.got.other": "Magnes! Przyciągnięte klocki: {n}",
   "kubo.magnet.desk": "Masz <b>magnes</b>! Naciśnij <b>R</b>, by przyciągnąć wszystkie pasujące klocki w pobliżu.",

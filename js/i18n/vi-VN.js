@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} khối",
   "aria.magnet": "Nam châm",
   "magnet.none": "Không có khối nào vừa ở gần đủ",
+  "magnet.full": "Ba lô đầy: hãy gắn hoặc thả một khối trước",
   "magnet.got.one": "Nam châm! Hút được 1 khối",
   "magnet.got.other": "Nam châm! Hút được {n} khối",
   "kubo.magnet.desk": "Bạn nhận được <b>nam châm</b>! Nhấn <b>R</b> để hút mọi khối vừa ở gần.",

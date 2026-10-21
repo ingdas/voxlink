@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} blocos",
   "aria.magnet": "Ímã",
   "magnet.none": "Nada que encaixa está perto o bastante",
+  "magnet.full": "Mochila cheia: encaixe ou solte um bloco primeiro",
   "magnet.got.one": "Ímã! 1 bloco puxado",
   "magnet.got.other": "Ímã! {n} blocos puxados",
   "kubo.magnet.desk": "Você ganhou um <b>ímã</b>! Aperte <b>R</b> para puxar todos os blocos por perto que encaixam.",

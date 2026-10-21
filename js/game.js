@@ -559,6 +559,7 @@ export class Game {
   // Magnet tool: pull every block that fits right now within 10 m into the backpack.
   useMagnet() {
     if (this.mode !== 'play' || this.magnetCharges <= 0) { this.audio.wrong(); return; }
+    if (this.pack.length >= PACK_SIZE) { this.audio.wrong(); this.events.toast?.(t('magnet.full')); return; }
     const p = this.player.pos;
     const near = this.voxels
       .filter(v => v.state === 'loose' && this.sockets.has(v.i) && v.mesh.position.distanceTo(p) < 10)

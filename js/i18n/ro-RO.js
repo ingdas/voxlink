@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} blocuri",
   "aria.magnet": "Magnet",
   "magnet.none": "Nimic potrivit nu e destul de aproape",
+  "magnet.full": "Rucsac plin: mai întâi leagă sau lasă jos un bloc",
   "magnet.got.one": "Magnet! 1 bloc atras",
   "magnet.got.other": "Magnet! {n} blocuri atrase",
   "kubo.magnet.desk": "Ai câștigat un <b>magnet</b>! Apasă <b>R</b> ca să atragi toate blocurile potrivite din apropiere.",

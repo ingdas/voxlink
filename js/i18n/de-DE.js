@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} Blöcke",
   "aria.magnet": "Magnet",
   "magnet.none": "Nichts Passendes ist nah genug",
+  "magnet.full": "Rucksack voll: erst einen Block anbauen oder ablegen",
   "magnet.got.one": "Magnet! 1 Block angezogen",
   "magnet.got.other": "Magnet! {n} Blöcke angezogen",
   "kubo.magnet.desk": "Du hast einen <b>Magneten</b>! Drück <b>R</b>, um alle passenden Blöcke in der Nähe anzuziehen.",

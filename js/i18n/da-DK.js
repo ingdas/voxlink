@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} klodser",
   "aria.magnet": "Magnet",
   "magnet.none": "Intet, der passer, er tæt nok på",
+  "magnet.full": "Rygsækken er fuld: sæt en klods på eller læg den først",
   "magnet.got.one": "Magnet! 1 klods trukket ind",
   "magnet.got.other": "Magnet! {n} klodser trukket ind",
   "kubo.magnet.desk": "Du har fået en <b>magnet</b>! Tryk på <b>R</b> for at trække alle klodser i nærheden, der passer, til dig.",

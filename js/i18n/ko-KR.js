@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · 블록 {n}개",
   "aria.magnet": "자석",
   "magnet.none": "맞는 블록이 가까이에 없어요",
+  "magnet.full": "배낭이 꽉 찼어요 — 먼저 블록을 연결하거나 내려놓으세요",
   "magnet.got.one": "자석! 블록 1개를 끌어왔어요",
   "magnet.got.other": "자석! 블록 {n}개를 끌어왔어요",
   "kubo.magnet.desk": "<b>자석</b>을 얻었어요! <b>R</b>을 누르면 근처의 맞는 블록을 모두 끌어와요.",

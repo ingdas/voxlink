@@ -451,6 +451,7 @@ export default {
   "puzzler.tip.withCount": "{label} · {n} blocs",
   "aria.magnet": "Aimant",
   "magnet.none": "Rien qui s’emboîte n’est assez près",
+  "magnet.full": "Sac à dos plein : emboîte ou pose d’abord un bloc",
   "magnet.got.one": "Aimant ! 1 bloc attiré",
   "magnet.got.other": "Aimant ! {n} blocs attirés",
   "kubo.magnet.desk": "Tu as gagné un <b>aimant</b> ! Appuie sur <b>R</b> pour attirer tous les blocs proches qui s’emboîtent.",
