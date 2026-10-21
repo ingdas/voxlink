@@ -114,4 +114,5 @@ export default {
   "cine.end.1": "…and gathered the storm back into its hands.",
   "cine.end.2": "The storm melted into a brand new morning.",
   "cine.end.3": "One by one, the <b>Great Figures</b> came home.",
+  "cine.skip": "Skip cutscene",
 };

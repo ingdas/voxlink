@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…y recogió de nuevo la tormenta entre sus manos.",
   "cine.end.2": "La tormenta se fundió en una mañana completamente nueva.",
   "cine.end.3": "Una a una, las <b>Grandes Figuras</b> volvieron a casa.",
+  "cine.skip": "Saltar escena",
 };

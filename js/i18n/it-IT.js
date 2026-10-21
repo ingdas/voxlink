@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…e raccolse di nuovo la tempesta tra le mani.",
   "cine.end.2": "La tempesta si sciolse in un mattino tutto nuovo.",
   "cine.end.3": "Una dopo l'altra, le <b>Grandi Figure</b> tornarono a casa.",
+  "cine.skip": "Salta filmato",
 };

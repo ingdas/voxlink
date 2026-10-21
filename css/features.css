@@ -487,7 +487,14 @@ body.museum #btn-magnet { display: none !important; }
 
 /* ---------- cutscenes: letterbox bars (they also close like eyelids), captions, fades ---------- */
 .screen.cinema, .screen.cinema.show { padding: 0; pointer-events: none; }
-.screen.cinema .talk-skip { pointer-events: auto; z-index: 4; }
+.cine-skip {
+  position: absolute; top: calc(max(10px, 5.5vh - 26px) + var(--sat)); right: calc(14px + var(--sar)); z-index: 4;
+  pointer-events: auto; font-size: 16px; min-height: 46px; padding: 8px 14px 8px 18px; --lift: 5px; transition: opacity .3s;
+}
+.cine-skip svg { width: 20px; height: 20px; }
+.cine-skip kbd { margin: 0; font-size: 11px; opacity: .75; }
+body.mobile .cine-skip kbd { display: none; }
+.cinema.over .cine-skip { opacity: 0; pointer-events: none; }
 .cine-bar { position: absolute; left: 0; right: 0; height: 0; background: #0b0814; z-index: 1; transition: height .9s cubic-bezier(.6, 0, .3, 1); }
 .cine-bar.top { top: 0; }
 .cine-bar.bottom { bottom: 0; }

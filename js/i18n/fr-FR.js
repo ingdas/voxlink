@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…et a rassemblé la tempête entre ses mains.",
   "cine.end.2": "La tempête s'est fondue en un tout nouveau matin.",
   "cine.end.3": "Une à une, les <b>Grandes Figurines</b> sont rentrées à la maison.",
+  "cine.skip": "Passer la cinématique",
 };

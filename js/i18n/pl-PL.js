@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…i zebrał burzę z powrotem w dłonie.",
   "cine.end.2": "Burza rozpłynęła się w zupełnie nowy poranek.",
   "cine.end.3": "Jedna po drugiej <b>Wielkie Figury</b> wróciły do domu.",
+  "cine.skip": "Pomiń przerywnik",
 };

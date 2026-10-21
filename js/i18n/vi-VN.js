@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…và gom cơn bão trở lại vào đôi tay mình.",
   "cine.end.2": "Cơn bão tan dần thành một buổi sáng hoàn toàn mới.",
   "cine.end.3": "Lần lượt từng bức, các <b>Bức Tượng Lớn</b> đã trở về nhà.",
+  "cine.skip": "Bỏ qua đoạn phim",
 };

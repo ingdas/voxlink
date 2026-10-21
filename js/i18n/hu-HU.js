@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…és visszagyűjtötte a vihart a kezébe.",
   "cine.end.2": "A vihar egy vadonatúj reggellé olvadt.",
   "cine.end.3": "Egyenként hazatértek a <b>Nagy Figurák</b>.",
+  "cine.skip": "Átvezető kihagyása",
 };

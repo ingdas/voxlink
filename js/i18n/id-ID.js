@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…dan mengumpulkan badai kembali ke tangannya.",
   "cine.end.2": "Badai itu mencair menjadi pagi yang baru.",
   "cine.end.3": "Satu per satu, para <b>Figur Agung</b> pulang ke rumah.",
+  "cine.skip": "Lewati adegan",
 };

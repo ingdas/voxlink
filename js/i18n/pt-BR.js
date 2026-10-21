@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…e recolheu a tempestade de volta nas mãos.",
   "cine.end.2": "A tempestade se desfez numa manhã novinha em folha.",
   "cine.end.3": "Uma a uma, as <b>Grandes Figuras</b> voltaram para casa.",
+  "cine.skip": "Pular cena",
 };

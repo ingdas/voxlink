@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…ja kokosi myrskyn takaisin käsiinsä.",
   "cine.end.2": "Myrsky suli upouudeksi aamuksi.",
   "cine.end.3": "Yksi kerrallaan <b>Suuret Hahmot</b> palasivat kotiin.",
+  "cine.skip": "Ohita välianimaatio",
 };

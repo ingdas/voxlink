@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…en verzamelde de storm weer in zijn handen.",
   "cine.end.2": "De storm smolt weg in een gloednieuwe ochtend.",
   "cine.end.3": "Eén voor één kwamen de <b>Grote Figuren</b> thuis.",
+  "cine.skip": "Tussenfilmpje overslaan",
 };

@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…a stáhl bouři zpátky do svých dlaní.",
   "cine.end.2": "Bouře se rozplynula v úplně nové ráno.",
   "cine.end.3": "Jedna po druhé se <b>Velké figurky</b> vrátily domů.",
+  "cine.skip": "Přeskočit scénu",
 };

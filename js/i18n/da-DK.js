@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…og samlede stormen tilbage i sine hænder.",
   "cine.end.2": "Stormen smeltede over i en helt ny morgen.",
   "cine.end.3": "Én efter én kom de <b>Store Figurer</b> hjem.",
+  "cine.skip": "Spring scenen over",
 };

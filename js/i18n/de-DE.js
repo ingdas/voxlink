@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…und holte den Sturm zurück in seine Hände.",
   "cine.end.2": "Der Sturm schmolz zu einem ganz neuen Morgen.",
   "cine.end.3": "Eine nach der anderen kehrten die <b>Großen Figuren</b> heim.",
+  "cine.skip": "Szene überspringen",
 };

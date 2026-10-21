@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…ve fırtınayı yeniden ellerine topladı.",
   "cine.end.2": "Fırtına eriyip yepyeni bir sabaha dönüştü.",
   "cine.end.3": "<b>Büyük Figürler</b> birer birer evlerine döndü.",
+  "cine.skip": "Sahneyi geç",
 };

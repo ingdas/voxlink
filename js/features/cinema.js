@@ -38,7 +38,7 @@ function buildDom() {
   el.innerHTML = `<div class="cine-bar top"></div><div class="cine-bar bottom"></div>
     <p class="cine-caption" id="cine-caption"></p>
     <div class="cine-fade" id="cine-fade"></div>
-    <button class="btn small talk-skip" id="cine-skip"><span data-i18n="talk.skip">${t('talk.skip')}</span><svg><use href="#i-next"/></svg></button>`;
+    <button class="btn cine-skip" id="cine-skip"><span data-i18n="cine.skip">${t('cine.skip')}</span><kbd>Esc</kbd><svg><use href="#i-next"/></svg></button>`;
   $('screen-talk').before(el);
   $('cine-skip').onclick = e => { e.stopPropagation(); skip(); };
 }
@@ -110,6 +110,7 @@ function play(script) {
   $('cine-caption').innerHTML = '';
   $('cine-caption').classList.remove('on');
   ctx.setBase('screen-cinema');
+  $('screen-cinema').classList.remove('over');
   bars('bars');
 }
 
@@ -143,6 +144,7 @@ function skip() {
 function end() {
   const c = C;
   c.over = true;
+  $('screen-cinema').classList.add('over'); // nothing left to skip
   say(null);
   fade('#000', 0, 0);
   bars('open');

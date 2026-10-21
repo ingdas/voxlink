@@ -483,4 +483,5 @@ export default {
   "cine.end.1": "…și a strâns furtuna înapoi în mâinile sale.",
   "cine.end.2": "Furtuna s-a topit într-o dimineață nou-nouță.",
   "cine.end.3": "Una câte una, <b>Marile Figurine</b> s-au întors acasă.",
+  "cine.skip": "Sari peste scenă",
 };
