@@ -62,6 +62,9 @@ Workshop editor:
 - Each world has its own twist: icy lakes (Frost), wading (Reef), low gravity and jump pads
   (Starfall), wind gusts (Storm). Dropped blocks stack instead of overlapping.
 - Design decisions and the simulator behind them: `docs/design-notes.md`, `tools/design-sim.mjs`.
+- The story opens with a cutscene (the Keeper Colossus loses the storm, the storm smashes the first
+  figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
+  (`js/features/cinema.js`; Skip or Esc fast-forwards).
 - Extras: a daily figure (same layout for everyone), Kubo's Garden (walk among your finished
   figures), photo mode, the Workshop (build and share your own figures), and Puzzler mode
   (link blocks anywhere, solve sums).
@@ -76,7 +79,7 @@ in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (
 ## Debug mode
 
 Open with `?debug` for a panel to play any figure, quick-solve, solve a part, win instantly,
-fly / no-clip, unlock everything, and see FPS. Toggle it with the backtick key.
+fly / no-clip, unlock everything, replay the prologue / finale cutscenes, and see FPS. Toggle it with the backtick key.
 
 ## Code map
 

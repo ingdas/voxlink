@@ -78,9 +78,9 @@ export function buildSky(T, rng, group, updaters) {
     updaters.push((dt, t) => { stars.material.opacity = 0.75 + 0.25 * Math.sin(t * 0.7); });
   }
   if (S.moon) addMoonAndPlanet(group, updaters);
-  if (S.vortex) addVortex(group, updaters, uniforms);
+  const vortex = S.vortex ? addVortex(group, updaters, uniforms) : null;
   if (S.cloudSea) addCloudSea(group, updaters, S.cloudSea);
-  return { sky, uniforms };
+  return { sky, uniforms, vortex };
 }
 
 function craterTexture() {
@@ -189,6 +189,7 @@ function addVortex(group, updaters, skyU) {
     u.flash.value = skyU.flash?.value ?? 0;
   });
   skyU.flash = { value: 0 };
+  return [wall, eye];
 }
 
 const seaFrag = `uniform float time; uniform vec3 a; uniform vec3 b; varying vec2 vUv;

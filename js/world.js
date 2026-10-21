@@ -142,7 +142,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const voidWorld = W.voidY !== undefined;
 
   // --- Sky ---
-  const { sky, uniforms: skyU } = buildSky(T, rng, group, updaters);
+  const { sky, uniforms: skyU, vortex } = buildSky(T, rng, group, updaters);
 
   // --- Water + foam ---
   let water = null;
@@ -278,7 +278,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   }
 
   // --- Ambient particles that follow the camera ---
-  if (T.particles) addParticles(T, rng, group, updaters, W);
+  const particles = T.particles ? addParticles(T, rng, group, updaters, W) : null;
   W.extras?.forEach(f => f());
 
   B.build(group, blockers);
@@ -302,11 +302,19 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   group.add(sun, sun.target);
 
   // storm: lightning flashes light up the sky; the game plays thunder via api.onFlash
-  let flashT = 4 + rng() * 6, flash = 0;
+  let flashT = 4 + rng() * 6, flash = 0, unflash = null;
   if (T.lightning) {
     const baseHemi = hemi.intensity, baseTop = skyU.top.value.clone(), baseHor = skyU.horizon.value.clone();
+    unflash = () => {
+      flash = 0;
+      hemi.intensity = baseHemi;
+      skyU.top.value.copy(baseTop);
+      skyU.horizon.value.copy(baseHor);
+      if (skyU.flash) skyU.flash.value = 0;
+    };
     const white = new THREE.Color(0xeef2ff);
     updaters.push(dt => {
+      if (api.calm) return; // a cutscene owns the sky
       flashT -= dt;
       if (flashT <= 0) { flash = 1; flashT = 7 + Math.random() * 10; api.onFlash?.(); }
       flash = Math.max(0, flash - dt * 3.5);
@@ -347,6 +355,8 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const tmpP = { x: 0, z: 0 };
   const api = {
     group, colliders, blockers, R: W.bound, tops, isFreeGround, heightAt, groundY, theme: T, themeId, onFlash: null, onGust: null,
+    // handles for cutscenes that restyle the weather (calm: true stops the storm's own lightning)
+    atmos: { sky: skyU, hemi, sun, particles, vortex, unflash }, calm: false,
     radiusAt: W.radiusAt || (() => W.bound),
     floorAt, walkSd, gravityScale: W.gravityScale, wind: W.wind, voidY: W.voidY, pads: W.pads,
     surfaceAt(x, z, y) {
@@ -449,5 +459,6 @@ function addParticles(T, rng, group, updaters, W) {
     g.attributes.position.needsUpdate = true;
     if (kind === 'fireflies') pm.opacity = 0.7 + 0.3 * Math.sin(t * 3);
   });
+  return pts;
 }
 

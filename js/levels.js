@@ -316,7 +316,7 @@ export const CHAPTERS = [
     theme: 'meadow',
     intro: [
       "Oh! You're awake! I'm <b>Kubo</b>, the last Keeper of the Archipelago.",
-      'Last night the <b>Great Storm</b> smashed every figure on every island into loose blocks.',
+      'You saw it too? The <b>Great Storm</b> smashed every figure on every island — even the mighty Colossus!',
       'But blocks remember their neighbours. Each matching <b>pair of numbers</b> belongs together.',
       "Link the numbers and the figures will stand again. Let's start with something tiny!",
     ],
@@ -382,13 +382,13 @@ export const CHAPTERS = [
       { id: 'lighthouse', tag: 'Guiding light', name: 'Lighthouse', intro: 'A light in the storm. The sailors need it tonight.', outro: 'The Lighthouse shines through the rain! Now we can find our way deeper in.' },
       { id: 'balloon', tag: 'Up, up and away', name: 'Hot Air Balloon', intro: 'The islanders used to float above the clouds in this one.', outro: 'The Balloon floats again! Hold on to your hat.' },
       { id: 'octopus', tag: 'Eight arms, one hug', name: 'Octopus', intro: 'Count the arms when you are done. All eight!', outro: 'The Octopus waves all eight arms! Look — I can see the Colossus from here…' },
-      { id: 'colossus', tag: 'The final Keeper', name: 'Keeper Colossus', boss: true, intro: 'This is the biggest figure ever made. It will take many parts — and every block you can carry. Ready?', outro: 'The Colossus opens its eyes… and lets the storm go. The sky is clear!' },
+      { id: 'colossus', tag: 'The final Keeper', name: 'Keeper Colossus', boss: true, intro: 'This is the biggest figure ever made. It will take many parts — and every block you can carry. Ready?', outro: 'The Colossus is whole again! Wait… did it just move?' },
     ],
   },
 ];
 
+// Kubo's farewell after the finale cutscene
 export const ENDING = [
-  'The Keeper Colossus stretches its arms… and the last clouds drift away.',
   'Every island has its figures back. The Archipelago is <b>whole</b> again.',
   'Thank you, Linker. Visit any island whenever you like — and go for all the stars!',
 ];

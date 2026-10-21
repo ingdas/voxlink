@@ -15,6 +15,7 @@ export function init(ctx) {
       <div class="dbg-row"><button data-a="solve">Quick solve</button><button data-a="part">Solve part</button><button data-a="ten">+10</button><button data-a="win">Win now</button></div>
       <div class="dbg-row"><button data-a="fly">Fly: off</button><button data-a="home">To pedestal</button><button data-a="hint">Beam</button></div>
       <div class="dbg-row"><button data-a="unlock">Unlock all</button><button data-a="all">All done ★★★</button><button data-a="wipe">Wipe save</button></div>
+      <div class="dbg-row"><button data-a="prologue">Prologue</button><button data-a="finale">Finale</button></div>
       <div id="dbg-info"></div>
     </div>`;
   document.body.appendChild(el);
@@ -46,6 +47,8 @@ export function init(ctx) {
     play: () => { stopSolve(); ctx.startLevel(+ctx.$('dbg-level').value); },
     show: () => { stopSolve(); ctx.enterTitle(); game.load(+ctx.$('dbg-level').value); game.mode = 'showcase'; },
     map: () => ctx.openMap(),
+    prologue: () => { stopSolve(); ctx.playPrologue(); },
+    finale: () => { stopSolve(); ctx.showEnding(); },
     solve: () => solve(),
     part: () => { const s = game.districtDone?.size ?? 0; solve(() => (game.districtDone?.size ?? 0) !== s); },
     ten: () => { let n = 0; solve(() => ++n >= 10); },

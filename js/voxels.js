@@ -54,6 +54,7 @@ export function getAtlas(renderer) {
   tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   tex.generateMipmaps = true;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.userData.shared = true; // world.dispose() leaves it alone
   atlas = { canvas: cv, texture: tex };
   return atlas;
 }
@@ -152,6 +153,40 @@ export function buildVoxelGeometry(faces, size = S) {
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setIndex(idx);
+  return geo;
+}
+
+// A whole figure (expanded cells) as one plain-coloured mesh: only the outside faces, one draw call.
+export function mergeFigure(cells) {
+  const key = (x, y, z) => `${x},${y},${z}`;
+  const has = new Set(cells.map(c => key(c.ix, c.iy, c.iz)));
+  const pos = [], nor = [], uv = [], col = [], idx = [];
+  for (const c of cells) {
+    const open = DIRS.map(d => !has.has(key(c.ix + d.n[0], c.iy + d.n[1], c.iz + d.n[2])));
+    if (!open.some(Boolean)) continue;
+    const g = buildVoxelGeometry(open.map(() => ({ type: 'color', color: c.color })));
+    const P = g.attributes.position.array, N = g.attributes.normal.array, U = g.attributes.uv.array, C = g.attributes.color.array;
+    const ox = c.x * S, oy = c.iy * S + S / 2, oz = c.z * S;
+    open.forEach((o, d) => {
+      if (!o) return;
+      const base = pos.length / 3;
+      for (let v = d * 4; v < d * 4 + 4; v++) {
+        pos.push(P[v * 3] + ox, P[v * 3 + 1] + oy, P[v * 3 + 2] + oz);
+        nor.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]);
+        uv.push(U[v * 2], U[v * 2 + 1]);
+        col.push(C[v * 3], C[v * 3 + 1], C[v * 3 + 2]);
+      }
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    });
+    g.dispose();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setIndex(idx);
+  geo.computeBoundingSphere();
   return geo;
 }
 

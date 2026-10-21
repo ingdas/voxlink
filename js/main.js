@@ -401,7 +401,8 @@ function startLevel(index, resume = false) {
   const lvl = levelOf(index);
   const session = resume === true ? (save.session?.id === lvl.id ? save.session : null) : resume || null;
   if (!session && !lvl.kind) { delete save.session; persist(); }
-  const keepCam = app === 'title' && game.level === lvl && !session;
+  // the title showcase and the prologue already have this figure's island loaded and its blocks scattered
+  const keepCam = (app === 'title' || (app === 'cinema' && ctx.cinema?.ready === lvl)) && game.level === lvl && !session;
   $('kubo-bark').classList.remove('show');
   if (!keepCam) {
     game.load(lvl, session);
@@ -623,6 +624,7 @@ function openMap() {
 function selectLevel(i) {
   const l = LEVELS[i];
   const ch = CHAPTERS[l.chapter];
+  if (l.chapter === 0 && !save.seen.prologue) return playPrologue(); // new players reaching the map first
   if (!save.seen[ch.id]) {
     save.seen[ch.id] = true;
     if (l.chapter === 0) save.seen.prologue = true;
@@ -660,13 +662,21 @@ function openBrief(i) {
   pushOverlay('screen-brief');
 }
 
-// ---------- ending ----------
+// ---------- prologue / ending ----------
+// First play: the storm cutscene, Kubo's welcome, then the first figure (its blocks are already where the storm left them).
+function playPrologue() {
+  ctx.cinema.prologue(() => {
+    save.seen.prologue = true; save.seen[CHAPTERS[0].id] = true; persist();
+    talk(CHAPTERS[0].intro, () => startLevel(0));
+  });
+}
+
 function showEnding() {
-  talk(ENDING, () => {
+  ctx.cinema.finale(() => talk(ENDING, () => {
     $('ending-grid').innerHTML = thumbs.map((t, i) => `<img src="${t}" style="animation-delay:${i * 0.06}s" alt="">`).join('');
     $('ending-stars').innerHTML = t('ending.stars', { n: totalStars() });
     setBase('screen-ending');
-  });
+  }));
 }
 
 // ---------- thumbnails (rendered once with the game's own renderer) ----------
@@ -775,11 +785,7 @@ document.addEventListener('pointerdown', e => {
 }, true);
 $('btn-play').onclick = () => {
   audio.unlock();
-  if (!save.seen.prologue) {
-    save.seen.prologue = true; save.seen[CHAPTERS[0].id] = true; persist();
-    talk(CHAPTERS[0].intro, () => startLevel(0));
-    return;
-  }
+  if (!save.seen.prologue) { playPrologue(); return; }
   openMap();
 };
 $('btn-map').onclick = () => openMap();
@@ -859,6 +865,7 @@ const ctx = {
   get app() { return app; }, set app(v) { app = v; },
   get base() { return base; }, overlays,
   setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete, splitsHtml,
+  playPrologue, showEnding,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures

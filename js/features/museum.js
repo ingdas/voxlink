@@ -2,7 +2,7 @@
 // Unfinished figures wait as dim ink silhouettes under a "?" so the collection goal stays visible.
 import { buildWorld, THEMES, PEDESTAL_TOP } from '../world.js';
 import { Player } from '../player.js';
-import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, mulberry32 } from '../voxels.js';
+import { S, INK, voxelMaterial, mulberry32, mergeFigure } from '../voxels.js';
 import { toon, LAYER_OVERLAY } from '../render.js';
 import { t } from '../i18n.js';
 
@@ -511,40 +511,6 @@ function kuboLine() {
   if (next) pool.push(t('museum.line.hint', { tag: next.tag }));
   if (n === total) pool.push(t('museum.line.allStars'));
   return pool[Math.floor(Math.random() * pool.length)];
-}
-
-// One BufferGeometry for a whole figure: only faces that touch air, positions offset per cell, indices re-based.
-function mergeFigure(cells) {
-  const key = (x, y, z) => `${x},${y},${z}`;
-  const has = new Set(cells.map(c => key(c.ix, c.iy, c.iz)));
-  const pos = [], nor = [], uv = [], col = [], idx = [];
-  for (const c of cells) {
-    const open = DIRS.map(d => !has.has(key(c.ix + d.n[0], c.iy + d.n[1], c.iz + d.n[2])));
-    if (!open.some(Boolean)) continue;
-    const g = buildVoxelGeometry(open.map(() => ({ type: 'color', color: c.color })));
-    const P = g.attributes.position.array, N = g.attributes.normal.array, U = g.attributes.uv.array, C = g.attributes.color.array;
-    const ox = c.x * S, oy = c.iy * S + S / 2, oz = c.z * S;
-    open.forEach((o, d) => {
-      if (!o) return;
-      const base = pos.length / 3;
-      for (let v = d * 4; v < d * 4 + 4; v++) {
-        pos.push(P[v * 3] + ox, P[v * 3 + 1] + oy, P[v * 3 + 2] + oz);
-        nor.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]);
-        uv.push(U[v * 2], U[v * 2 + 1]);
-        col.push(C[v * 3], C[v * 3 + 1], C[v * 3 + 2]);
-      }
-      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
-    });
-    g.dispose();
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.setIndex(idx);
-  geo.computeBoundingSphere();
-  return geo;
 }
 
 function badgeTexture(txt) {

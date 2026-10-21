@@ -68,6 +68,7 @@ function makeLiftFx(scene, radius, top) {
   scene.add(group);
   let glow = 0;
   return {
+    group,
     update(dt, t, inside, floating) {
       glow += ((inside ? 1 : 0) - glow) * Math.min(1, dt * 5);
       ring.material.opacity = 0.35 + 0.25 * Math.sin(t * 2.5) * 0.5 + glow * 0.35;
