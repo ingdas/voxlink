@@ -484,6 +484,8 @@ body.mobile .slot .key { display: none; }
 .kubo-speech kbd.ck.on { background: var(--mint); border-width: 3px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .kubo-speech .coach-bar { background: rgba(42, 31, 61, .15); }
+.coach-more { display: block; margin-top: 5px; font-size: .78em; opacity: .65; }
+.coach-more svg { width: .9em; height: .9em; vertical-align: -.1em; fill: currentColor; }
 body.companion #coach, body.companion #kubo-bark { display: none !important; }
 body.celebrating .kubo-speech { opacity: 0; }
 

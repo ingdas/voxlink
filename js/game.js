@@ -16,7 +16,8 @@ const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
 const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
 // First-play tutorial: one control per step. A control unlocks at the step that teaches it and stays
 // unlocked; anything not taught yet is blocked (and nudges the coach line). Looking around and pausing always work.
-export const TUTORIAL = ['look', 'move', 'jump', 'grab', 'link', 'drop', 'hint', 'done'];
+// 'meet' (right after the storm): Kubo's wake-up lines in his speech bubble, one per click / tap / E / Space.
+export const TUTORIAL = ['meet', 'look', 'move', 'jump', 'grab', 'link', 'drop', 'hint', 'done'];
 const LOOK_GOAL = 1.4, WALK_GOAL = 3.5; // radians looked around / metres walked
 const NEEDS = { jump: 'jump', drop: 'drop', hint: 'hint', slot: 'grab', cycle: 'grab', magnet: 'done', express: 'done' };
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
@@ -1195,6 +1196,12 @@ export class Game {
     this.tutNext = { step, at: this.t + delay };
     this.audio.tone({ f: 660, f2: 990, type: 'triangle', dur: 0.18, vol: 0.1, wet: 0.3 });
   }
+  // Kubo's next wake-up line; after the last one, the controls
+  meetNext() {
+    if (this.tutNext || !this.meet) return;
+    if (++this.meet.k < this.meet.lines.length) this.audio.click();
+    else this.tutAdvance('look', 0.2);
+  }
   updateTutorial(dt, look, moved) {
     const tut = this.tutorial;
     if (this.tutNext && this.t >= this.tutNext.at) {
@@ -1224,6 +1231,7 @@ export class Game {
       if (!this.tutAllows('jump')) this.input.jumpHeld = false;
     }
     for (const a of this.input.takeActions()) {
+      if (this.tutorial === 'meet' && (a.type === 'interact' || a.type === 'jump')) { this.meetNext(); continue; }
       if (NEEDS[a.type] && !this.tutAllows(NEEDS[a.type])) { this.tutNudge(); continue; }
       if (a.type === 'jump') { this.player.jumpBuffer = 0.14; if (this.tutorial === 'jump') { this.tutUsed.add('jump'); this.tutAdvance('grab', 0.5); } }
       else if (a.type === 'interact') this.interact(a.x, a.y);
@@ -1268,7 +1276,8 @@ export class Game {
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
     if (this.stageCount > 1 && !this.districtTip && this.islandT > 2.5) { this.districtTip = true; this.events.tip?.('districts'); }
 
-    this.setFocus(this.input.mobile ? null : this.rayFrom());
+    // no block tooltips before the tutorial gets to grabbing (looking and walking come first)
+    this.setFocus(this.input.mobile || !this.tutAllows('grab') ? null : this.rayFrom());
     this.events.tick?.(this);
   }
 

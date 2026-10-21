@@ -139,6 +139,7 @@ input.lookSens = save.settings.sens;
 input.invertY = save.settings.invert;
 const fx = new FX(scene);
 
+let meetKubo = false; // the next start of the first figure follows the storm opening: Kubo's welcome comes first
 let app = 'loading'; // loading | title | menu | intro | playing | paused | complete
 let toastTimer = 0;
 
@@ -314,6 +315,10 @@ function toast(msg) {
 const keycap = (label, on) => `<kbd class="ck${on ? ' on' : ''}">${String(label).replace(/[<&]/g, c => (c === '<' ? '&lt;' : '&amp;'))}</kbd>`;
 function coachText(step) {
   if (step === 'done') return t('coach.done');
+  if (step === 'meet') {
+    const { lines, k } = game.meet;
+    return `${lines[Math.min(k, lines.length - 1)]}<span class="coach-more">${t('talk.more')} <svg><use href="#i-next"/></svg></span>`;
+  }
   const used = game.tutUsed || new Set();
   const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', interact: 'E', ...ctx.coachLabels?.() };
   const keys = !mobile && ctx.coachKeys?.();
@@ -569,8 +574,11 @@ function startLevel(index, resume = false, arrive = 'island') {
   lastNeeds = '';
   renderNeeds();
   renderFocus(null);
-  // first play of the first figure: the step-by-step controls tutorial (players who finished it before skip it)
-  game.tutorial = lvl === LEVELS[0] && !session && !save.seen.tutorial && !isDone(lvl.id) ? 'look' : null;
+  // first play of the first figure: the step-by-step controls tutorial (players who finished it before skip it),
+  // right after the storm opening with Kubo's wake-up lines first
+  game.tutorial = lvl === LEVELS[0] && !session && !save.seen.tutorial && !isDone(lvl.id) ? (meetKubo ? 'meet' : 'look') : null;
+  game.meet = game.tutorial === 'meet' ? { lines: CHAPTERS[0].intro, k: 0 } : null;
+  meetKubo = false;
   $('keys').classList.remove('fade');
   $('hud').classList.remove('off');
   document.body.classList.remove('celebrating');
@@ -919,6 +927,8 @@ function onArrive(l) {
   if (l.kind || game.tutorial) return;
   const lines = [];
   if (!save.seen[`fig.${l.id}`]) { save.seen[`fig.${l.id}`] = true; persist(); lines.push(l.intro); }
+  // the first tall figure: how to float up, before the goals (said later it got lost behind the building chatter)
+  if (game.liftR && !game.roaming && !save.seen['tip.lift']) { save.seen['tip.lift'] = true; persist(); game.liftTold = true; lines.push(t(mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
   if (game.roaming) {
     const goal = missingGoal(l);
     if (goal) lines.push(t(mobile ? 'kubo.rebuild.touch' : 'kubo.rebuild.desk', { goal }));
@@ -966,11 +976,14 @@ function walkOn(card = null) {
 }
 
 // ---------- prologue / ending ----------
-// First play: the storm cutscene, Kubo's welcome, then the first figure (its blocks are already where the storm left them).
+// First play: the storm cutscene, then the first figure (its blocks are already where the storm left them) with
+// Kubo floating in front of you for his welcome (the tutorial's first step; the talk screen if that's been done)
 function playPrologue() {
   ctx.cinema.prologue(() => {
     save.seen.prologue = true; save.seen[CHAPTERS[0].id] = true; persist();
-    talk(CHAPTERS[0].intro, () => startLevel(0));
+    if (save.seen.tutorial || isDone(LEVELS[0].id)) return talk(CHAPTERS[0].intro, () => startLevel(0));
+    meetKubo = true;
+    startLevel(0);
   });
 }
 
