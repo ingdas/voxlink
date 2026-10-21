@@ -193,7 +193,7 @@ export class Game {
         this.scene.add(this.arch.group);
         this.world = this.arch.api;
         this.world.restrict = () => this.pack.length > 0 && this.mode === 'play';
-        this.world.onBlocked = () => { if (this.t - (this.carryToldT ?? -9) > 3) { this.carryToldT = this.t; this.events.toast?.(t('way.carry')); } };
+        this.world.onBlocked = () => { if (this.t - (this.carryToldT ?? -9) > 3) { this.carryToldT = this.t; this.events.kubo?.(t('way.carry')); } };
       }
       shift = this.arch.setActive(level);
     } else {
@@ -259,6 +259,9 @@ export class Game {
     }
     this.refreshColliders();
 
+    // the scene moved by `shift` (walked onto another island): things that follow the player move with it
+    this.shift = shift && arrive === 'keep' ? shift.clone() : null;
+    this.shiftSeq = (this.shiftSeq || 0) + 1;
     if (arrive === 'keep' && shift && this.player.pos) { this.player.pos.add(shift); this.player.lastSafe.add(shift); }
     else if (arrive === 'hub' && this.arch) { const a = this.arch.arrival(); this.player.spawn(a.x, a.z, a.yaw); }
     else this.player.spawn(0, Math.min(R - 3, 9), 0);
@@ -1074,6 +1077,7 @@ export class Game {
     this.camera.updateMatrixWorld();
     this.updateVoxels(dt);
     this.updateIslands();
+    this.events.frame?.(this, dt);
     this.updateSockets(dt);
     this.fx.update(dt, this.camera);
   }
@@ -1255,7 +1259,7 @@ export class Game {
     if (inPortal && !this.inPortal) this.events.portal?.();
     this.inPortal = inPortal;
     const gate = this.arch.lockedGateAt(x, z), door = this.arch.shutDoorAt(x, z), told = gate || door;
-    if (told && told !== this.gateTold) this.events.toast?.(t(door ? 'way.door' : 'way.locked'));
+    if (told && told !== this.gateTold) this.events.kubo?.(t(door ? 'way.door' : 'way.locked'));
     this.gateTold = told;
     this.updateBeacon();
   }

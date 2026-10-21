@@ -182,3 +182,14 @@ behind the gaps, their bridges running between the front islands), which halves 
 - **Tutorial feedback**: the coach shows your actual keys and lights each one the moment you use it (W A S D,
   Space, right-click/Q, H); the look and walk steps show a bar that fills as you go and advance as soon as
   it's full.
+
+## 2026-10-21 · Kubo on the islands
+
+Kubo is now a character in the world (`js/features/companion.js`): the yellow Keeper cube floats at your side
+on every island, bobbing, blinking and turning to look at you. Everything he explains comes from him: the
+tutorial steps (with the lighting-up keys and the progress bar), tips, a figure's intro line the first time you
+step onto its island, where to go next, and why a bridge or door is closed. When he has something to say he
+drifts into view ahead of you and to the right (clear of the first tutorial block), and a speech bubble with a
+tail hangs above his head; if he's out of view the bubble docks at the bottom with his face. Quick feedback
+("too far away", "recharging") stays a toast. He steps aside in cutscenes, menus, the celebration and Kubo's
+Garden (which has its own Kubo statue).

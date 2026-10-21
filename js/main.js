@@ -164,6 +164,7 @@ const game = new Game({
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
     saveSession: data => { if (!game.level.kind) { save.sessions[game.level.id] = data; persist(); } },
     tick: g => { tickHud(g); ctx.hooks.tick.forEach(f => f(g)); },
+    frame: (g, dt) => ctx.hooks.frame.forEach(f => f(g, dt)),
     link: (g, i) => ctx.hooks.link.forEach(f => f(g, i)),
   },
 });
@@ -250,6 +251,7 @@ function renderFocus(info) {
 
 let kuboTimer = 0;
 function kuboSays(msg) {
+  if (ctx.companion?.active()) { ctx.companion.say(msg); audio.tone({ f: 660, f2: 880, type: 'triangle', dur: 0.12, vol: 0.06 }); return; }
   const el = $('kubo-bark');
   el.querySelector('p').innerHTML = msg;
   el.classList.add('show');
@@ -321,6 +323,7 @@ function tickHud(g) {
     if (coachStep === 'done' && !save.seen.tutorial) { save.seen.tutorial = true; persist(); }
   }
   if (coachStep) { const html = coachText(coachStep); if ($('coach').innerHTML !== html) $('coach').innerHTML = html; }
+  ctx.companion?.coach(coachStep ? $('coach').innerHTML : '');
   $('hint-cd').style.setProperty('--p', `${g.hintCooldown > 0 ? (g.hintCooldown / (g.hintMax || 8)) * 100 : 0}%`);
   if (!mobile && (g.elapsed > 16 || g.tutorial)) $('keys').classList.add('fade');
   const far = g.player.pos.length() > 7;
@@ -913,7 +916,7 @@ const ctx = {
   setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete, splitsHtml,
   playPrologue, showEnding,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
-  hooks: { tick: [], complete: [], link: [] },
+  hooks: { tick: [], complete: [], link: [], frame: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures
   modes: {}, // app state -> (dt) => void, per-frame update used instead of game.update while app is that state
   views: {}, // app state -> (dt) => void; replaces game.update + scene render while app is in that state
