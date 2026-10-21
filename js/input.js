@@ -1,6 +1,7 @@
 // Unified keyboard / mouse (pointer lock) / touch input.
 // Rebindable keyboard actions (event.code). Arrows / Enter / Backspace stay as fixed secondary keys.
-export const DEFAULT_KEYS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', run: 'ShiftLeft', interact: 'KeyE', drop: 'KeyQ', hint: 'KeyH' };
+// turnLeft / turnRight / lookUp / lookDown let you look around without a mouse (keyboard-only play)
+export const DEFAULT_KEYS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', run: 'ShiftLeft', interact: 'KeyE', drop: 'KeyQ', hint: 'KeyH', turnLeft: 'KeyJ', turnRight: 'KeyL', lookUp: 'KeyI', lookDown: 'KeyK' };
 const ALT_KEYS = { forward: ['ArrowUp'], back: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], interact: ['Enter'], drop: ['Backspace'] };
 const sideless = c => c.replace(/^(Shift|Control|Alt|Meta)(Left|Right)$/, '$1');
 
@@ -186,7 +187,11 @@ export class Input {
     p.x += this.look.x; p.y += this.look.y;
     this.look.x = this.look.y = 0;
     const f = this.smoothing > 0 ? 1 - Math.exp(-dt / (this.smoothing * 0.12)) : 1;
-    const look = { x: p.x * f + this.pad.lx, y: p.y * f + this.pad.ly };
+    // keyboard look: turn and tilt at a steady rate
+    const turn = (this.held('turnRight') ? 1 : 0) - (this.held('turnLeft') ? 1 : 0);
+    const tilt = (this.held('lookDown') ? 1 : 0) - (this.held('lookUp') ? 1 : 0);
+    const kx = turn * 2.4 * this.lookSens * dt, ky = tilt * 1.6 * this.lookSens * dt * (this.invertY ? -1 : 1);
+    const look = { x: p.x * f + this.pad.lx + kx, y: p.y * f + this.pad.ly + ky };
     p.x -= p.x * f; p.y -= p.y * f;
     this.pad.lx = this.pad.ly = 0;
     this.jumpHeld = this.held('jump') || this.jumpButtonHeld || this.pad.jump;

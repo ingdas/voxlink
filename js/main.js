@@ -60,6 +60,8 @@ if ((save.campaign ?? 1) < 2) {
   save.campaign = 2;
 }
 delete save.daily; delete save.dailyStreak; // the daily figure was removed
+// self-heal: figures can move in the campaign order (the Apple did); everything after a finished figure stays open
+save.unlocked = Math.min(LEVELS.length, Math.max(save.unlocked, ...LEVELS.filter(l => save.stars[l.id]?.done).map(l => l.index + 2)));
 // half-built figures: one saved run per figure (you can walk away from one and come back)
 save.sessions = save.sessions || {};
 if (save.session) { save.sessions[save.session.id] = save.session; delete save.session; }
@@ -159,7 +161,11 @@ const game = new Game({
     isDone: l => isDone(l.id),
     island: l => walkOnto(l),
     portal: () => openPortal(),
-    tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); },
+    tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); ctx.companion?.nudge(); },
+    // a tip Kubo gives once, ever
+    tipOnce: (id, msg) => { if (!save.seen[`tip.${id}`]) { save.seen[`tip.${id}`] = true; persist(); kuboSays(msg); } },
+    // first steps onto a figure's island this visit: its intro line, the first time ever
+    arrive: l => { if (!l.kind && !game.tutorial && !save.seen[`fig.${l.id}`]) { save.seen[`fig.${l.id}`] = true; persist(); kuboSays(l.intro); } },
     tip: key => { if (!save.seen[`tip.${key}`]) { save.seen[`tip.${key}`] = true; persist(); kuboSays(t(`kubo.${key}`)); } },
     stage: () => { $('stage').animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 400, easing: 'cubic-bezier(.3,1.6,.5,1)' }); },
     saveSession: data => { if (!game.level.kind) { save.sessions[game.level.id] = data; persist(); } },
@@ -285,6 +291,7 @@ function coachText(step) {
     v.jump = keycap(keys.jump, used.has('jump'));
     v.drop = `${keycap(keys.rightClick, used.has('drop'))} / ${keycap(keys.drop, used.has('drop'))}`;
     v.hint = keycap(keys.hint, used.has('hint'));
+    v.look = `${v.look} / ${keycap(keys.turnLeft, false)}${keycap(keys.turnRight, false)}`;
   }
   let html = t(`coach.${step}.${mobile ? 'touch' : 'desk'}`, v);
   if (step === 'look' || step === 'move') html += `<span class="coach-bar"><i style="width:${Math.round(game.tutProgress() * 20) * 5}%"></i></span>`;
@@ -308,7 +315,7 @@ function placeEdge(el, pos, show) {
   x /= m; y /= m;
   const w = innerWidth, h = innerHeight, pad = 46;
   const px = THREE.MathUtils.clamp((x * 0.5 + 0.5) * w, pad, w - pad);
-  const py = THREE.MathUtils.clamp((-y * 0.5 + 0.5) * h, pad + 70, h - pad - 90);
+  const py = THREE.MathUtils.clamp((-y * 0.5 + 0.5) * h, pad + 112, h - pad - 90); // clear of the top HUD and its bubbles row
   el.style.transform = `translate(${px}px, ${py}px)`;
   el.firstElementChild.style.transform = `rotate(${Math.PI / 2 - ang}rad)`;
   el.classList.add('on');
@@ -334,8 +341,11 @@ function tickHud(g) {
   placeEdge($('edge-district'), flag?.pos ?? homePos, !!flag && !inDistrict && !g.hasFitInPack?.() && !fx.beamTarget);
   if (flag) $('edge-district').style.background = flag.color;
   // the way to the next figure (or the portal): an arrow at the screen edge while it's out of view
-  const way = g.mode === 'play' ? g.wayTarget?.() : null;
-  placeEdge($('edge-next'), way ?? homePos, !!way && !g.pack.length && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 6);
+  // tutorial: point at the block that fits (grab step) or the pedestal (link step) when they're out of view
+  const tutTarget = g.tutorial === 'grab' ? g.voxels.find(v => v.state === 'loose' && g.sockets.has(v.i))?.mesh.position
+    : g.tutorial === 'link' ? homePos : null;
+  const way = tutTarget || (g.mode === 'play' ? g.wayTarget?.() : null);
+  placeEdge($('edge-next'), way ?? homePos, !!way && (tutTarget ? true : !g.pack.length && Math.hypot(way.x - g.player.pos.x, way.z - g.player.pos.z) > 6));
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
 }
@@ -596,16 +606,20 @@ function buildMap() {
       background:linear-gradient(to top, ${hex(T.water)}, ${hex(T.skyHorizon)} 55%, ${hex(T.skyTop)});${locked ? 'filter:saturate(.35) brightness(.85);' : ''}">
       <div class="waves"></div></div>`;
     html += `<div class="chapter-head ${locked ? 'locked' : ''}" style="top:${top + 22}px"><small>${t('map.chapter', { n: c + 1 })}</small><b>${ch.name}</b>
-      <span>${locked ? `<svg><use href="#i-lock"/></svg> ${t('map.locked')}` : `<svg><use href="#i-star"/></svg> ${st} / ${ch.levels.length * 3} · ${ch.blurb}`}</span></div>`;
+      <span>${locked ? `<svg><use href="#i-lock"/></svg> ${t('map.locked')}` : `<svg><use href="#i-star"/></svg> <bdi class="n">${st} / ${ch.levels.length * 3}</bdi> · ${ch.blurb}`}</span></div>`;
     const x = cx + xs[c % xs.length] * colW, y = top + BAND_H - 120;
     mapPos[c] = { x, y };
-    const fig = LEVELS[firstOpenIn(c)], solved = isDone(fig.id);
+    // a finished world shows its finale; otherwise the figure you're up to there
+    const allDone = done === ch.levels.length;
+    const fig = allDone ? ch.levels[ch.levels.length - 1] : LEVELS[firstOpenIn(c)], solved = isDone(fig.id);
+    const crowned = st === ch.levels.length * 3;
     const unlocking = pendingUnlock && c === pendingUnlock.to;
-    const pips = ch.levels.map(l => `<i class="${isDone(l.id) ? 'on' : ''}"></i>`).join('');
+    // pips: done (sun), all three stars (gold ring), half built (half filled)
+    const pips = ch.levels.map(l => `<i class="${isDone(l.id) ? `on${starsOf(l.id) === 3 ? ' s3' : ''}` : save.sessions[l.id] ? 'half' : ''}"></i>`).join('');
     html += `<button class="node world ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${c === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" data-c="${c}" style="left:${x}px;top:${y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
-      <div class="island">${locked ? '<svg><use href="#i-lock"/></svg>' : `<img src="${thumbs[fig.index] || ''}" alt="">${solved ? '' : '<span class="q">?</span>'}`}<span class="num">${c + 1}</span></div>
+      <div class="island">${locked ? '<svg><use href="#i-lock"/></svg>' : `<img src="${thumbs[fig.index] || ''}" alt="">${solved ? '' : '<span class="q">?</span>'}`}<span class="num">${c + 1}</span>${crowned ? '<span class="crown"><svg><use href="#i-star"/></svg></span>' : ''}</div>
       ${locked ? '' : `<div class="pips">${pips}</div>`}
-      <div class="name">${locked ? '???' : `${done} / ${ch.levels.length}`}</div></button>`;
+      <div class="name">${locked ? '???' : `<bdi class="n">${done} / ${ch.levels.length}</bdi>`}</div></button>`;
   });
   // path from world to world
   let bed = '', doneP = '', open = '';
@@ -680,7 +694,6 @@ function enterWorld(c) {
 function walkOnto(l) {
   if (app !== 'playing') return;
   startLevel(l.index, true, 'keep');
-  if (!save.seen[`fig.${l.id}`]) { save.seen[`fig.${l.id}`] = true; persist(); kuboSays(l.intro); }
 }
 // the portal on the hub opens the world select; leaving it brings you back to the island
 let mapFromIsland = false;
@@ -843,10 +856,31 @@ $('btn-play').onclick = () => {
 };
 $('btn-map').onclick = () => openMap();
 $('btn-map-back').onclick = () => (mapFromIsland ? backToIsland() : enterTitle());
+// a scroll cue while more settings sit below the fold
+{
+  const list = document.querySelector('#screen-settings .settings'), panel = list.parentElement;
+  const cue = () => { const more = list.scrollHeight - list.scrollTop - list.clientHeight > 8; list.classList.toggle('more', more); panel.classList.toggle('more', more); };
+  list.addEventListener('scroll', cue, { passive: true });
+  addEventListener('resize', cue);
+  new MutationObserver(() => requestAnimationFrame(cue)).observe($('screen-settings'), { attributes: true, attributeFilter: ['class'] });
+}
 $('btn-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-p-settings').onclick = () => pushOverlay('screen-settings');
 $('btn-resume').onclick = () => resume();
-$('btn-restart').onclick = () => startLevel(game.level);
+// restarting throws away the figure's saved run: ask for a second tap
+let restartArmed = 0;
+$('btn-restart').onclick = () => {
+  const label = $('btn-restart').querySelector('span');
+  if (performance.now() - restartArmed > 2500) {
+    restartArmed = performance.now();
+    label.textContent = t('settings.sure');
+    setTimeout(() => { label.textContent = t('pause.restart'); }, 2500);
+    return;
+  }
+  restartArmed = 0;
+  label.textContent = t('pause.restart');
+  startLevel(game.level);
+};
 $('btn-quit').onclick = () => (game.level?.kind ? enterTitle() : openMap());
 $('btn-pause').onclick = () => pause();
 $('btn-hint').onclick = () => input.actions.push({ type: 'hint' });
@@ -855,6 +889,7 @@ $('btn-express').onclick = () => input.actions.push({ type: 'express' });
 function renderTool(btn, count, n, gained) {
   const b = $(btn);
   b.classList.toggle('hidden', !(game.stageCount > 1));
+  document.body.classList.toggle('has-tools', game.stageCount > 1);
   b.classList.toggle('empty', n <= 0);
   $(count).textContent = n;
   if (gained) b.animate([{ transform: 'scale(1.4) rotate(-10deg)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' });

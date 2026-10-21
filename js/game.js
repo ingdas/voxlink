@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LEVELS, CHAPTERS, expandLevel, partsFor } from './levels.js';
+import { LEVELS, CHAPTERS, expandLevel, partsFor, coreSize } from './levels.js';
 import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
 import { buildArchipelago } from './archipelago.js';
 import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, shuffle, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS, mergeFigure } from './voxels.js';
@@ -193,6 +193,7 @@ export class Game {
         this.scene.add(this.arch.group);
         this.world = this.arch.api;
         this.world.restrict = () => this.pack.length > 0 && this.mode === 'play';
+        this.world.calmMotion = () => document.body.classList.contains('reduce-motion');
         this.world.onBlocked = () => { if (this.t - (this.carryToldT ?? -9) > 3) { this.carryToldT = this.t; this.events.kubo?.(t('way.carry')); } };
       }
       shift = this.arch.setActive(level);
@@ -250,7 +251,7 @@ export class Game {
     }
     for (const r of this.puzzle.roots) this.place(r, true);
     // big figures start with a small pre-built core so several bubbles are open from the start
-    const seed = cells.length < 30 ? 0 : Math.round(cells.length * 0.07);
+    const seed = coreSize(cells.length);
     const queue = this.puzzle.roots.flatMap(r => this.puzzle.children[r]);
     for (let k = 0; k < seed && queue.length; k++) {
       const c = queue.splice(Math.floor(rng() * queue.length), 1)[0];
@@ -265,6 +266,7 @@ export class Game {
     if (arrive === 'keep' && shift && this.player.pos) { this.player.pos.add(shift); this.player.lastSafe.add(shift); }
     else if (arrive === 'hub' && this.arch) { const a = this.arch.arrival(); this.player.spawn(a.x, a.z, a.yaw); }
     else this.player.spawn(0, Math.min(R - 3, 9), 0);
+    this.onIsland = false; this.islandT = 0; this.arrived = false;
     this.switching = false; this.inPortal = this.arch ? this.arch.atPortal(this.player.pos.x, this.player.pos.z) : false;
     this.linkOrder = [];
     if (resume) {
@@ -1159,12 +1161,12 @@ export class Game {
   }
   tutAdvance(step, delay = 0.6) {
     if (this.tutNext) return;
-    this.tutNext = { step, at: this.elapsed + delay };
+    this.tutNext = { step, at: this.t + delay };
     this.audio.tone({ f: 660, f2: 990, type: 'triangle', dur: 0.18, vol: 0.1, wet: 0.3 });
   }
   updateTutorial(dt, look, moved) {
     const tut = this.tutorial;
-    if (this.tutNext && this.elapsed >= this.tutNext.at) {
+    if (this.tutNext && this.t >= this.tutNext.at) {
       this.tutorial = this.tutNext.step;
       this.tutNext = null;
       this.tutAcc = 0;
@@ -1204,7 +1206,7 @@ export class Game {
     }
     const r = Math.hypot(this.player.pos.x, this.player.pos.z);
     const lift = this.liftR && r < this.liftR ? { maxY: this.liftTop } : null;
-    if (this.liftR && !this.liftTold && (lift || this.elapsed > 8)) { this.liftTold = true; this.events.kubo?.(t(this.input.mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
+    if (this.liftR && !this.liftTold && this.onIsland && (lift || this.islandT > 8)) { this.liftTold = true; this.events.tipOnce?.('lift', t(this.input.mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
     const px = this.player.pos.x, pz = this.player.pos.z;
     this.player.update(dt, this.input, look, this.colliders, this.world, lift);
     if (this.tutorial) this.updateTutorial(dt, look, Math.hypot(this.player.pos.x - px, this.player.pos.z - pz));
@@ -1218,7 +1220,12 @@ export class Game {
     this.camera.updateMatrixWorld();
     this.sway.x += (look.x * 1.5 - this.sway.x) * Math.min(1, dt * 10);
     this.sway.y += (look.y * 1.5 - this.sway.y) * Math.min(1, dt * 10);
-    this.elapsed += dt;
+    // the clock (par time) only runs on this figure's own island, and not during the controls tutorial
+    const wasOn = this.onIsland;
+    this.onIsland = !this.arch || this.arch.onActive(this.player.pos.x, this.player.pos.z);
+    if (this.onIsland) this.islandT += dt;
+    if (this.onIsland && !wasOn && !this.arrived) { this.arrived = true; this.events.arrive?.(this.level); }
+    if (this.onIsland && !this.roaming && (!this.tutorial || this.tutorial === 'done')) this.elapsed += dt;
     this.sinceLink += dt;
     while (this.chainQueue.length && this.chainQueue[0].at <= this.t) {
       const { i, express } = this.chainQueue.shift();
@@ -1228,7 +1235,7 @@ export class Game {
       if (!express && this.chain >= 2) this.events.toast?.(t('toast.chain', { n: this.chain + 1 }));
     }
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
-    if (this.stageCount > 1 && !this.districtTip && this.elapsed > 2.5) { this.districtTip = true; this.events.tip?.('districts'); }
+    if (this.stageCount > 1 && !this.districtTip && this.islandT > 2.5) { this.districtTip = true; this.events.tip?.('districts'); }
 
     this.setFocus(this.input.mobile ? null : this.rayFrom());
     this.events.tick?.(this);

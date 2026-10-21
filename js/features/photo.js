@@ -24,6 +24,11 @@ export function init(c) {
   next.parentNode.insertBefore(cb, next);
   cb.onclick = () => openFromComplete();
 
+  // touch screens: a camera button in the HUD (C on a keyboard)
+  const hb = button('btn icon cam', '<svg><use href="#i-camera"/></svg>', 'btn-h-photo', t('photo.photo'));
+  document.querySelector('.hud-tools').appendChild(hb);
+  hb.onclick = () => { if (ctx.app === 'playing' && ctx.game.mode === 'play' && !ctx.overlays.length) openFromPlay(); };
+
   // in-level pause screen
   const pb = button('btn', `<svg><use href="#i-camera"/></svg>${t('photo.photo')}`, 'btn-p-photo');
   $('btn-resume').after(pb);

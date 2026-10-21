@@ -7,6 +7,15 @@
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y;
   -webkit-overflow-scrolling: touch; margin: 0 -10px; padding: 2px 10px 4px; scrollbar-width: thin; scrollbar-color: var(--ink) transparent;
 }
+/* more settings below the fold: the list fades out at the bottom (and a little arrow bobs) */
+#screen-settings .settings.more { -webkit-mask-image: linear-gradient(#000 calc(100% - 46px), transparent); mask-image: linear-gradient(#000 calc(100% - 46px), transparent); }
+#screen-settings .panel { position: relative; }
+#screen-settings .panel::after {
+  content: ''; position: absolute; left: 50%; bottom: 10px; width: 14px; height: 14px; margin-left: -7px; pointer-events: none;
+  border: solid var(--ink); border-width: 0 4px 4px 0; transform: rotate(45deg); opacity: 0; transition: opacity .2s;
+}
+#screen-settings .panel.more::after { opacity: .7; animation: bob 1.6s ease-in-out infinite; }
+body.reduce-motion #screen-settings .panel.more::after { animation: none; }
 #screen-settings .settings::-webkit-scrollbar { width: 8px; }
 #screen-settings .settings::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 .acc-sec {
@@ -54,12 +63,13 @@ body.mobile.pad-nav #crosshair { display: block; }
 #acc-toast { position: fixed; z-index: 60; pointer-events: none; }
 
 /* UI size: zoom HUD clusters and menu panels (not the stick / edge markers, which are placed in px) */
-body.ui-scaled #hud :is(.hud-top, .needs, .toast, .coach, .kubo-bark, .tooltip, .pack-wrap, .keys, .touch-btns) { zoom: var(--ui-hud, 1); }
+body.ui-scaled #hud :is(.hud-top, .needs, .toast, .coach, .kubo-bark, .tooltip, .pack-wrap, .keys, .touch-btns, .kubo-speech .ks-box) { zoom: var(--ui-hud, 1); }
 body.ui-scaled :is(.screen .panel, .title-top, .title-bottom, .map-top, .talk-box) { zoom: var(--ui-menu, 1); }
 body.ui-scaled .progress { width: min(340px, calc(52vw / var(--ui-hud, 1))); }
 body.ui-scaled .needs { max-width: calc(92vw / var(--ui-hud, 1)); }
 body.ui-scaled .coach { max-width: min(calc(88vw / var(--ui-hud, 1)), 520px); }
 body.ui-scaled .kubo-bark { max-width: min(320px, calc(60vw / var(--ui-hud, 1))); }
+body.ui-scaled .kubo-speech .ks-box { max-width: min(360px, calc(84vw / var(--ui-hud, 1))); }
 body.ui-scaled .toast { max-width: min(calc(90vw / var(--ui-hud, 1)), 460px); }
 
 /* reduced motion: decorative animations jump straight to their end state */
@@ -74,16 +84,18 @@ body.high-contrast { --ink: #120b1d; --ink-soft: #2e2541; }
 body.high-contrast .slot:not(.full) { background: rgba(18, 11, 29, .55); border-color: var(--paper); }
 body.high-contrast .keys { text-shadow: 0 1px 0 var(--ink), 0 0 4px var(--ink), 0 0 8px var(--ink); }
 body.high-contrast .coach, body.high-contrast .pack-tip, body.high-contrast .tooltip .tip-label { box-shadow: 0 0 0 2px var(--paper); }
+body.high-contrast .kubo-speech .ks-box { border-width: 4px; box-shadow: 0 4px 0 var(--ink), 0 0 0 3px var(--paper); }
+body.high-contrast .kubo-speech .ks-text b { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; }
 body.high-contrast #crosshair i { box-shadow: 0 0 0 2px var(--paper); }
-body.high-contrast .chip.ready, body.high-contrast .slot.fits { position: relative; }
-body.high-contrast .chip.ready::after, body.high-contrast .slot.fits::after {
+.chip.ready, .slot.fits { position: relative; }
+.chip.ready::after, .slot.fits::after {
   content: ''; position: absolute; top: -11px; right: -11px; width: 17px; height: 17px; border-radius: 50%;
   background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%23fff4e0' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat;
   border: 2px solid var(--paper);
 }
 body.high-contrast .slot.fits { background: #c9f7e0; }
-body.high-contrast .slot.fits::after { top: -9px; left: -8px; right: auto; width: 22px; height: 22px; background-size: 15px; }
-body.high-contrast .slot .chip.ready::after { display: none; }
+.slot.fits::after { top: -9px; left: -8px; right: auto; width: 22px; height: 22px; background-size: 15px; }
+.slot .chip.ready::after { display: none; }
 body.high-contrast .slot .chip.ready { outline: 2px solid var(--ink); outline-offset: 1px; }
 /* ---------- D: Photo mode (js/features/photo.js) ---------- */
 .screen.photo { padding: 0; display: block; cursor: grab; }
@@ -326,15 +338,15 @@ body.mobile .garden-keys { display: none !important; }
 .ws-label { overflow-wrap: anywhere; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; color: var(--ink-soft); margin-bottom: -4px; }
 /* equal tiles, one per world; a tile never gets narrower than its label, so long names wrap to a new row
    instead of clipping. With ten worlds the list scrolls when the screen is short. */
-.ws-themes { display: flex; flex-wrap: wrap; gap: 8px; max-height: min(40vh, 330px); overflow-y: auto; padding: 10px 10px 8px; margin: -6px -10px 0; }
-.ws-theme { flex: 1 1 0; min-width: max-content; }
+.ws-themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: min(40vh, 330px); overflow-y: auto; padding: 10px 10px 8px; margin: -6px -10px 0; }
 .ws-theme {
   position: relative; height: 52px; padding: 0 4px 5px; cursor: pointer; font: inherit; color: var(--ink);
   border: var(--line) solid var(--ink); border-radius: 14px; box-shadow: 0 4px 0 var(--ink);
   background: radial-gradient(ellipse 70% 26% at 50% 66%, var(--g) 0 96%, transparent 100%), linear-gradient(var(--a), var(--b) 58%, var(--w) 58%);
   display: flex; align-items: flex-end; justify-content: center; transition: transform .12s cubic-bezier(.3, 1.6, .5, 1);
 }
-.ws-theme span { background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 0 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.ws-theme span { background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 0 6px; font-weight: 700; font-size: 13px; letter-spacing: .02em; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ws-theme:focus-visible { outline: 4px solid var(--sky); outline-offset: 3px; }
 .ws-theme .ws-check { position: absolute; top: -9px; inset-inline-end: -9px; width: 26px; height: 26px; border-radius: 50%; background: var(--mint); border: var(--line) solid var(--ink); display: none; place-items: center; }
 .ws-theme .ws-check svg { width: 15px; height: 15px; stroke-width: 3.4; }
 .ws-theme.on { transform: translateY(-4px); box-shadow: 0 4px 0 var(--ink), 0 0 0 4px var(--sun); }
@@ -487,7 +499,7 @@ body.museum #btn-magnet { display: none !important; }
 .cine-skip svg { width: 20px; height: 20px; }
 .cine-skip kbd { margin: 0; font-size: 11px; opacity: .75; }
 body.mobile .cine-skip kbd { display: none; }
-.cinema.over .cine-skip { opacity: 0; pointer-events: none; }
+.cinema.over .cine-skip, .screen.cinema:not(.show) .cine-skip { opacity: 0; pointer-events: none; visibility: hidden; }
 .cine-bar { position: absolute; left: 0; right: 0; height: 0; background: #0b0814; z-index: 1; transition: height .9s cubic-bezier(.6, 0, .3, 1); }
 .cine-bar.top { top: 0; }
 .cine-bar.bottom { bottom: 0; }
@@ -506,3 +518,9 @@ body.mobile .cine-skip kbd { display: none; }
 .cine-fade { position: absolute; inset: 0; z-index: 3; opacity: 0; background: #000; pointer-events: none; }
 /* the finale keeps playing behind the ending panel */
 #screen-ending.dim { background: rgba(42, 31, 61, .28); backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* key legend: magnet / Express only on figures that have the tools; the HUD camera only on touch */
+body:not(.has-tools) #keys .tools-key { display: none; }
+#btn-h-photo { display: none; background: var(--paper); }
+body.mobile #btn-h-photo { display: grid; }
+body.mobile:not(.playing) #btn-h-photo { display: none; }

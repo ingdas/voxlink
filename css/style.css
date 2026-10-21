@@ -102,6 +102,10 @@ svg .fill, symbol .fill { fill: currentColor; }
 #screen-loading { background: var(--ink); gap: 28px; }
 .loadbar { width: min(280px, 70vw); height: 22px; border: var(--line) solid var(--paper); border-radius: 999px; padding: 3px; }
 .loadbar i { display: block; height: 100%; width: 0; background: var(--sun); border-radius: 999px; transition: width .2s; }
+/* a slow network still shows movement before the scripts arrive */
+.loadbar i { background: linear-gradient(90deg, var(--sun) 0 40%, #ffe08a 50%, var(--sun) 60% 100%) 0 0 / 250% 100%; animation: loadshine 1.4s linear infinite; }
+@keyframes loadshine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@media (prefers-reduced-motion: reduce) { .loadbar i { animation: none; } }
 
 /* ---------- Logo ---------- */
 .logo { display: flex; flex-direction: column; align-items: center; gap: .16em; font-size: clamp(30px, 7.5vw, 64px); }
@@ -207,9 +211,9 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 .coach.show { opacity: 1; transform: translate(-50%, 0); }
 .coach b { color: var(--sun); }
 /* tutorial: the keys to press light up as they're used; a bar fills while you look / walk */
-.coach kbd.ck { display: inline-block; min-width: 1.7em; padding: 0 .3em; margin: 0 .08em; border-radius: 7px; font: inherit; font-weight: 700; line-height: 1.5;
+:is(.coach, .kubo-speech) kbd.ck { display: inline-block; white-space: nowrap; font-size: inherit; margin: 0; margin-inline-end: .12em; vertical-align: baseline; min-width: 1.7em; padding: 0 .3em; margin: 0 .08em; border-radius: 7px; font: inherit; font-weight: 700; line-height: 1.5;
   color: var(--paper); background: rgba(255, 255, 255, .1); border: 2px solid rgba(255, 255, 255, .55); box-shadow: 0 2px 0 rgba(0, 0, 0, .35); transition: background .15s, color .15s, transform .15s; }
-.coach kbd.ck.on { background: var(--mint); border-color: var(--mint); color: var(--ink); transform: translateY(-2px); }
+:is(.coach, .kubo-speech) kbd.ck.on { background: var(--mint); border-color: var(--mint); color: var(--ink); transform: translateY(-2px); }
 .coach-bar { display: block; height: 7px; width: min(260px, 70%); margin: 8px auto 2px; border-radius: 999px; background: rgba(255, 255, 255, .18); overflow: hidden; }
 .coach-bar i { display: block; height: 100%; border-radius: inherit; background: var(--mint); transition: width .12s linear; }
 /* tutorial: a control that isn't unlocked yet shakes the coach line; the button the step teaches pulses */
@@ -460,17 +464,21 @@ body.mobile .slot .key { display: none; }
   padding: 9px 15px; font-weight: 600; font-size: 16px; line-height: 1.3; text-align: center; animation: pop-chip .25s cubic-bezier(.3, 1.6, .5, 1);
 }
 .kubo-speech .ks-box::after {
-  content: ''; position: absolute; left: 50%; bottom: -10px; width: 16px; height: 16px; background: var(--paper);
+  content: ''; position: absolute; left: calc(50% + var(--tail, 0px)); bottom: -10px; width: 16px; height: 16px; background: var(--paper);
   border-right: var(--line) solid var(--ink); border-bottom: var(--line) solid var(--ink); transform: translateX(-50%) rotate(45deg);
 }
-.kubo-speech .ks-text b { color: #e0882a; }
+.kubo-speech .ks-text b { color: #a85a00; }
+.kubo-speech .ks-box.nudge { animation: coach-nudge .4s ease-in-out; }
 .kubo-speech .kubo.mini { display: none; }
-.kubo-speech.docked { left: 50%; top: auto; bottom: calc(150px + var(--sab)); transform: none !important; }
+.kubo-speech.docked { left: 50%; top: auto; bottom: var(--dock-bottom, calc(150px + var(--sab))); transform: none !important; }
+.kubo-speech.docked.dock-top { top: calc(108px + var(--sat)); bottom: auto; }
+.kubo-speech.docked.dock-top .ks-box { bottom: auto; top: 0; }
 .kubo-speech.docked .ks-box { bottom: 0; display: flex; gap: 10px; align-items: center; text-align: start; }
 .kubo-speech.docked .ks-box::after { display: none; }
 .kubo-speech.docked .kubo.mini { display: block; flex: none; }
-.kubo-speech kbd.ck { color: var(--ink); background: #fff; border-color: var(--ink); box-shadow: 0 2px 0 var(--ink); }
-.kubo-speech kbd.ck.on { background: var(--mint); border-color: var(--ink); }
+.kubo-speech kbd.ck { color: var(--ink); background: #fff; border: 2px solid var(--ink); box-shadow: 0 2px 0 var(--ink); }
+.kubo-speech kbd.ck.on { background: var(--mint); border-width: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .kubo-speech .coach-bar { background: rgba(42, 31, 61, .15); }
 body.companion #coach, body.companion #kubo-bark { display: none !important; }
 body.celebrating .kubo-speech { opacity: 0; }
@@ -552,7 +560,7 @@ body.celebrating .edge { opacity: 0 !important; pointer-events: none; transition
 
 /* ---------- Right-to-left (Arabic) ---------- */
 [dir=rtl] .logo { direction: ltr; }
-#count, #map-stars, .stage, .slot .key, .stat b, .splits span, #pause-info, .garden-count, #ending-stars b, .chip { direction: ltr; unicode-bidi: isolate; }
+#count, #map-stars, bdi.n, .stage, .slot .key, .stat b, .splits span, #pause-info, .garden-count, #ending-stars b, .chip { direction: ltr; unicode-bidi: isolate; }
 
 /* ---------- Tools: hint + magnet ---------- */
 .hud-tools { display: flex; gap: 10px; }
@@ -567,6 +575,13 @@ body.roaming :is(#needs, .pack-wrap, #btn-hint, #btn-magnet, #btn-express, #tool
 .node .pips { display: flex; gap: 4px; margin-top: 6px; }
 .node .pips i { width: 12px; height: 12px; border-radius: 50%; background: rgba(42, 31, 61, .25); border: 2px solid var(--ink); }
 .node .pips i.on { background: var(--sun); }
+.node .pips i.s3 { background: #ffb400; box-shadow: 0 0 0 2px #fff3c4, 0 0 6px 2px rgba(255, 180, 0, .7); }
+.node .pips i.half { background: linear-gradient(90deg, var(--sun) 50%, rgba(42, 31, 61, .25) 50%); }
+[dir=rtl] .node .pips i.half { background: linear-gradient(-90deg, var(--sun) 50%, rgba(42, 31, 61, .25) 50%); }
+/* every star in a world: a crown on its island */
+.node .island .crown { position: absolute; top: -14px; left: 50%; translate: -50% 0; width: 30px; height: 30px; display: grid; place-items: center;
+  background: #ffb400; border: 3px solid var(--ink); border-radius: 50%; box-shadow: 0 3px 0 var(--ink); }
+.node .island .crown svg { width: 18px; height: 18px; fill: var(--paper); }
 
 /* ---------- Small screens: keep Kubo's tips clear of the bubble list ---------- */
 @media (max-height: 500px) {
@@ -656,3 +671,10 @@ body.museum #btn-express { display: none !important; }
 .pz-txt { min-width: 0; }
 .pz-txt small { display: block; white-space: normal; overflow-wrap: anywhere; }
 .set-note { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+
+/* results buttons: the labels keep to one line (long German / Arabic words), the row wraps instead */
+.complete .row { flex-wrap: wrap; }
+.complete .row .btn.grow { min-width: 0; }
+.complete .row .btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* Japanese wraps at phrase boundaries, not mid-word */
+:lang(ja) body { word-break: auto-phrase; }

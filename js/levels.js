@@ -856,4 +856,14 @@ function largestComponent(cells, id) {
 export const partsFor = n => (n > 44 ? Math.ceil(n / 34) : 1);
 
 // Target time for the clock star.
-export const parTime = level => Math.round((30 + expandLevel(level).cells.length * 7) / 15) * 15;
+// Big figures start with part of them pre-built so several bubbles are open from the start; the very
+// biggest (the Storm figures) get a bigger head start so the last world doesn't hold a quarter of the campaign.
+export const coreSize = n => (n < 30 ? 0 : Math.round(n * 0.07 + Math.max(0, n - 90) * 0.3));
+
+// Target time for the clock star: per block still to build, slower on terrain that slows you down.
+const PAR_PACE = { frostwood: 1.12, frost: 1.08, reef: 1.06 }; // snowdrifts, slippery ice, the lagoon
+export const parTime = level => {
+  const n = expandLevel(level).cells.length;
+  const theme = level.theme || CHAPTERS[level.chapter]?.theme;
+  return Math.round((30 + (n - Math.max(0, coreSize(n) - Math.round(n * 0.07))) * 7 * (PAR_PACE[theme] || 1)) / 15) * 15;
+};

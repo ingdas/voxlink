@@ -215,7 +215,8 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     surfaceAt(x, z, y) {
       const ax = x + A.x, az = z + A.z;
       const k = pieceAt(ax, az, -0.3);
-      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: BOOST, sound: 'wood' };
+      // (gentler with reduced motion)
+      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: api.calmMotion?.() ? 1.4 : BOOST, sound: 'wood' };
       return (k || active).world.surfaceAt(ax - (k || active).p.x, az - (k || active).p.z, y);
     },
     padAt(x, z, y) {
@@ -245,7 +246,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       const c = cam ? cam.clone().add(A) : null;
       if (beacon.visible) {
         const { mark, beamMat } = beacon.userData;
-        mark.position.y = beacon.userData.top + Math.sin(t * 2.2) * 0.35;
+        mark.position.y = beacon.userData.top + (api.calmMotion?.() ? 0 : Math.sin(t * 2.2) * 0.35);
         beamMat.opacity = 0.28 + Math.sin(t * 1.6) * 0.08;
       }
       for (const k of pieces) k.world.update(dt, t, c ? c.clone().sub(k.p) : null);
@@ -346,6 +347,8 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       return parts.find(p => p.open && p.world.walkSd(ax - p.p.x, az - p.p.z) < -0.8) || null;
     },
     boardwalkZ() { return zJ - A.z; },
+    // is (x, z) on the active figure's island (bridges excluded)?
+    onActive(x, z) { return active.world.walkSd(x, z) < 0.2 && bridgeSd(x + A.x, z + A.z) > 0.05; },
     offsetOf(level) { const pt = parts.find(p => p.level === level); return pt ? new THREE.Vector3(pt.p.x - A.x, 0, pt.p.z - A.z) : null; },
     // scene positions: where you arrive by portal, an island's bridge entry, the portal itself
     arrival() { const pz = hubWorld.portal?.z ?? 4; return { x: hub.p.x - A.x, z: hub.p.z + pz - 2.6 - A.z, yaw: 0 }; },

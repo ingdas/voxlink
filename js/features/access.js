@@ -7,7 +7,7 @@ import { t } from '../i18n.js';
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DEFAULTS = { fov: 88, smooth: 0, bob: true, reduceMotion: prefersReduced, uiScale: 1, contrast: false };
 // rebindable actions; labels are i18n keys access.act.<action>
-const ACTIONS = ['forward', 'back', 'left', 'right', 'jump', 'run', 'interact', 'drop', 'hint'];
+const ACTIONS = ['forward', 'back', 'left', 'right', 'turnLeft', 'turnRight', 'lookUp', 'lookDown', 'jump', 'run', 'interact', 'drop', 'hint'];
 const actLabel = a => t(`access.act.${a}`);
 // fixed keys that can't be rebound (menus, slots, pause, magnet / express, photo mode and the secondary movement keys)
 const RESERVED = new Set(['Escape', 'Tab', 'KeyP', 'KeyR', 'KeyF', 'KeyC', 'Enter', 'NumpadEnter', 'Backspace', 'Digit1', 'Digit2', 'Digit3', 'Digit4',
@@ -34,7 +34,7 @@ const PAD_LEGEND = () => [
   ['◀', t('aria.magnet'), ''], ['▶', t('aria.express'), ''],
 ];
 const PRIMARY = '#btn-play, #btn-brief-go, #btn-next, #btn-resume, #btn-ending-map';
-const FOCUSABLE = '.btn, .toggle, .node, input[type=range], .kbtn';
+const FOCUSABLE = '.btn, .toggle, .node, input[type=range], .kbtn, select, .ws-theme, .ws-new';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -219,14 +219,17 @@ export function init(ctx) {
       t('access.hint.jumpRun', { jump: k(L('jump')), run: k(L('run')) }),
       t('access.hint.slot', { a: k('1-4'), b: k(t('access.key.wheel')) }),
       t('access.hint.dropHint2', { a: k(t('access.key.rightClick')), b: k(L('drop')), hint: k(L('hint')) }),
-      `${k('R')} ${t('aria.magnet')} · ${k('F')} ${t('aria.express')}`,
+      // the tools line only on figures that have them (body.has-tools)
+      `<span class="tools-key">${k('R')} ${t('aria.magnet')} · ${k('F')} ${t('aria.express')}</span>`,
+      `${k('C')} ${t('photo.photo')}`,
     ];
-    $('keys').innerHTML = lines.map(s => `<span>${s}</span>`).join('');
+    $('keys').innerHTML = lines.map(s => s.startsWith('<span') ? s : `<span>${s}</span>`).join('');
   }
   // the tutorial lines name the keys; main.js asks us for the current labels
   // …and the single keys, so the coach can light each one up as it's used (none with a gamepad)
   ctx.coachKeys = () => (padMode ? null : {
     forward: L('forward'), left: L('left'), back: L('back'), right: L('right'), jump: L('jump'), drop: L('drop'), hint: L('hint'),
+    turnLeft: L('turnLeft'), turnRight: L('turnRight'),
     rightClick: t('access.key.rightClick'),
   });
   ctx.coachLabels = () => (padMode
@@ -364,6 +367,12 @@ export function init(ctx) {
     navNext = now + (dir === navDir ? 110 : 380);
     navDir = dir;
     if (!cur) return focusEl(fallback());
+    // a select (the language list): left / right step through its options
+    if (cur.tagName === 'SELECT' && (dir === 'left' || dir === 'right')) {
+      cur.selectedIndex = Math.max(0, Math.min(cur.options.length - 1, cur.selectedIndex + (dir === 'left' ? -1 : 1)));
+      cur.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
     if (cur.type === 'range' && (dir === 'left' || dir === 'right')) {
       const s = +cur.step || 1;
       cur.value = +cur.value + (dir === 'left' ? -s : s);
