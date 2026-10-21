@@ -1,4 +1,4 @@
-// A world's archipelago: a small hub island in the middle and one island per figure, joined by plank bridges.
+// A world's archipelago: a small hub island in the middle and one island per figure, joined by bridges in the world's style.
 // Islands stand north of the hub in two staggered rows (odd figures in front, even ones behind the gaps); a
 // causeway runs north from the hub to a boardwalk, and a spur leads from the boardwalk into each island's south
 // side (where every island keeps a clear path to its pedestal) — the back row's spurs pass between the front
@@ -18,6 +18,23 @@ const BOOST = 2.4; // walking speed on the bridges
 const SPUR = 4.5; // boardwalk to island
 const CAUSE = 6; // hub to boardwalk
 const HW = 1.2; // half width of a bridge
+
+// each world's bridges: deck under-beam, plank (or slab) colours, rails, posts and the lamps on the posts at a
+// crossing (`top`); `rails` are [height, thickness, width] (one thick rail makes a low wall), `railTop` a strip
+// along the top rail, `edge` one along the deck's open edges, `cap` a cap on every post, `piers` stone piers under
+// the deck instead of a piling under every post, `sound` the footsteps
+const STYLES = {
+  meadow: { base: 0x8a5a3c, planks: [0xc08a5c, 0xb27b50], rail: 0xc08a5c, post: 0x6b4a36, top: 'flowers', sound: 'wood' },
+  farm: { base: 0x9a6b4f, planks: [0xd9b27a, 0xc9a06a], rail: 0xf4efe6, post: 0xc0392b, top: 'hay', sound: 'wood' },
+  frost: { base: 0x5aaee6, planks: [0xbfe8ff, 0x9ad8ff], rail: 0xdff4ff, post: 0x7cc4f0, cap: 0xffffff, top: 'ice', sound: 'ice' },
+  frostwood: { base: 0x5c3f2e, planks: [0x8a6a52, 0x7a5a48], rail: 0x6b4a36, railTop: 0xf4f7ff, post: 0x6b4a36, round: true, cap: 0xffffff, edge: 0xf4f7ff, top: 'lantern', sound: 'wood' },
+  reef: { base: 0xb08850, planks: [0xead48e, 0xdcc076], rail: 0xb8935a, rails: [[0.5, 0.05, 0.05], [0.88, 0.05, 0.05]], post: 0xc9b06a, round: true, top: 'torch', sound: 'wood' },
+  cove: { base: 0x5a4a3c, planks: [0x8a7560, 0x7a6552], rail: 0xd9c49a, rails: [[0.5, 0.06, 0.06], [0.88, 0.06, 0.06]], post: 0x5c4a3c, round: true, postW: 0.2, top: 'lantern', sound: 'wood' },
+  starfall: { base: 0x5a4a8a, planks: [0x9d8fd0, 0x8a7bc0], rail: 0x6ee7ff, railKind: 'glow', post: 0xb693f5, edge: 0x6ee7ff, edgeKind: 'glow', top: 'crystal', sound: 'crystal' },
+  moon: { base: 0x4f4c60, planks: [0xa9a5ba, 0x9a96ad], rail: 0xcfcbe0, post: 0x6f6a85, edge: 0xffd23f, top: 'beacon', sound: 'stone' },
+  cliffs: { base: 0xb9b0a0, planks: [0xeee8da, 0xe0d9c8], rail: 0xd8d2c4, rails: [[0.3, 0.6, 0.3]], post: 0xc9c2b2, postW: 0.32, piers: true, cap: 0xeee8da, top: 'flowers', sound: 'stone' },
+  storm: { base: 0x5d5878, planks: [0x9a96b4, 0x8a86a4], rail: 0x77728f, railTop: 0x6fa58a, rails: [[0.3, 0.6, 0.3]], post: 0x77728f, postW: 0.32, piers: true, cap: 0x6fa58a, top: 'rune', sound: 'stone' },
+};
 
 // furthest extent of an island's ground in one direction (scan along z at a few x positions)
 function reach(world, dirZ) {
@@ -80,7 +97,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     let d = Math.min(fixedSd[0](x, z), fixedSd[1](x, z));
     for (const pt of parts) {
       let e = pt.spurSd(x, z);
-      if (!pt.open) e = Math.max(e, (zJ - HW - 0.3) - z);
+      if (!pt.open) e = Math.max(e, (zJ - HW - 0.6) - z);
       if (pt.shut) e = Math.max(e, 0.35 - Math.abs(z - pt.doorZ));
       d = Math.min(d, e);
     }
@@ -93,50 +110,119 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   for (const pt of parts) { pt.world.group.position.copy(pt.p); root.add(pt.world.group); }
 
   // ---- bridge looks ----
+  // Where the causeway or a spur joins the boardwalk, the boardwalk's deck runs on through the crossing and the
+  // rails stop exactly at the corners of the opening, each corner marked by a taller post with the world's lamp.
+  const S = STYLES[hubWorld.themeId] || STYLES.meadow;
   const B = new Batch();
   const rects = [causeway, boardwalk, ...parts.map(pt => pt.spur)];
   const pieceList = [hub, ...parts];
   const onLand = (ax, az) => pieceList.some(k => k.world.walkSd(ax - k.p.x, az - k.p.z) < -0.05);
-  const inOther = (ax, az, self) => rects.some(r => r !== self && ax > r[0] + 0.12 && ax < r[2] - 0.12 && az > r[1] + 0.12 && az < r[3] - 0.12);
-  const postH = floating ? 1.6 : DECK - hubWorld.seaY + 0.9;
+  const piers = S.piers && !floating;
+  const postH = piers ? 1.15 : floating ? 1.6 : DECK - hubWorld.seaY + 0.9;
+  const rails = S.rails || [[0.42, 0.08, 0.09], [0.86, 0.08, 0.09]];
+  const posts = [];
   const deck = r => {
-    const [x0, z0, x1, z1] = r;
+    const [x0, z0, x1, z1] = r === boardwalk ? r
+      : [r[0], r[1] < boardwalk[1] ? r[1] : Math.max(r[1], boardwalk[3]), r[2], r[3] > boardwalk[3] ? r[3] : Math.min(r[3], boardwalk[1])];
     const alongX = x1 - x0 > z1 - z0, L = alongX ? x1 - x0 : z1 - z0, w = alongX ? z1 - z0 : x1 - x0;
     const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-    B.put(GEO.box(), 0x8a5a3c, cx, DECK - 0.12, cz, { sx: alongX ? L : w, sy: 0.16, sz: alongX ? w : L });
+    B.put(GEO.box(), S.base, cx, DECK - 0.12, cz, { sx: alongX ? L : w, sy: 0.16, sz: alongX ? w : L });
     for (let t = 0.25; t < L; t += 0.5) {
       const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
-      B.put(GEO.box(), Math.round(t * 2) % 2 ? 0xc08a5c : 0xb27b50, px, DECK - 0.02, pz, { sx: alongX ? 0.44 : w + 0.1, sy: 0.06, sz: alongX ? w + 0.1 : 0.44, kind: 'ground' });
+      B.put(GEO.box(), S.planks[Math.round(t * 2) % 2], px, DECK - 0.02, pz, { sx: alongX ? 0.44 : w + 0.1, sy: 0.06, sz: alongX ? w + 0.1 : 0.44, kind: 'ground' });
     }
-    // rails on every side, except where the bridge runs onto land or into another bridge
-    const sides = [[x0, z0 - 0.05, x1, z0 - 0.05], [x0, z1 + 0.05, x1, z1 + 0.05], [x0 - 0.05, z0, x0 - 0.05, z1], [x1 + 0.05, z0, x1 + 0.05, z1]];
-    for (const [ax, az, bx, bz] of sides) {
-      const len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(len / 0.3));
-      let run = null;
-      const flush = () => {
-        if (!run || run.b - run.a < 0.3) { run = null; return; }
-        const p = t => [ax + (bx - ax) * t / len, az + (bz - az) * t / len];
-        const [sx, sz] = p(run.a), [ex, ez] = p(run.b), rl = run.b - run.a, along = Math.abs(bx - ax) > Math.abs(bz - az);
-        for (const y of [0.42, 0.86]) B.put(GEO.box(), 0xc08a5c, (sx + ex) / 2, DECK + y, (sz + ez) / 2, { sx: along ? rl : 0.09, sy: 0.08, sz: along ? 0.09 : rl });
-        const k = Math.max(1, Math.round(rl / 1.8));
-        for (let i = 0; i <= k; i++) { const [px, pz] = p(run.a + rl * i / k); B.put(GEO.box(), 0x6b4a36, px, DECK + 0.95 - postH / 2, pz, { sx: 0.14, sy: postH, sz: 0.14 }); }
-        run = null;
-      };
-      for (let i = 0; i <= n; i++) {
-        const t = (len * i) / n, px = ax + (bx - ax) * t / len, pz = az + (bz - az) * t / len;
-        if (onLand(px, pz) || inOther(px, pz, r)) flush();
-        else if (run) run.b = t; else run = { a: t, b: t };
+    if (piers) {
+      const y0 = hubWorld.seaY - 1, y1 = DECK - 0.2;
+      for (let t = 1.8; t < L - 0.6; t += 3.6) {
+        const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
+        if (!onLand(px, pz)) B.put(GEO.box(), S.post, px, (y0 + y1) / 2, pz, { sx: alongX ? 0.8 : w - 0.2, sy: y1 - y0, sz: alongX ? w - 0.2 : 0.8 });
       }
-      flush();
     }
   };
-  for (const r of rects) deck(r);
+  // one stretch of railing along a side, from a to b
+  const span = (alongX, c, { a, b, an, bn }) => {
+    if (b - a < 0.3) return;
+    const at = t => (alongX ? [t, c] : [c, t]);
+    const [mx, mz] = at((a + b) / 2), L = b - a;
+    const bar = (y, sy, sw, color, kind = 'solid') => B.put(GEO.box(), color, mx, DECK + y, mz, { sx: alongX ? L : sw, sy, sz: alongX ? sw : L, kind });
+    for (const [y, sy, sw] of rails) bar(y, sy, sw, S.rail, S.railKind);
+    if (S.railTop) { const [y, sy, sw] = rails[rails.length - 1]; bar(y + sy / 2 + 0.02, 0.05, sw + 0.04, S.railTop); }
+    if (S.edge) bar(0.02, 0.06, 0.16, S.edge, S.edgeKind || 'ground');
+    const k = Math.max(1, Math.round(L / 1.8));
+    for (let i = 0; i <= k; i++) posts.push({ p: at(a + L * i / k), newel: (i === 0 && an) || (i === k && bn) });
+  };
+  const railing = r => {
+    const [x0, z0, x1, z1] = r;
+    for (const [alongX, c, a, b] of [[true, z0 - 0.05, x0, x1], [true, z1 + 0.05, x0, x1], [false, x0 - 0.05, z0, z1], [false, x1 + 0.05, z0, z1]]) {
+      // cut out where another bridge joins (its exact edges, so the corners line up) ...
+      let segs = [[a, b, false, false]];
+      for (const q of rects) {
+        const [lo, hi, c0, c1] = alongX ? [q[0], q[2], q[1], q[3]] : [q[1], q[3], q[0], q[2]];
+        if (q === r || c <= c0 || c >= c1) continue;
+        segs = segs.flatMap(([s, e, sn, en]) => (hi <= s || lo >= e ? [[s, e, sn, en]]
+          : [...(lo > s ? [[s, lo, sn, true]] : []), ...(hi < e ? [[hi, e, true, en]] : [])]));
+      }
+      // ... and stop where the side runs over land
+      for (const [s, e, sn, en] of segs) {
+        const n = Math.max(1, Math.ceil((e - s) / 0.1));
+        let run = null;
+        for (let i = 0; i <= n; i++) {
+          const t = s + ((e - s) * i) / n;
+          if (onLand(...(alongX ? [t, c] : [c, t]))) { if (run) span(alongX, c, run); run = null; }
+          else if (run) { run.b = t; run.bn = i === n && en; } else run = { a: t, b: t, an: i === 0 && sn, bn: false };
+        }
+        if (run) span(alongX, c, run);
+      }
+    }
+  };
+  for (const r of rects) { deck(r); railing(r); }
+  // posts (one where two railings meet), the crossing's corners taller and lit
+  const kept = [];
+  for (const q of posts) {
+    const o = kept.find(k => Math.hypot(k.p[0] - q.p[0], k.p[1] - q.p[1]) < 0.35);
+    if (o) o.newel ||= q.newel; else kept.push(q);
+  }
+  const flowers = hubWorld.theme.flowers;
+  for (const { p: [px, pz], newel } of kept) {
+    const w = (S.postW || 0.14) * (newel ? 1.5 : 1), top = DECK + (newel ? 1.2 : 0.95), h = postH + top - DECK - 0.95;
+    B.put(S.round ? GEO.cyl(8) : GEO.box(), S.post, px, top - h / 2, pz, S.round ? { sx: w * 0.6, sy: h, sz: w * 0.6 } : { sx: w, sy: h, sz: w });
+    if (S.cap) B.put(GEO.box(), S.cap, px, top + 0.03, pz, { sx: w + 0.06, sy: 0.07, sz: w + 0.06 });
+    if (!newel) continue;
+    const y = top + (S.cap ? 0.07 : 0);
+    const put = (geo, color, dy, s, o = {}) => B.put(geo, color, px, y + dy, pz, { sx: s[0], sy: s[1], sz: s[2], ...o });
+    switch (S.top) {
+      case 'flowers':
+        put(GEO.box(), 0xd9774a, 0.09, [0.34, 0.18, 0.34]);
+        for (let i = 0; i < 3; i++) B.put(GEO.blob(), flowers[i % flowers.length], px + [-0.08, 0.08, 0][i], y + 0.24, pz + [0.06, 0.04, -0.08][i], { sx: 0.08, sy: 0.08, sz: 0.08 });
+        break;
+      case 'hay':
+        put(GEO.box(), 0xe9c75a, 0.14, [0.42, 0.28, 0.32]);
+        put(GEO.box(), 0xc9a03a, 0.14, [0.44, 0.06, 0.34]);
+        break;
+      case 'ice': put(GEO.octa(), 0xc8f0ff, 0.22, [0.15, 0.28, 0.15], { kind: 'glow' }); break;
+      case 'crystal': put(GEO.octa(), 0xff9ee8, 0.22, [0.15, 0.28, 0.15], { kind: 'glow' }); break;
+      case 'lantern':
+        put(GEO.box(), 0x3a2a20, 0.03, [0.26, 0.06, 0.26]);
+        put(GEO.box(), 0xffd27a, 0.17, [0.17, 0.22, 0.17], { kind: 'glow' });
+        put(GEO.cone(4), 0x3a2a20, 0.36, [0.22, 0.16, 0.22], { ry: Math.PI / 4 });
+        break;
+      case 'torch':
+        put(GEO.cone(6), 0x8a6a3c, 0.1, [0.14, 0.2, 0.14], { rx: Math.PI });
+        put(GEO.ico(), 0xffa040, 0.3, [0.1, 0.18, 0.1], { kind: 'glow' });
+        break;
+      case 'beacon':
+        put(GEO.box(), 0x3a3850, 0.04, [0.24, 0.08, 0.24]);
+        put(GEO.dome(), 0x4cc9f0, 0.08, [0.12, 0.14, 0.12], { kind: 'glow' });
+        break;
+      case 'rune': put(GEO.box(), 0x9cf5ff, 0.22, [0.15, 0.15, 0.15], { rx: Math.PI / 4, rz: Math.PI / 4, kind: 'glow' }); break;
+    }
+  }
   const bridgeBlockers = [];
   B.build(root, bridgeBlockers);
 
   // gates on the spurs of locked islands, and finished figures on the islands you're not on
   const gateGeo = new THREE.BoxGeometry(1, 1, 1);
-  const wood = toon(0x8a5a3c), dark = toon(0x5c3a28);
+  const wood = toon(S.base), dark = toon(S.post);
   let lockTex = null;
   const lockBadge = () => {
     if (lockTex) return lockTex;
@@ -151,7 +237,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   };
   for (const pt of parts) {
     const g = new THREE.Group();
-    const z = zJ - HW - 0.25;
+    const z = zJ - HW - 0.55; // clear of the crossing's corner posts
     for (const s of [-1, 1]) { const m = new THREE.Mesh(gateGeo, wood); m.scale.set(0.24, 1.5, 0.24); m.position.set(pt.p.x + s * (HW - 0.05), DECK + 0.75, z); g.add(m); }
     for (const y of [0.55, 1.1]) { const m = new THREE.Mesh(gateGeo, dark); m.scale.set(HW * 2, 0.14, 0.1); m.position.set(pt.p.x, DECK + y, z); g.add(m); }
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: lockBadge(), depthWrite: false, transparent: true }));
@@ -217,7 +303,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       const ax = x + A.x, az = z + A.z;
       const k = pieceAt(ax, az, -0.3);
       // (gentler with reduced motion)
-      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: api.calmMotion?.() ? 1.4 : BOOST, sound: 'wood' };
+      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: api.calmMotion?.() ? 1.4 : BOOST, sound: S.sound };
       return (k || active).world.surfaceAt(ax - (k || active).p.x, az - (k || active).p.z, y);
     },
     padAt(x, z, y) {
