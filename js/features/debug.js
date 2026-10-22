@@ -11,7 +11,7 @@ export function init(ctx) {
     <div class="dbg-head"><b>DEBUG</b><span id="dbg-fps">– fps</span><button data-a="min">–</button></div>
     <div class="dbg-body">
       <select id="dbg-level">${LEVELS.map((l, i) => `<option value="${i}">${i + 1}. ${l.name} (${ctx.expandLevel(l).cells.length})</option>`).join('')}</select>
-      <div class="dbg-row"><button data-a="play">Play</button><button data-a="show">Show island</button><button data-a="map">Map</button></div>
+      <div class="dbg-row"><button data-a="play">Play</button><button data-a="show">Show island</button><button data-a="map">Isle</button></div>
       <div class="dbg-row"><button data-a="solve">Quick solve</button><button data-a="part">Solve part</button><button data-a="ten">+10</button><button data-a="win">Win now</button></div>
       <div class="dbg-row"><button data-a="fly">Fly: off</button><button data-a="home">To pedestal</button><button data-a="hint">Beam</button></div>
       <div class="dbg-row"><button data-a="unlock">Unlock all</button><button data-a="all">All done ★★★</button><button data-a="wipe">Wipe save</button></div>
@@ -46,7 +46,7 @@ export function init(ctx) {
     min: () => el.classList.toggle('min'),
     play: () => { stopSolve(); ctx.startLevel(+ctx.$('dbg-level').value); },
     show: () => { stopSolve(); ctx.enterTitle(); game.load(+ctx.$('dbg-level').value); game.mode = 'showcase'; },
-    map: () => ctx.openMap(),
+    map: () => ctx.openNexus(),
     prologue: () => { stopSolve(); ctx.playPrologue(); },
     finale: () => { stopSolve(); ctx.showEnding(); },
     solve: () => solve(),

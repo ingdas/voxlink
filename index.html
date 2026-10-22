@@ -45,6 +45,7 @@
     <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6"/></symbol>
     <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 4v10M7.5 10l4.5 4.5 4.5-4.5M5 19h14"/></symbol>
+    <symbol id="i-portal" viewBox="0 0 24 24"><path d="M5.5 20.5V11a6.5 6.5 0 0 1 13 0v9.5M3.5 20.5h17"/><path d="M12 9.2c1.6 0 2.6 1.2 2.6 2.6 0 2-1.8 3.4-3.6 3.4-2.4 0-4.2-2-4.2-4.4" /></symbol>
     <symbol id="i-map" viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5 5.5-2.5v13.5L15 20l-6-2.5-5.5 2.5zM9 4v13.5M15 6.5V20"/></symbol>
     <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
@@ -127,20 +128,10 @@
     <button class="btn huge mint" id="btn-play"><svg><use href="#i-play"/></svg><span id="play-label">Play</span></button>
     <p class="play-sub" id="play-sub"></p>
     <div class="row">
-      <button class="btn" id="btn-map"><svg><use href="#i-map"/></svg><span data-i18n="title.map">Map</span></button>
+      <button class="btn" id="btn-map"><svg><use href="#i-portal"/></svg><span data-i18n="title.worlds">Worlds</span></button>
       <button class="btn" id="btn-settings"><svg><use href="#i-gear"/></svg><span data-i18n="common.settings">Settings</span></button>
     </div>
     <div class="row" id="title-extra"></div>
-  </div>
-</div>
-
-<div id="screen-map" class="screen map">
-  <div class="map-scroll" id="map-scroll"><div class="map-inner" id="map-inner"></div></div>
-  <div class="map-top">
-    <button class="btn icon" id="btn-map-back" aria-label="Back" data-i18n-aria="aria.back"><svg><use href="#i-home"/></svg></button>
-    <div class="tag map-title" data-i18n="map.title">World Map</div>
-    <button class="btn small" id="btn-map-ending" style="display:none"><svg><use href="#i-play"/></svg><span data-i18n="complete.epilogue">Epilogue</span></button>
-    <div class="tag star-total"><svg><use href="#i-star"/></svg><span id="map-stars">0 / 48</span></div>
   </div>
 </div>
 
@@ -184,7 +175,7 @@
       <button class="btn huge mint" id="btn-resume"><svg><use href="#i-play"/></svg><span data-i18n="pause.resume">Resume</span></button>
       <button class="btn" id="btn-restart"><svg><use href="#i-retry"/></svg><span data-i18n="pause.restart">Restart</span></button>
       <button class="btn" id="btn-p-settings"><svg><use href="#i-gear"/></svg><span data-i18n="common.settings">Settings</span></button>
-      <button class="btn" id="btn-quit"><svg><use href="#i-map"/></svg><span data-i18n="pause.map">World map</span></button>
+      <button class="btn" id="btn-quit"><svg><use href="#i-portal"/></svg><span data-i18n="pause.worlds">Keeper's Isle</span></button>
     </div>
   </div>
 </div>
@@ -223,7 +214,7 @@
     <div class="ending-grid" id="ending-grid"></div>
     <p class="center ending-stars"><svg><use href="#i-star"/></svg> <span id="ending-stars"></span></p>
     <p class="center small-print" data-i18n="ending.thanks">Thanks for playing Kubo's Islands.</p>
-    <button class="btn mint" id="btn-ending-map"><svg><use href="#i-map"/></svg><span data-i18n="ending.back">Back to the map</span></button>
+    <button class="btn mint" id="btn-ending-map"><svg><use href="#i-portal"/></svg><span data-i18n="ending.toIsle">To the Keeper's Isle</span></button>
   </div>
 </div>
 

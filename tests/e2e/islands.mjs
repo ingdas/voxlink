@@ -41,10 +41,15 @@ await suite('islands', async t => {
     return h?.kind === 'socket' && h.child === s.child;
   });
   t.check('aiming at a fillable bubble picks it', aim);
-  // stars on the map: hat, crowns, ending replay
-  await p.evaluate(() => { const V = window.__voxlink; for (const l of V.LEVELS) V.save.stars[l.id] = { done: true, fast: true, clean: true }; V.save.unlocked = 50; V.openMap(); });
-  await p.waitForTimeout(500);
-  const m = await p.evaluate(() => ({ hat: !!document.querySelector('#map-kubo .hat svg'), ending: getComputedStyle(document.getElementById('btn-map-ending')).display !== 'none', crowns: document.querySelectorAll('.crown').length, label: document.querySelector('.node').getAttribute('aria-label') }));
-  t.check('150 stars: Kubo wears a hat, every world crowned, the ending can be replayed', m.hat && m.ending && m.crowns === 10, m);
-  t.check('map worlds have screen-reader labels', /World 1: Meadow Isles/.test(m.label || ''), m.label);
+  // every star: on the Keeper's Isle every world is open and crowned, every figure stands by its portal, and the
+  // ending can be replayed from its pause menu
+  await p.evaluate(() => { const V = window.__voxlink; for (const l of V.LEVELS) V.save.stars[l.id] = { done: true, fast: true, clean: true }; V.save.unlocked = 50; V.save.seen.nexus = true; V.openNexus(); });
+  await p.waitForFunction(() => window.__voxlink.ctx.nexus.session?.ready, null, { timeout: 20000 });
+  await p.keyboard.press('KeyP');
+  await p.waitForTimeout(300);
+  const m = await p.evaluate(() => {
+    const k = window.__voxlink.ctx.nexus.session.isle.islets.filter(i => !i.slot.garden);
+    return { open: k.every(i => i.open), crowned: k.filter(i => i.slot.crowned).length, figures: k.reduce((n, i) => n + i.slot.minis.filter(Boolean).length + !!i.slot.finale, 0), ending: getComputedStyle(document.getElementById('btn-nexus-ending')).display !== 'none' };
+  });
+  t.check('150 stars: every world open and crowned, all 50 figures by their portals, the ending can be replayed', m.open && m.crowned === 10 && m.figures === 50 && m.ending, m);
 });

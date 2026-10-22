@@ -1453,4 +1453,119 @@ function hub(W) {
   W.clouds = floating ? 0 : 16; W.cloudR = 100; W.cloudY = 18;
 }
 
-export const LAYOUTS = { hub, classic, meadow, farm, frost, frostwood, reef, cove, starfall, moon, cliffs, storm };
+// ---------- the Keeper's Isle (js/nexus.js): a floating plaza with a bridge out to every world's portal ----------
+// opts.spokes: the bridges' directions (unit vectors { x, z }); trees keep clear of them, and a sign stands beside
+// each one where it leaves the plaza (out.signs, filled in by nexus.js)
+function floatingGround(W, isl) {
+  const { R, T } = W;
+  W.walkSd = isl; W.coastSd = isl; W.radiusAt = isl.radiusAt;
+  W.hasSea = false; W.voidY = -9;
+  W.floorAt = (x, z) => (isl(x, z) < 0.05 ? 0 : null);
+  W.ground(isl, { top: T.grass, side: T.cliff, depth: 3, taper: 1, jag: 0.5 });
+  put(W, GEO.cone(9), T.dirt, 0, -2.9 - R * 0.55, 0, { sx: R - 1, sy: R * 1.1, sz: R - 1, rx: Math.PI });
+}
+function keeper(W) {
+  const { R, T, seed, rng } = W;
+  const spokes = W.opts.spokes || [];
+  const isl = sdBlob(0, 0, R, seed, 0.3);
+  floatingGround(W, isl);
+  const nearSpoke = (x, z, w) => spokes.some(u => x * u.x + z * u.z > 0 && Math.abs(x * u.z - z * u.x) < w);
+  const stone = () => (rng() < 0.5 ? 0xe6dccb : 0xd6cab4);
+  // a ring of flagstones round the Keeper's Lantern, and a path of them out to each bridge
+  for (let i = 0; i < 80; i++) {
+    const a = rng() * Math.PI * 2, r = 2.5 + rng() * 2.2;
+    put(W, GEO.box(), stone(), Math.cos(a) * r, 0.015, Math.sin(a) * r, { sx: 0.5 + rng() * 0.4, sy: 0.04, sz: 0.45 + rng() * 0.3, ry: rng(), kind: 'fx' });
+  }
+  for (const u of spokes) {
+    for (let r = 4.9; r < R + 0.5; r += 0.62) {
+      const s = (rng() - 0.5) * 0.9, x = u.x * r + u.z * s, z = u.z * r - u.x * s;
+      if (isl(x, z) < -0.3) put(W, GEO.box(), stone(), x, 0.015, z, { sx: 0.55 + rng() * 0.3, sy: 0.04, sz: 0.5 + rng() * 0.3, ry: rng(), kind: 'fx' });
+    }
+  }
+  // the Lantern's stone base (its crystal and the worlds' orbs are added by nexus.js)
+  put(W, GEO.cyl(8), 0xb9ad98, 0, 0.15, 0, { sx: 2.3, sy: 0.3, sz: 2.3, ry: Math.PI / 8 });
+  put(W, GEO.cyl(8), 0xe6dccb, 0, 0.45, 0, { sx: 1.75, sy: 0.3, sz: 1.75, ry: Math.PI / 8 });
+  put(W, GEO.cyl(8), 0xd6cab4, 0, 2.1, 0, { sx: 0.5, sy: 3.0, sz: 0.5, ry: Math.PI / 8 });
+  put(W, GEO.cyl(8), 0xb9ad98, 0, 3.7, 0, { sx: 0.8, sy: 0.25, sz: 0.8, ry: Math.PI / 8 });
+  W.box(-2.1, 0, -2.1, 2.1, 0.3, 2.1, { sound: 'stone' });
+  W.box(-1.6, 0, -1.6, 1.6, 0.6, 1.6, { sound: 'stone' });
+  W.box(-0.6, 0, -0.6, 0.6, 3.9, 0.6, { sound: 'stone' });
+  W.obstacles.push({ x: 0, z: 0, r: 2.6 });
+  // a sign beside each bridge head, facing the plaza
+  W.out.signs = spokes.map(u => {
+    const a = R - 2.2, s = 2.1, x = u.x * a + u.z * s, z = u.z * a - u.x * s;
+    W.box(x - 0.4, 0, z - 0.4, x + 0.4, 1.4, z + 0.4);
+    W.obstacles.push({ x, z, r: 1.0 });
+    return { x, z, ry: Math.atan2(-u.x, -u.z) };
+  });
+  scatterProps(W, 9, (x, z) => { const r = Math.hypot(x, z); return r > 5.4 && isl(x, z) < -1.8 && !nearSpoke(x, z, 2.1) && !W.crowded(x, z, 1.9); },
+    (x, z) => tree(W, 'round', x, z, 0.6 + rng() * 0.3, 0), 14);
+  W.extraFlowers = [];
+  for (let i = 0; i < 70; i++) {
+    const a = rng() * Math.PI * 2, r = 4.8 + rng() * (R - 5.5), x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (isl(x, z) < -0.8 && !nearSpoke(x, z, 1.5) && !W.crowded(x, z, 0.3)) W.extraFlowers.push({ x, y: 0, z, c: T.flowers[i % T.flowers.length], s: 1.4 });
+  }
+  W.clouds = 20; W.cloudR = 55; W.cloudY = -14; W.cloudScale = 1.3;
+}
+
+// a world's islet off the Keeper's Isle: its own ground and trees, its portal on the far side facing the plaza,
+// lamps in the world's colour where the bridge lands and four spots for little pedestals (out.minis: nexus.js
+// stands the world's rebuilt figures on them). opts.dir points away from the plaza; opts.garden makes it the
+// flowery hedge arch into Kubo's Garden
+function gate(W) {
+  const { R, T, seed, rng } = W;
+  const { dir: u = { x: 0, z: 1 }, garden = false } = W.opts;
+  const isl = sdBlob(0, 0, R, seed, 0.45);
+  floatingGround(W, isl);
+  const at = (a, s) => [u.x * a + u.z * s, u.z * a - u.x * s]; // along the bridge's line, across it
+  const ry = Math.atan2(u.x, u.z);
+  // the portal: a ring of stones (a hedge for the Garden) on a low slab
+  const pa = R - 2.3, [px, pz] = at(pa, 0);
+  W.out.portal = { x: px, z: pz, ry };
+  const ring = garden ? [0x4f9e52, 0x63b862] : [T.pedestal[0], T.pedestal[1]];
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI * 2, r = 1.55, [x, z] = at(pa, Math.cos(a) * r), y = 1.85 + Math.sin(a) * r;
+    put(W, GEO.box(), ring[k % 2], x, y, z, { sx: 0.62, sy: 0.62, sz: 0.5, ry, rz: a });
+    if (garden && k % 2) put(W, GEO.blob(), T.flowers[k % T.flowers.length], x - u.x * 0.3, y + 0.2, z - u.z * 0.3, { sx: 0.13, sy: 0.13, sz: 0.13 });
+  }
+  put(W, GEO.box(), garden ? 0xb07a50 : T.pedestal[0], px, 0.12, pz, { sx: 3.6, sy: 0.24, sz: 1.3, ry });
+  for (const s of [-1, 1]) {
+    const [x, z] = at(pa, s * 1.55);
+    W.box(x - 0.35, 0, z - 0.35, x + 0.35, 3.4, z + 0.35, { sound: 'stone' });
+    put(W, GEO.octa(), T.pedestal[2], x, 3.55, z, { sx: 0.16, sy: 0.3, sz: 0.16, kind: 'glow' });
+  }
+  W.obstacles.push({ x: px, z: pz, r: 2.4 });
+  // lamps in the world's colour where the bridge lands
+  for (const s of [-1, 1]) {
+    const [x, z] = at(-R + 1.2, s * 1.75);
+    put(W, GEO.cyl(6), 0x5c5c6a, x, 1.0, z, { sx: 0.08, sy: 2.0, sz: 0.08 });
+    put(W, GEO.box(), T.pedestal[2], x, 2.1, z, { sx: 0.3, sy: 0.34, sz: 0.3, kind: 'glow' });
+    W.box(x - 0.15, 0, z - 0.15, x + 0.15, 2.3, z + 0.15);
+    W.obstacles.push({ x, z, r: 0.8 });
+  }
+  // a clear path from the bridge to the portal
+  const onPath = (x, z) => Math.abs(x * u.z - z * u.x) < 2 && x * u.x + z * u.z < pa;
+  W.out.minis = [];
+  if (!garden) {
+    for (const deg of [-115, -64, 64, 115]) {
+      const th = (deg * Math.PI) / 180, r = R - 1.95, [x, z] = at(Math.cos(th) * r, Math.sin(th) * r);
+      W.box(x - 0.5, 0, z - 0.5, x + 0.5, 0.55, z + 0.5, { sound: 'stone' });
+      W.obstacles.push({ x, z, r: 0.75 });
+      W.out.minis.push({ x, z, ry: Math.atan2(-x, -z) });
+    }
+  }
+  const kind = garden ? 'round' : T.trees;
+  scatterProps(W, garden ? 6 : 5, (x, z) => isl(x, z) < -0.9 && !onPath(x, z) && !W.crowded(x, z, 0.9),
+    (x, z) => tree(W, kind, x, z, (kind === 'palm' ? 0.5 : 0.55) + rng() * 0.25, 0), 16);
+  scatterProps(W, 3, (x, z) => isl(x, z) < -0.7 && !onPath(x, z) && !W.crowded(x, z, 0.8), (x, z) => rock(W, x, z, 0.25 + rng() * 0.25, 0, T.rockShape, false));
+  W.extraFlowers = [];
+  if (garden) {
+    for (let i = 0; i < 60; i++) {
+      const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * (R - 0.8), x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if (isl(x, z) < -0.6 && !onPath(x, z) && !W.crowded(x, z, 0.2)) W.extraFlowers.push({ x, y: 0, z, c: T.flowers[i % T.flowers.length], s: 1.5 });
+    }
+  }
+  W.tuftScale = 0.35;
+}
+
+export const LAYOUTS = { hub, keeper, gate, classic, meadow, farm, frost, frostwood, reef, cove, starfall, moon, cliffs, storm };

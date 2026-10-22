@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { Renderer } from './render.js';
 import { LEVELS, CHAPTERS, ENDING, expandLevel, parTime, partsFor } from './levels.js';
-import { THEMES } from './world.js';
 import { S, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, getAtlas } from './voxels.js';
 import { Game, PACK_SIZE, TOOLS } from './game.js';
 import { Input } from './input.js';
@@ -189,7 +188,8 @@ const game = new Game({
     isDone: l => isDone(l.id),
     isHalf: l => !!save.sessions[l.id]?.placed?.length,
     island: l => walkOnto(l),
-    portal: () => openPortal(),
+    // a world's portal leads back to the Keeper's Isle (out of that world's portal there)
+    portal: () => { if (app === 'playing' && !overlays.length) ctx.nexus.enter({ from: game.level.chapter }); },
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); ctx.companion?.nudge(); },
     // a tip Kubo gives once, ever
     tipOnce: (id, msg) => { if (!save.seen[`tip.${id}`]) { save.seen[`tip.${id}`] = true; persist(); kuboSays(msg); } },
@@ -219,7 +219,6 @@ function resize() {
   camera.fov = camera.userData.baseFov = THREE.MathUtils.clamp(vfov, 62 * hfov / 88, 92 * hfov / 88);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
-  if (base === 'screen-map') buildMap();
 }
 addEventListener('resize', resize);
 screen.orientation?.addEventListener?.('change', () => setTimeout(resize, 120));
@@ -491,7 +490,6 @@ function showcase(idx) {
 function enterTitle() {
   audio.suspend(false);
   app = 'title';
-  mapFromIsland = false;
   document.body.classList.remove('roaming');
   input.enabled = false;
   input.exitLock();
@@ -565,7 +563,7 @@ function startLevel(index, resume = false, arrive = 'island') {
   audio.unlock();
   audio.suspend(false);
   const lvl = levelOf(index);
-  mapFromIsland = false;
+  ctx.nexus?.leave(); // started from the Keeper's Isle without its portals (the debug panel)
   document.body.classList.remove('roaming');
   // arriving at a finished figure (walking over, by portal, Continue): it stands built (a rebuild you walked away
   // from is dropped); replays are explicit
@@ -589,7 +587,9 @@ function startLevel(index, resume = false, arrive = 'island') {
   if (!keepCam) {
     const fromCam = game.world ? null : 1;
     game.load(lvl, session, { arrive, built });
-    if (fromCam) { game.orbitAngle = 0.5; game.updateOrbit(0, 0, 1); }
+    // arriving by portal: the camera glides out of it to your eyes
+    if (arrive === 'hub' && game.arch) { camera.position.copy(game.arch.portalPos()).setY(1.55); camera.rotation.set(-0.06, 0, 0, 'YXZ'); }
+    else if (fromCam) { game.orbitAngle = 0.5; game.updateOrbit(0, 0, 1); }
   }
   input.reset();
   lastNeeds = '';
@@ -643,7 +643,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { pause(); audio.suspend(true); } else if (base !== 'screen-pause') audio.suspend(false);
 });
 
-let pendingUnlock = null; // { from, to } for the map animation
 function onComplete(stats) {
   app = 'complete';
   document.body.classList.add('celebrating');
@@ -664,11 +663,7 @@ function onComplete(stats) {
   save.splits = save.splits || {};
   const prevSplits = save.splits[lvl.id];
   if (isBest) { save.best[lvl.id] = stats.time; save.splits[lvl.id] = stats.splits; }
-  const oldUnlocked = save.unlocked;
   save.unlocked = Math.max(save.unlocked, Math.min(LEVELS.length, idx + 2));
-  // the map animates Kubo to a newly opened world
-  const newCh = LEVELS[save.unlocked - 1].chapter;
-  pendingUnlock = save.unlocked > oldUnlocked && newCh !== lvl.chapter ? { from: lvl.chapter, to: newCh } : null;
   delete save.sessions[lvl.id];
   persist();
   const finale = idx === LEVELS.length - 1 && firstClear;
@@ -689,8 +684,8 @@ function onComplete(stats) {
   const giftName = idx === 0 && firstClear ? ctx.gift?.pending() : null;
   // the gift card opens over the pause menu (its buttons need a pointer); Not now leads back to the game
   const openGift = () => { pause(); ctx.gift.open(); };
-  // travel on: Kubo hops along the world map's path and you arrive in the next world
-  const toNextWorld = () => { pendingUnlock = pendingUnlock || { from: lvl.chapter, to: lvl.chapter + 1 }; openMap(); };
+  // travel on: to the Keeper's Isle, where the next world's portal wakes in front of you
+  const toNextWorld = () => ctx.nexus.enter({ unlock: lvl.chapter + 1 });
   // no results panel: after the celebration you're straight back on the island with a results card in the HUD,
   // and the way on (next world, the epilogue, a friend's gift) is one key away
   const card = {
@@ -784,112 +779,13 @@ function showComplete(o) {
   setBase('screen-complete');
 }
 
-// ---------- world map ----------
-// A world select: one island per world, showing the figure you're on there. Inside a world you walk between
-// its figures across the bridges of its archipelago.
+// ---------- the world select ----------
+// The Keeper's Isle (js/features/nexus.js): a place you walk, with a portal to every world. Inside a world you walk
+// between its figures across the bridges of its archipelago.
 let thumbs = [];
-const BAND_H = 360, TOP_PAD = 86, BOT_PAD = 70;
-const mapPos = []; // per chapter
 const chapterUnlocked = c => CHAPTERS[c].levels[0].index < save.unlocked;
-function buildMap() {
-  const inner = $('map-inner');
-  const W = inner.clientWidth || innerWidth;
-  const colW = Math.min(500, W - 190);
-  const cx = W / 2;
-  const H = TOP_PAD + CHAPTERS.length * BAND_H + BOT_PAD;
-  inner.style.height = `${H}px`;
-  let html = '';
-  const xs = [0, 0.38, -0.05, -0.36];
-  const cur = LEVELS[nextLevelIndex()].chapter;
-  CHAPTERS.forEach((ch, c) => {
-    const top = TOP_PAD + (CHAPTERS.length - 1 - c) * BAND_H;
-    const T = THEMES[ch.theme];
-    const locked = !chapterUnlocked(c);
-    const st = ch.levels.reduce((n, l) => n + starsOf(l.id), 0);
-    const done = ch.levels.filter(l => isDone(l.id)).length;
-    html += `<div class="map-chapter" style="position:absolute;left:0;right:0;top:${top - (c === CHAPTERS.length - 1 ? TOP_PAD : 0)}px;height:${BAND_H + (c === CHAPTERS.length - 1 ? TOP_PAD : 0) + (c === 0 ? BOT_PAD : 0)}px;
-      background:linear-gradient(to top, ${hex(T.water)}, ${hex(T.skyHorizon)} 55%, ${hex(T.skyTop)});${locked ? 'filter:saturate(.35) brightness(.85);' : ''}">
-      <div class="waves"></div></div>`;
-    html += `<div class="chapter-head ${locked ? 'locked' : ''}" style="top:${top + 22}px"><small>${t('map.chapter', { n: c + 1 })}</small><b>${ch.name}</b>
-      <span>${locked ? `<svg><use href="#i-lock"/></svg> ${t('map.locked')}` : `<svg><use href="#i-star"/></svg> <bdi class="n">${st} / ${ch.levels.length * 3}</bdi> · ${ch.blurb}`}</span></div>`;
-    const x = cx + xs[c % xs.length] * colW, y = top + BAND_H - 120;
-    mapPos[c] = { x, y };
-    // a finished world shows its finale; otherwise the figure you're up to there
-    const allDone = done === ch.levels.length;
-    const fig = allDone ? ch.levels[ch.levels.length - 1] : LEVELS[firstOpenIn(c)], solved = isDone(fig.id);
-    const crowned = st === ch.levels.length * 3;
-    const unlocking = pendingUnlock && c === pendingUnlock.to;
-    // pips: done (sun), all three stars (gold ring), half built (half filled)
-    const pips = ch.levels.map(l => `<i class="${isDone(l.id) ? `on${starsOf(l.id) === 3 ? ' s3' : ''}` : save.sessions[l.id] ? 'half' : ''}"></i>`).join('');
-    // what the world holds, for screen readers and as a tooltip: every figure with its stars (★ earned, ☆ missing)
-    const figLines = ch.levels.filter(l => l.index < save.unlocked).map(l => (isDone(l.id) ? `${l.name} ${'★'.repeat(starsOf(l.id))}${'☆'.repeat(3 - starsOf(l.id))}` : t('hud.mystery')));
-    const label = `${t('map.chapter', { n: c + 1 })}: ${ch.name}. ${locked ? t('map.locked') : `${done} / ${ch.levels.length} · ★ ${st} / ${ch.levels.length * 3}`}`;
-    html += `<button class="node world ${locked ? 'locked' : ''} ${solved ? '' : 'unsolved'} ${c === cur && !locked ? 'current' : ''} ${unlocking ? 'unlocking' : ''}" aria-label="${escapeHtml(label)}" title="${escapeHtml(locked ? label : [label, ...figLines].join('\n'))}" data-c="${c}" style="left:${x}px;top:${y}px;--g:${hex(T.grass)};--c:${hex(T.cliff)}">
-      <div class="island">${locked ? '<svg><use href="#i-lock"/></svg>' : `<img src="${thumbs[fig.index] || ''}" alt="">${solved ? '' : '<span class="q">?</span>'}`}<span class="num">${c + 1}</span>${crowned ? '<span class="crown"><svg><use href="#i-star"/></svg></span>' : ''}</div>
-      ${locked ? '' : `<div class="pips">${pips}</div>`}
-      <div class="name">${locked ? '???' : `<bdi class="n">${done} / ${ch.levels.length}</bdi>`}</div></button>`;
-  });
-  // path from world to world
-  let bed = '', doneP = '', open = '';
-  for (let c = 0; c < CHAPTERS.length - 1; c++) {
-    const a = mapPos[c], b = mapPos[c + 1];
-    const dy = b.y - a.y;
-    const d = `M${a.x},${a.y} C${a.x},${a.y + dy * 0.55} ${b.x},${b.y - dy * 0.55} ${b.x},${b.y}`;
-    bed += d;
-    const anim = pendingUnlock && c + 1 === pendingUnlock.to;
-    if (chapterUnlocked(c + 1)) doneP += `<path class="done ${anim ? 'draw' : ''}" d="${d}"/>`;
-    else open += `<path class="open" d="${d}"/>`;
-  }
-  html += `<svg class="map-path" style="width:${W}px;height:${H}px" viewBox="0 0 ${W} ${H}"><path class="bed" d="${bed}"/>${open}${doneP}</svg>`;
-  const kp = pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[cur];
-  const hat = ctx.kuboHat?.();
-  html += `<div class="map-kubo" id="map-kubo" style="left:${kp.x}px;top:${kp.y}px"><div class="kubo">${hat ? `<i class="hat hat-${hat.id}">${ctx.hatSvg(hat.id)}</i>` : ''}<i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div></div>`;
-  inner.innerHTML = html;
-  inner.querySelectorAll('.map-path .draw').forEach(p => p.style.setProperty('--len', p.getTotalLength()));
-  inner.querySelectorAll('.node').forEach(b => b.addEventListener('click', () => {
-    const c = +b.dataset.c;
-    if (!chapterUnlocked(c)) { audio.wrong(); b.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 250 }); return; }
-    enterWorld(c);
-  }));
-  $('map-stars').textContent = `${totalStars()} / ${LEVELS.length * 3}`;
-  $('map-stars').closest('.star-total').classList.toggle('all', totalStars() === LEVELS.length * 3);
-  // the ending can be watched again once the Colossus stands
-  $('btn-map-ending').style.display = isDone(LEVELS[LEVELS.length - 1].id) ? '' : 'none';
-}
-
-function openMap() {
-  audio.suspend(false);
-  app = 'menu';
-  mapFromIsland = false;
-  document.body.classList.remove('roaming');
-  input.enabled = false;
-  input.exitLock();
-  document.body.classList.remove('playing');
-  $('hud').classList.add('off');
-  setBase('screen-map');
-  buildMap();
-  const scroll = $('map-scroll');
-  // frame the current world a little low, so the next one up shows under the header; for the unlock walk, frame
-  // both worlds when the screen is tall enough
-  const both = pendingUnlock && scroll.clientHeight > BAND_H + 200;
-  const focusY = both ? (mapPos[pendingUnlock.from].y + mapPos[pendingUnlock.to].y) / 2 - 40
-    : (pendingUnlock ? mapPos[pendingUnlock.from] : mapPos[LEVELS[nextLevelIndex()].chapter]).y;
-  scroll.scrollTop = focusY - scroll.clientHeight * (both ? 0.5 : 0.62);
-  if (pendingUnlock) {
-    const { to } = pendingUnlock;
-    pendingUnlock = null;
-    setTimeout(() => {
-      const k = $('map-kubo');
-      if (!k) return;
-      k.style.left = `${mapPos[to].x}px`;
-      k.style.top = `${mapPos[to].y}px`;
-      if (!both) scroll.scrollTo({ top: mapPos[to].y - scroll.clientHeight * 0.62, behavior: 'smooth' });
-      audio.tone({ f: 600, f2: 900, type: 'triangle', dur: 0.25, vol: 0.12 });
-    }, 500);
-    setTimeout(() => { audio.star(1); }, 1250);
-    setTimeout(() => { if (base === 'screen-map' && !overlays.length) enterWorld(to); }, 2300);
-  }
-}
+// o.from: the world you're leaving (you come out of its portal on the isle)
+const openNexus = (o = {}) => ctx.nexus.enter(o);
 
 // ---------- walking between figures ----------
 // Each world is an archipelago: a hub island with the portal, and a bridge to every figure's island.
@@ -910,22 +806,6 @@ function enterWorld(c) {
 function walkOnto(l) {
   if (app !== 'playing') return;
   startLevel(l.index, true, 'keep');
-}
-// the portal on the hub opens the world select; leaving it brings you back to the island
-let mapFromIsland = false;
-function openPortal() {
-  if (app !== 'playing' || overlays.length) return;
-  openMap();
-  mapFromIsland = true;
-}
-function backToIsland() {
-  mapFromIsland = false;
-  setBase(null);
-  $('hud').classList.remove('off');
-  app = 'playing';
-  input.enabled = true;
-  document.body.classList.add('playing');
-  if (!mobile) input.requestLock();
 }
 // first steps onto a figure's island this visit: welcome back (first island of a session), its intro line the
 // first time ever, then the goals; on a finished island, what's left to earn there
@@ -1118,7 +998,7 @@ function goFullscreen(on) {
 
 // ---------- buttons ----------
 document.addEventListener('pointerdown', e => {
-  if (e.target.closest('.btn, .node, .toggle')) { audio.unlock(); audio.click(); }
+  if (e.target.closest('.btn, .toggle')) { audio.unlock(); audio.click(); }
 }, true);
 const continueGame = (greet = true) => {
   audio.unlock();
@@ -1130,8 +1010,7 @@ const continueGame = (greet = true) => {
   enterWorld(LEVELS[i].chapter);
 };
 $('btn-play').onclick = () => continueGame();
-$('btn-map').onclick = () => openMap();
-$('btn-map-back').onclick = () => (mapFromIsland ? backToIsland() : enterTitle());
+$('btn-map').onclick = () => openNexus();
 // a scroll cue while more settings sit below the fold
 {
   const list = document.querySelector('#screen-settings .settings'), panel = list.parentElement;
@@ -1157,7 +1036,7 @@ $('btn-restart').onclick = () => {
   label.textContent = t('pause.restart');
   startLevel(game.level);
 };
-$('btn-quit').onclick = () => (game.level?.kind ? enterTitle() : openMap());
+$('btn-quit').onclick = () => (game.level?.kind ? enterTitle() : openNexus({ from: game.level.chapter }));
 $('btn-pause').onclick = () => pause();
 $('btn-hint').onclick = () => input.actions.push({ type: 'hint' });
 $('btn-magnet').onclick = () => input.actions.push({ type: 'magnet' });
@@ -1199,12 +1078,11 @@ function renderToolState(g, far) {
   $('btn-express').classList.toggle('ready', play && g.expressCharges > 0 && far && g.hasFitInPack());
 }
 const renderMagnet = (n, gained) => renderTool('btn-magnet', 'magnet-n', n, gained);
-$('btn-c-map').onclick = () => (completeActions.onMap || openMap)();
+$('btn-c-map').onclick = () => (completeActions.onMap || openNexus)();
 $('btn-c-retry').onclick = () => (completeActions.onRetry || (() => startLevel(game.level)))();
-$('btn-next').onclick = () => (completeActions.onNext || openMap)();
+$('btn-next').onclick = () => (completeActions.onNext || openNexus)();
 $('btn-c-share').onclick = () => completeActions.onShare?.();
-$('btn-ending-map').onclick = () => openMap();
-$('btn-map-ending').onclick = () => showEnding();
+$('btn-ending-map').onclick = () => openNexus();
 const jump = $('btn-jump');
 jump.addEventListener('pointerdown', e => { e.preventDefault(); input.actions.push({ type: 'jump' }); input.jumpButtonHeld = true; jump.classList.add('pressed'); });
 const jumpUp = () => { input.jumpButtonHeld = false; jump.classList.remove('pressed'); };
@@ -1224,7 +1102,6 @@ addEventListener('keydown', e => {
       if (top === 'screen-ws-gift' && app === 'paused') resume();
       return;
     }
-    if (base === 'screen-map') { (mapFromIsland ? backToIsland : enterTitle)(); return; }
     if (app === 'paused' && !mobile) return; // browsers swallow this Esc for pointer lock anyway
   }
   if ((e.code === 'Enter' || e.code === 'NumpadEnter') && doneCard?.action && !overlays.length && !base && doneCardAction()) { e.preventDefault(); return; }
@@ -1244,7 +1121,7 @@ function frame(now) {
   if (dt > 0.1) dt = 0.1;
   audio.updateMusic();
   // nothing 3D is visible behind these screens
-  if (app === 'paused' || app === 'loading' || app === 'menu') return;
+  if (app === 'paused' || app === 'loading') return;
   // a feature can own the frame for its own app state:
   // ctx.views[app] replaces update + render (workshop), ctx.modes[app] replaces game.update only (garden)
   if (ctx.views[app]) { ctx.views[app](dt); renderer.adapt(dt); if (healthy < 6 && (healthy += dt) >= 6) { gfxState.booting = 0; saveGfx(); } return; }
@@ -1262,8 +1139,8 @@ const ctx = {
   LEVELS, CHAPTERS, expandLevel, parTime,
   get app() { return app; }, set app(v) { app = v; },
   get base() { return base; }, overlays,
-  setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openMap, enterTitle, pause, resume, showComplete, splitsHtml,
-  playPrologue, showEnding, continueGame,
+  setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openNexus, enterTitle, pause, resume, showComplete, splitsHtml,
+  playPrologue, showEnding, continueGame, enterWorld, chapterUnlocked, hideDoneCard,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [], frame: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures
@@ -1316,4 +1193,4 @@ async function boot() {
 boot();
 
 // expose for debugging
-window.__voxlink = { game, renderer, save, openMap, startLevel, LEVELS, ctx };
+window.__voxlink = { game, renderer, save, openNexus, startLevel, LEVELS, ctx };

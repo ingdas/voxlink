@@ -34,8 +34,8 @@ await suite('results card', async t => {
     t.check(`${s.label}: world card and "On to Windmill Farm"`, /Meadow Isles/.test(b.text) && /Windmill Farm/i.test(b.go || ''), b);
     if (s.mobile) await p.tap('#dc-go'); else await p.keyboard.press('Enter');
     await p.waitForTimeout(4500);
-    const c = await p.evaluate(() => ({ app: window.__voxlink.ctx.app, base: window.__voxlink.ctx.base, talk: window.__voxlink.ctx.overlays.includes('screen-talk') }));
-    t.check(`${s.label}: ${s.mobile ? 'a tap' : 'Enter'} travels on to the next world`, c.base === 'screen-map' && c.talk, c);
+    const c = await p.evaluate(() => ({ app: window.__voxlink.ctx.app, talk: window.__voxlink.ctx.overlays.includes('screen-talk'), unlock: window.__voxlink.ctx.nexus.session?.unlock }));
+    t.check(`${s.label}: ${s.mobile ? 'a tap' : 'Enter'} travels on to the next world's portal on the Keeper's Isle`, c.app === 'nexus' && c.talk && c.unlock === 1, c);
     await p.close();
   }
   // photo mode is gone: no camera buttons, C does nothing in the Garden

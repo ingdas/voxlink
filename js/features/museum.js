@@ -7,7 +7,7 @@ import { toon, LAYER_OVERLAY } from '../render.js';
 import { t } from '../i18n.js';
 
 const gardenName = () => t('museum.name');
-const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
+export const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
 // .one / .other key for n (English uses the same text for both)
 const plural = (key, n) => `${key}.${n === 1 ? 'one' : 'other'}`;
 const K = 0.65; // figures stand at two-thirds size
@@ -41,7 +41,7 @@ const doneCount = () => ctx.LEVELS.filter(l => ctx.save.stars[l.id]?.done).lengt
 
 // ---------- DOM ----------
 function buildDom() {
-  // title screen + world map entry points
+  // the title screen's way in (the other is the flowery arch on the Keeper's Isle)
   const tb = document.createElement('button');
   tb.className = 'btn';
   tb.id = 'btn-garden';
@@ -51,19 +51,6 @@ function buildDom() {
   const refresh = () => { $('garden-count').textContent = t('museum.count', { n: doneCount(), total: ctx.LEVELS.length }); };
   refresh();
   new MutationObserver(refresh).observe($('screen-title'), { attributes: true, attributeFilter: ['class'] });
-
-  const top = document.querySelector('#screen-map .map-top');
-  const stars = top.querySelector('.star-total');
-  const right = document.createElement('div');
-  right.className = 'map-right';
-  const mb = document.createElement('button');
-  mb.className = 'btn icon';
-  mb.id = 'btn-map-garden';
-  mb.setAttribute('aria-label', gardenName());
-  mb.innerHTML = '<svg><use href="#i-garden"/></svg>';
-  mb.onclick = () => enter('map');
-  top.insertBefore(right, stars);
-  right.append(mb, stars);
 
   // HUD extras (only visible while body has .museum)
   const card = document.createElement('div');
@@ -151,15 +138,19 @@ function enter(origin = 'title') {
 
 function exit() {
   if (!G) return;
-  G.dispose();
-  G = null;
-  const body = document.body;
-  body.classList.remove('museum', 'playing');
-  $('garden-card').classList.remove('show');
-  $('kubo-bark').classList.remove('show');
-  ctx.input.enabled = false;
-  ctx.input.reset();
-  if (from === 'map') ctx.openMap(); else ctx.enterTitle();
+  const leave = () => {
+    G.dispose();
+    G = null;
+    const body = document.body;
+    body.classList.remove('museum', 'playing');
+    $('garden-card').classList.remove('show');
+    $('kubo-bark').classList.remove('show');
+    ctx.input.enabled = false;
+    ctx.input.reset();
+  };
+  // back out through the arch you came in by, or to the title
+  if (from === 'nexus') ctx.nexus.enter({ from: 'garden', before: leave });
+  else { leave(); ctx.enterTitle(); }
 }
 
 function startControl() {
@@ -521,7 +512,7 @@ function badgeTexture(txt) {
 }
 
 // Text drawn at `size` px, shrunk until it fits in `maxW`.
-function fitText(g, text, x, y, size, maxW, weight = 700) {
+export function fitText(g, text, x, y, size, maxW, weight = 700) {
   let fs = size;
   g.font = `${weight} ${fs}px ${FONTS}`;
   const w = g.measureText(text).width;

@@ -23,7 +23,7 @@ const HW = 1.2; // half width of a bridge
 // crossing (`top`); `rails` are [height, thickness, width] (one thick rail makes a low wall), `railTop` a strip
 // along the top rail, `edge` one along the deck's open edges, `cap` a cap on every post, `piers` stone piers under
 // the deck instead of a piling under every post, `sound` the footsteps
-const STYLES = {
+export const STYLES = {
   meadow: { base: 0x8a5a3c, planks: [0xc08a5c, 0xb27b50], rail: 0xc08a5c, post: 0x6b4a36, top: 'flowers', sound: 'wood' },
   farm: { base: 0x9a6b4f, planks: [0xd9b27a, 0xc9a06a], rail: 0xf4efe6, post: 0xc0392b, top: 'hay', sound: 'wood' },
   frost: { base: 0x5aaee6, planks: [0xbfe8ff, 0x9ad8ff], rail: 0xdff4ff, post: 0x7cc4f0, cap: 0xffffff, top: 'ice', sound: 'ice' },
@@ -35,6 +35,47 @@ const STYLES = {
   cliffs: { base: 0xb9b0a0, planks: [0xeee8da, 0xe0d9c8], rail: 0xd8d2c4, rails: [[0.3, 0.6, 0.3]], post: 0xc9c2b2, postW: 0.32, piers: true, cap: 0xeee8da, top: 'flowers', sound: 'stone' },
   storm: { base: 0x5d5878, planks: [0x9a96b4, 0x8a86a4], rail: 0x77728f, railTop: 0x6fa58a, rails: [[0.3, 0.6, 0.3]], post: 0x77728f, postW: 0.32, piers: true, cap: 0x6fa58a, top: 'rune', sound: 'stone' },
 };
+
+// The way on: a tall column of light with a bobbing "?" (over the next figure's island, a world's portal, or the
+// next world's portal on the Keeper's Isle). Set userData.top to the mark's height; dispose() frees it.
+export function makeBeacon() {
+  const beacon = new THREE.Group();
+  const beamMat = new THREE.MeshBasicMaterial({ color: 0xffe9a0, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.6, 60, 20, 1, true), beamMat);
+  beam.position.y = 30;
+  beam.layers.set(LAYER_OVERLAY);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#2a1f3d'; g.beginPath(); g.arc(64, 70, 56, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(64, 62, 52, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#2a1f3d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 72px Fredoka, sans-serif'; g.fillText('?', 64, 66);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true, fog: false }));
+  mark.scale.setScalar(2.4);
+  mark.layers.set(LAYER_OVERLAY); mark.renderOrder = 6;
+  beacon.add(beam, mark);
+  beacon.userData = { beam, mark, beamMat, tex, top: 5 };
+  beacon.visible = false;
+  beacon.animate = (t, calm) => {
+    if (!beacon.visible) return;
+    mark.position.y = beacon.userData.top + (calm ? 0 : Math.sin(t * 2.2) * 0.35);
+    beamMat.opacity = calm ? 0.3 : 0.28 + Math.sin(t * 1.6) * 0.08;
+  };
+  beacon.dispose = () => { beam.geometry.dispose(); beamMat.dispose(); mark.material.dispose(); tex.dispose(); };
+  return beacon;
+}
+
+// a padlock badge (for the gates of closed bridges); the caller disposes it
+export function lockTexture() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#2a1f3d'; g.beginPath(); g.arc(64, 70, 54, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#e9dfcf'; g.beginPath(); g.arc(64, 62, 50, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#2a1f3d'; g.lineWidth = 9; g.beginPath(); g.arc(64, 52, 16, Math.PI, 0); g.stroke();
+  g.fillStyle = '#2a1f3d'; g.fillRect(42, 52, 44, 32);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
 // furthest extent of an island's ground in one direction (scan along z at a few x positions)
 function reach(world, dirZ) {
@@ -224,17 +265,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   const gateGeo = new THREE.BoxGeometry(1, 1, 1);
   const wood = toon(S.base), dark = toon(S.post);
   let lockTex = null;
-  const lockBadge = () => {
-    if (lockTex) return lockTex;
-    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-    const g = cv.getContext('2d');
-    g.fillStyle = '#2a1f3d'; g.beginPath(); g.arc(64, 70, 54, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#e9dfcf'; g.beginPath(); g.arc(64, 62, 50, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = '#2a1f3d'; g.lineWidth = 9; g.beginPath(); g.arc(64, 52, 16, Math.PI, 0); g.stroke();
-    g.fillStyle = '#2a1f3d'; g.fillRect(42, 52, 44, 32);
-    lockTex = new THREE.CanvasTexture(cv); lockTex.colorSpace = THREE.SRGBColorSpace;
-    return lockTex;
-  };
+  const lockBadge = () => lockTex || (lockTex = lockTexture());
   for (const pt of parts) {
     const g = new THREE.Group();
     const z = zJ - HW - 0.55; // clear of the crossing's corner posts
@@ -331,11 +362,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     },
     update(dt, t, cam) {
       const c = cam ? cam.clone().add(A) : null;
-      if (beacon.visible) {
-        const { mark, beamMat } = beacon.userData;
-        mark.position.y = beacon.userData.top + (api.calmMotion?.() ? 0 : Math.sin(t * 2.2) * 0.35);
-        beamMat.opacity = api.calmMotion?.() ? 0.3 : 0.28 + Math.sin(t * 1.6) * 0.08;
-      }
+      beacon.animate(t, api.calmMotion?.());
       for (const k of pieces) k.world.update(dt, t, c ? c.clone().sub(k.p) : null);
       // the sun's shadow follows you round the archipelago
       const sun = hubWorld.atmos.sun;
@@ -348,7 +375,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       for (const k of pieces) k.world.dispose();
       root.traverse(o => { if (o.parent && o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); });
       for (const d of displays.values()) d.geometry.dispose();
-      wood.dispose(); dark.dispose(); lockTex?.dispose(); beacon.userData.tex.dispose(); halfTex.dispose();
+      wood.dispose(); dark.dispose(); lockTex?.dispose(); beacon.dispose(); halfTex.dispose();
       for (const s of halves.values()) s.material.dispose();
     },
   };
@@ -364,27 +391,9 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     return null;
   }
 
-  // a beacon over the next figure's island (or the portal): a tall column of light and a bobbing "?"
-  const beacon = new THREE.Group();
-  {
-    const beamMat = new THREE.MeshBasicMaterial({ color: 0xffe9a0, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.6, 60, 20, 1, true), beamMat);
-    beam.position.y = 30;
-    beam.layers.set(LAYER_OVERLAY);
-    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-    const g = cv.getContext('2d');
-    g.fillStyle = '#2a1f3d'; g.beginPath(); g.arc(64, 70, 56, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(64, 62, 52, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#2a1f3d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 72px Fredoka, sans-serif'; g.fillText('?', 64, 66);
-    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-    const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true, fog: false }));
-    mark.scale.setScalar(2.4);
-    mark.layers.set(LAYER_OVERLAY); mark.renderOrder = 6;
-    beacon.add(beam, mark);
-    beacon.userData = { beam, mark, beamMat, tex };
-    beacon.visible = false;
-    root.add(beacon);
-  }
+  // a beacon over the next figure's island (or the portal)
+  const beacon = makeBeacon();
+  root.add(beacon);
   let beaconFor;
 
   // half-built marker: a half-filled disc over the pedestal of a figure with a saved run

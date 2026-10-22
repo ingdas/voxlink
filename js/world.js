@@ -115,14 +115,27 @@ export const THEMES = {
     stone: 0x9a96b4, stoneDark: 0x77728f, moss: 0x6fa58a,
     pedestal: [0x7b77a0, 0xaaa6c8, 0x4cc9f0], particles: 'rain', lightning: true, clouds: 0x8d94b8, step: 'stone',
   },
+  // the Keeper's Isle (js/nexus.js): the island of portals, floating over a golden cloud sea
+  nexus: {
+    layout: 'keeper',
+    grass: 0x9edc78, cap: 0xb4e68c, cliff: 0xe6b98a, dirt: 0xb98466, water: null, foam: 0xffffff,
+    skyTop: 0x4b6fd0, skyHorizon: 0xffe2bc, fogDensity: 0.004,
+    sky: { cloudSea: { y: -30, a: 0xf0b48e, b: 0xfff3e2 }, low: 0xffc89c, sunDir: [0.5, 0.2, -0.84], sunSize: 0.004, sunGlow: 0.5, sunCol: 0xfff0c8 },
+    sun: [0xffeedd, 2.2], sunPos: [14, 18, -20], hemi: [0xdfe6ff, 0xd8a888, 1.45],
+    trees: 'round', leaves: [0x6fcf6a, 0x8fd86a, 0xffb3c8, 0x5fc08a], trunk: 0x9a6b4f,
+    rock: 0xd8cfe0, rockShape: 'rock', tuft: 0x7fce62, flowers: [0xff8fc7, 0xffd23f, 0xffffff, 0xb693f5, 0x6ee7ff],
+    pedestal: [0xd9c49c, 0xf0e2c4, 0xffd23f], particles: 'pollen', clouds: 0xfff6ee, step: 'grass',
+  },
 };
 
 // plain: the classic round island (Kubo's Garden keeps its calm plaza)
 // part: one island of a world's archipelago — no sky, sea plane, lights, clouds or particles (the hub island has those)
 // layout: override the theme's island generator; seaY: sea level to use; pedestal: build the figure's pedestal
 // mood: this island's own character within its world (colours, tree / rock counts, a landmark; see world-moods.js)
+// opts: extra input for the layout (the Keeper's Isle passes where its bridges and portals go); the layout's own
+// results come back as `out`
 export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'meadow', difficulty = 0, clearR = 3.2, plain = false,
-  part = false, layout = null, seaY = null, pedestal = true, mood = null }) {
+  part = false, layout = null, seaY = null, pedestal = true, mood = null, opts = {} }) {
   const T = mood?.tint ? { ...THEMES[themeId], ...mood.tint } : THEMES[themeId];
   const group = new THREE.Group();
   const colliders = [];
@@ -134,7 +147,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const spawnZ = Math.min(R - 3, 9);
 
   const W = {
-    T, themeId, rng, R, clearR, seed, difficulty, quality, group, B, colliders, blockers, tops, updaters, obstacles, spawnZ,
+    T, themeId, rng, R, clearR, seed, difficulty, quality, group, B, colliders, blockers, tops, updaters, obstacles, spawnZ, opts, out: {},
     bound: R + 1, hasSea: true, seaY: seaY ?? -1.7, wind: null, pads: [], gravityScale: 1, voidY: undefined,
     walkSd: null, floorAt: () => 0, surfaceAt: null, coastSd: null,
     cstep: 0.5, mood,
@@ -420,7 +433,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const tmpP = { x: 0, z: 0 };
   const api = {
     group, colliders, blockers, R: W.bound, tops, isFreeGround, heightAt, groundY, theme: T, themeId, onFlash: null, onGust: null,
-    seaY: W.seaY, hasSea: W.hasSea, portal: W.portal || null, part, landmark: W.landmarkAt || null,
+    seaY: W.seaY, hasSea: W.hasSea, portal: W.portal || null, part, landmark: W.landmarkAt || null, out: W.out,
     // handles for cutscenes that restyle the weather (calm: true stops the storm's own lightning)
     atmos: { sky: skyU, hemi, sun, particles, vortex, unflash }, calm: false,
     radiusAt: W.radiusAt || (() => W.bound),

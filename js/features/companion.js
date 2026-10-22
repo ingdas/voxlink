@@ -38,8 +38,9 @@ export function init(c) {
   live.setAttribute('aria-live', 'polite');
   document.body.appendChild(live);
   ctx.companion = {
-    // only on an island, playing (not in menus, cutscenes, the garden or the workshop)
-    active: () => shown,
+    // only on an island, playing (not in menus, cutscenes, the Garden, the Keeper's Isle or the workshop); he hides
+    // on his next frame there, but these places don't run his frames, so check now
+    active: () => { if (shown && !wanted(ctx.game)) hide(); return shown; },
     // clear the current line (it no longer applies)
     hush() { barkLeft = 0; hold = false; },
     // a fresh start (a figure was just finished): drop whatever was waiting
@@ -90,10 +91,10 @@ function build() {
 
 const forward = (yaw, out) => out.set(-Math.sin(yaw), 0, -Math.cos(yaw));
 
+const wanted = g => !!g.world && (g.mode === 'play' || g.mode === 'intro') && ['playing', 'intro', 'paused'].includes(ctx.app);
+
 function update(g, dt) {
-  const app = ctx.app;
-  const want = !!g.world && (g.mode === 'play' || g.mode === 'intro') && (app === 'playing' || app === 'intro' || app === 'paused');
-  if (!want) { hide(); return; }
+  if (!wanted(g)) { hide(); return; }
   if (!kubo) kubo = build();
   if (kubo.group.parent !== g.scene) { g.scene.add(kubo.group); kubo.placed = false; }
   ctx.dressKubo?.(kubo);

@@ -33,8 +33,8 @@ const PAD_LEGEND = () => [
   [t('access.pad.start'), actLabel('pause'), ''], [t('access.pad.dpad'), actLabel('menuFocus'), ''],
   ['◀', t('aria.magnet'), ''], ['▶', t('aria.express'), ''],
 ];
-const PRIMARY = '#btn-play, #btn-brief-go, #btn-next, #btn-resume, #btn-ending-map';
-const FOCUSABLE = '.btn, .toggle, .node, input[type=range], .kbtn, select, .ws-theme, .ws-new';
+const PRIMARY = '#btn-play, #btn-brief-go, #btn-next, #btn-resume, #btn-nexus-resume, #btn-ending-map';
+const FOCUSABLE = '.btn, .toggle, input[type=range], .kbtn, select, .ws-theme, .ws-new';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -329,7 +329,7 @@ export function init(ctx) {
   const focusEl = el => {
     if (!el) return;
     try { el.focus({ focusVisible: true, preventScroll: true }); } catch { el.focus(); }
-    el.scrollIntoView({ block: el.classList.contains('node') ? 'center' : 'nearest', behavior: st.reduceMotion ? 'auto' : 'smooth' });
+    el.scrollIntoView({ block: 'nearest', behavior: st.reduceMotion ? 'auto' : 'smooth' });
   };
   function menuPad(btn, pressed, ls, rs, now, dt) {
     const id = ctx.overlays.at(-1) || ctx.base;
@@ -337,10 +337,10 @@ export function init(ctx) {
     const scr = $(id);
     if (!scr) return;
     if (id === 'screen-talk') { if (pressed(0) || pressed(2) || pressed(9)) scr.click(); return; }
-    const items = [...scr.querySelectorAll(FOCUSABLE)].filter(e => visible(e) && !e.matches('.node.locked'));
+    const items = [...scr.querySelectorAll(FOCUSABLE)].filter(e => visible(e));
     const cur = scr.contains(document.activeElement) && items.includes(document.activeElement) ? document.activeElement : null;
     const primary = [...scr.querySelectorAll(PRIMARY)].find(visible);
-    const fallback = () => primary || scr.querySelector('.node.current') || items.find(e => !e.classList.contains('locked')) || items[0];
+    const fallback = () => primary || items[0];
     const tap = el => { ctx.audio.unlock(); ctx.audio.click(); el.click(); };
 
     if (pressed(0)) {
@@ -358,12 +358,11 @@ export function init(ctx) {
     if (pressed(1)) {
       if (cur?.tagName === 'SELECT' && cur.dataset.pending) { delete cur.dataset.pending; cur.dispatchEvent(new Event('change', { bubbles: true })); return; }
       if (ctx.overlays.length) ctx.popOverlay();
-      else if (id === 'screen-map') ctx.enterTitle();
       else if (id === 'screen-pause') ctx.resume();
       return;
     }
-    // right stick scrolls long screens (map, settings)
-    if (rs.m > 0) scr.querySelector('.map-scroll, .settings')?.scrollBy(0, rs.y * 1100 * dt);
+    // right stick scrolls long screens (settings)
+    if (rs.m > 0) scr.querySelector('.settings')?.scrollBy(0, rs.y * 1100 * dt);
 
     let dir = null;
     if (btn[12] || ls.y < -0.55) dir = 'up';

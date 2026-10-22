@@ -207,3 +207,31 @@ drifts into view ahead of you and to the right (clear of the first tutorial bloc
 tail hangs above his head; if he's out of view the bubble docks at the bottom with his face. Quick feedback
 ("too far away", "recharging") stays a toast. He steps aside in cutscenes, menus, the celebration and Kubo's
 Garden (which has its own Kubo statue).
+
+## 2026-10-22 · The Keeper's Isle: a world select you walk
+
+The world select was the last menu between the worlds: a scrolling map you clicked. It is now a place, the
+**Keeper's Isle** (`js/nexus.js`, `js/features/nexus.js`), and you stay in first person all the way from one world
+to the next.
+
+- **Layout.** A floating plaza (radius 10 m) over a golden cloud sea, with the Keeper's Lantern in the middle. Eleven
+  islets stand in a ring 28 m out, each joined to the plaza by a bridge in its world's style (barn-red fence, ice,
+  bamboo, glowing crystal…): one per world, clockwise in world order, and Kubo's Garden in the south. Islets are
+  built with each world's own ground colours, trees and rocks (a new `gate` layout), so the ring reads as a sampler
+  of the worlds; everything floats, which also lets the sea worlds and the void worlds sit side by side.
+- **Portals.** Each islet's portal stands on its far side, facing the plaza, its window showing the world's sky over
+  its ground. Walking into it travels there; the world's own portal (on its middle island) brings you back out of
+  that portal on the isle. A short flash of light covers each switch (the isle builds in ~45 ms, a world's
+  archipelago in 40–150 ms), and the camera glides out of the portal you came through.
+- **What the map showed now stands in the world.** Rebuilt figures stand in miniature on four pedestals per islet
+  (gold for three stars) with the world's finale on top of its portal, the Lantern lights an orb per finished world
+  (gold when crowned), a sign at each bridge head gives the world's number, name and stars, and a card names the
+  world, its stars and its figures (the unfound ones as "?") when you're on its bridge or islet. A column of light
+  stands over the portal of the world you're up to.
+- **Opening a world.** A world that isn't open yet keeps a gate on its bridge and a dark, sleeping portal; Kubo
+  says which world wakes it. Finishing a world's last figure ("On to …") takes you to the isle facing the next
+  world: its gate sinks into the bridge and its portal wakes.
+- The Garden's arch replaces the map's Garden button (leaving the Garden brings you back out of the arch); the
+  ending's replay moved to the isle's pause menu. Kubo explains the isle the first time you arrive.
+- Kubo's companion only hid itself during a world's frames, so on the isle (and in the Garden) it kept claiming
+  his lines while invisible; it now re-checks whether it should be shown whenever it's asked.

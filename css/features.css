@@ -54,8 +54,6 @@ body.mobile .acc-desk:not(.on), body.mobile #acc-keys { display: none; }
 
 /* focus rings for keyboard / gamepad navigation */
 .toggle:focus-visible, .kbtn:focus-visible, input[type=range]:focus-visible { outline: 3px dashed var(--ink); outline-offset: 4px; }
-.node:focus-visible { outline: none; }
-.node:focus-visible .island { outline: 4px dashed var(--ink); outline-offset: 6px; }
 body.pad-nav.playing canvas#c { cursor: none; }
 body.mobile.pad-nav #crosshair { display: block; }
 
@@ -100,14 +98,13 @@ body.high-contrast .slot .chip.ready { outline: 2px solid var(--ink); outline-of
 
 /* ---------- D: Kubo's Garden (js/features/museum.js) ---------- */
 .garden-count { margin-inline-start: 2px; font-size: 13px; background: var(--ink); color: var(--paper); border-radius: 999px; padding: 2px 8px; letter-spacing: .02em; }
-.map-right { display: flex; align-items: center; gap: 10px; }
-.garden-only { display: none !important; }
-body.museum .garden-only { display: flex !important; }
-/* only the bits of the level HUD that make sense while strolling */
-body.museum #hud > :not(.hud-top):not(#kubo-bark):not(#crosshair):not(.touch-btns):not(#stick):not(.garden-only) { display: none !important; }
-body.museum .hud-top > :not(#btn-pause):not(.progress):not(.garden-only) { display: none !important; }
-body.museum #btn-drop { display: none; }
-body.museum .progress .bar i { background: var(--sun); }
+.garden-only, .nexus-only { display: none !important; }
+body.museum .garden-only, body.nexus .nexus-only { display: flex !important; }
+/* only the bits of the level HUD that make sense while strolling (the Garden, the Keeper's Isle) */
+body:is(.museum, .nexus) #hud > :not(.hud-top):not(#kubo-bark):not(#crosshair):not(.touch-btns):not(#stick):not(.garden-only):not(.nexus-only) { display: none !important; }
+body:is(.museum, .nexus) .hud-top > :not(#btn-pause):not(.progress):not(.garden-only) { display: none !important; }
+body:is(.museum, .nexus) #btn-drop { display: none; }
+body:is(.museum, .nexus) .progress .bar i { background: var(--sun); }
 
 .garden-card {
   position: absolute; left: 50%; bottom: calc(22px + var(--sab)); transform: translate(-50%, 16px); opacity: 0; transition: opacity .2s, transform .3s cubic-bezier(.3, 1.5, .5, 1);
@@ -144,6 +141,28 @@ body.mobile .garden-keys { display: none !important; }
 @media (max-width: 520px) {
   .garden-card { bottom: calc(124px + var(--sab)); max-width: 88vw; }
 }
+
+/* ---------- the Keeper's Isle (js/features/nexus.js): the card for the world you're at ---------- */
+.nx-portal { background: linear-gradient(var(--a), var(--b) 62%, var(--c) 62%); }
+.nx-portal span { font-size: 28px; font-weight: 700; color: var(--paper); text-shadow: 0 2px 0 var(--ink), 0 0 6px rgba(42, 31, 61, .5); }
+.nx-portal.asleep { background: #3a3150; }
+.nx-portal.asleep span { color: #8a8098; text-shadow: none; }
+.nx-portal.garden { background: radial-gradient(circle at 50% 40%, #e4f9d4, #7fcf6a); }
+.nx-portal.garden svg { width: 34px; height: 34px; color: var(--ink); }
+.nx-portal .nx-crown { position: absolute; top: 4px; width: 18px; height: 18px; fill: #ffb400; stroke: var(--ink); stroke-width: 2.2; }
+.nexus-card .gc-body small .ic { width: 13px; height: 13px; vertical-align: -2px; fill: var(--sun); stroke: var(--ink); stroke-width: 2.4; margin-inline-end: 2px; }
+.nx-figs { display: flex; gap: 4px; margin-top: 4px; }
+.nx-figs img, .nx-figs i { width: 30px; height: 30px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fffaf0; object-fit: contain; flex: none; }
+.nx-figs i { display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 15px; color: var(--ink-soft); background: var(--paper-2); }
+.nx-figs i.open { background: #fff3c4; }
+.nx-figs img.s3 { border-color: #ffb400; box-shadow: 0 0 0 2px #fff3c4; }
+@media (max-height: 500px) { .nx-figs img, .nx-figs i { width: 22px; height: 22px; font-size: 12px; border-width: 2px; } }
+/* the flash of light between places */
+#warp {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0; transition: opacity .55s ease-out;
+  background: radial-gradient(circle at 50% 50%, #fff 0%, var(--warp, #fff4dc) 65%);
+}
+#warp.on { opacity: 1; transition: opacity .26s ease-in; }
 
 /* ---------- G2: Figure workshop (js/features/workshop.js) ---------- */
 .ws-input {
@@ -438,7 +457,7 @@ body.puzzler #needs { display: none; }
   .pz-txt small { white-space: nowrap; }
   .pz-row .toggle { transform: scale(.7); margin: -5px 0 -5px auto; }
 }
-body.museum #btn-magnet { display: none !important; }
+body:is(.museum, .nexus) #btn-magnet { display: none !important; }
 
 /* ---------- cutscenes: letterbox bars (they also close like eyelids), captions, fades ---------- */
 .screen.cinema, .screen.cinema.show { padding: 0; pointer-events: none; }

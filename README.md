@@ -49,12 +49,21 @@ Workshop editor:
 
 ## How it plays
 
+- The world select is a place you walk: the **Keeper's Isle**, a floating plaza with the Keeper's Lantern in the
+  middle and a bridge out to one islet per world, each in its world's colours and trees, with the world's portal on
+  its far side. Walk into a portal to travel there. A world opens once the one before it is rebuilt (until then
+  its bridge has a gate and its portal sleeps); the world you're up to has a column of light over its portal.
+  Your rebuilt figures stand in miniature on each islet (gold pedestals for three stars), the world's finale on
+  top of its portal, and the Lantern lights an orb per finished world. A flowery arch leads to Kubo's Garden.
+  The title's **Worlds** button and the pause menu's **Keeper's Isle** take you there (`js/nexus.js`,
+  `js/features/nexus.js`).
 - Each world is an archipelago you walk around: a middle island with a portal, joined by plank bridges to
   one island per figure (two staggered rows; you zip along the bridges). Walk onto a figure's island to start it (its puzzle takes over; a half-built figure
   keeps its progress when you leave). Blocks can't leave their island. Islands of figures you haven't
-  reached yet are closed off by a gate on their bridge. The portal travels between worlds (the world select).
-  A world's islands share its look but each has a mood of its own: its colours (blossom, autumn, golden…),
-  more or fewer trees and rocks, and a landmark (stone circle, giant mushrooms, an ancient oak, a wreck…).
+  reached yet are closed off by a gate on their bridge. Its portal leads back to the Keeper's Isle: you step out of
+  that world's portal there. A world's islands share its look but each has a mood of its own: its colours
+  (blossom, autumn, golden…), more or fewer trees and rocks, and a landmark (stone circle, giant mushrooms, an
+  ancient oak, a wreck…).
 - Floating **bubbles** on the figure show which numbers are open right now.
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.
@@ -71,13 +80,12 @@ Workshop editor:
   stars still missing; walking away from a rebuild drops it and the figure stands whole again. The clock only runs on the figure's own
   island, and not during the tutorial.
 - Continue goes back to the figure you last played (or a half-built one); the title shows where. Half-built
-  figures show a half-filled pip on the world select and a marker over their island. Kubo welcomes you
-  back, and finishing a world shows a world card and takes you on to the next one.
-- Star rewards: three-star figures get gold pedestals in Kubo's Garden and gold pips on the world select,
-  a world with every star gets a crown (and a moment on the results), Kubo wears a hat from 25, 60, 100 and 150 stars
-  (on the islands, in the Garden and on the map), the 150th star gets its own card, and the ending can be watched
-  again from the world map
-  (`js/features/hats.js`).
+  figures show a marker over their island. Kubo welcomes you back, and finishing a world shows a world card;
+  its way on takes you to the Keeper's Isle, where the next world's gate sinks and its portal wakes in front of you.
+- Star rewards: three-star figures get gold pedestals in Kubo's Garden and on the Keeper's Isle, a world with
+  every star gets a crown (a gold orb on the Lantern, and a moment on the results), Kubo wears a hat from 25, 60,
+  100 and 150 stars (on the islands and in the Garden), the 150th star gets its own card, and the ending can be
+  watched again from the Keeper's Isle's pause menu (`js/features/hats.js`).
 - Big figures are split into parts: every part has its own flagged district on the island, and a
   compass points to where blocks fit right now. All blocks are out from the start.
 - Tools on big figures: **Magnet** (R / magnet button) pulls nearby blocks that fit into your
@@ -121,7 +129,7 @@ in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (
 
 `tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
 all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
-phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), and the 3D picking up again after the phone drops the WebGL context. Each suite starts its own static server.
+phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), the 3D picking up again after the phone drops the WebGL context, and the Keeper's Isle (portals in and out, gates, a world waking, the Garden's arch). Each suite starts its own static server.
 
 ```
 PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tests/e2e/run.mjs          # everything
@@ -149,8 +157,10 @@ fly / no-clip, unlock everything, replay the prologue / finale cutscenes, and se
 - `js/game.js`: level session (sockets, backpack, interaction, animations, celebration)
 - `js/render.js`: toon materials and the ink-outline post pass (depth + normal edges)
 - `js/player.js`, `js/input.js`: first-person controller, keyboard/mouse/touch input
-- `js/main.js`: app flow, HUD, world map, dialogue, saves, and the `ctx` object for features
-- `js/features/*.js`: optional features plugged in through `init(ctx)` (garden,
+- `js/archipelago.js`: a world's islands and themed bridges, joined into one walkable place
+- `js/nexus.js`: the Keeper's Isle (the world select): the plaza, an islet and a bridge per world, portals, gates
+- `js/main.js`: app flow, HUD, dialogue, saves, and the `ctx` object for features
+- `js/features/*.js`: optional features plugged in through `init(ctx)` (the Keeper's Isle, garden,
   workshop, puzzler, accessibility, language picker, debug)
 - `js/features/workshop-cam.js`: the Workshop editor's orbit camera (inertia, zoom to cursor,
   framing, spring arm)

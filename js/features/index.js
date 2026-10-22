@@ -1,6 +1,7 @@
 // Optional feature modules. Each exports init(ctx) — see the ctx object in main.js.
 import * as access from './access.js';
 import * as museum from './museum.js';
+import * as nexus from './nexus.js';
 import * as companion from './companion.js';
 import * as workshop from './workshop.js';
 import * as lang from './lang.js';
@@ -9,4 +10,4 @@ import * as puzzler from './puzzler.js';
 import * as cinema from './cinema.js';
 import * as hats from './hats.js';
 
-export default [access, companion, museum, workshop, lang, debug, puzzler, cinema, hats];
+export default [access, companion, museum, nexus, workshop, lang, debug, puzzler, cinema, hats];

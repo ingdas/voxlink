@@ -1,7 +1,7 @@
 // Tiny synthesised sound kit + generative ambient music. No assets needed.
 // Each world has its own music flavour (chords, tempo, instrument) and an ambient bed
 // (breeze and birds, farmyard, howling wind, hushed forest, waves and gulls, creaking cove, starry shimmer,
-// moon hum, cliff-top wind, rain and wind).
+// moon hum, cliff-top wind, rain and wind; a high breeze with wind chimes on the Keeper's Isle).
 const PENTA = [0, 2, 4, 7, 9];
 
 const MUSIC = {
@@ -25,6 +25,8 @@ const MUSIC = {
   cliffs: { chords: [[62, 66, 69], [57, 61, 64], [59, 62, 66], [55, 59, 62]], beat: 0.33, voice: 'pluck', density: 0.55, up: 12, bass: 'pulse' },
   // Am F Dm E: a steady pulse under minor plucks
   storm: { chords: [[57, 60, 64], [53, 57, 60], [50, 53, 57], [52, 56, 59]], beat: 0.36, voice: 'pluck', density: 0.5, up: 12, bass: 'pulse' },
+  // Fmaj7 G6 Am7 Em7: warm, unhurried bells on the Keeper's Isle
+  nexus: { chords: [[53, 57, 60, 64], [55, 59, 62, 64], [57, 60, 64, 67], [52, 55, 59, 62]], beat: 0.5, voice: 'bell', density: 0.4, up: 12, pad: 'wide' },
 };
 
 export class Audio {
@@ -242,6 +244,7 @@ export class Audio {
       }
       layer('bandpass', 1800, 0.8, 0.006, 0.05, 0.004);
     } else if (w === 'storm') { layer('highpass', 2800, 0.5, 0.035, 0.2, 0.008); layer('bandpass', 320, 1.2, 0.04, 0.06, 0.025); }
+    else if (w === 'nexus') layer('bandpass', 760, 0.5, 0.014, 0.05, 0.008);
     this.ambNodes = { out, stop };
   }
 
@@ -294,6 +297,11 @@ export class Audio {
     } else if (w === 'starfall') {
       this.tone({ f: this.midi(91 + PENTA[Math.floor(r() * 5)]), type: 'sine', dur: 1.2, vol: 0.015, attack: 0.05, wet: 0.8, out: o });
       this.ambEventT = 2 + r() * 4;
+    } else if (w === 'nexus') {
+      // wind chimes: a few high notes tumbling together
+      const n = 2 + Math.floor(r() * 3);
+      for (let i = 0; i < n; i++) this.tone({ f: this.midi(84 + PENTA[Math.floor(r() * 5)] + (r() < 0.3 ? 12 : 0)), type: 'sine', t: i * (0.12 + r() * 0.1), dur: 1.4, vol: 0.012, attack: 0.01, wet: 0.7, out: o });
+      this.ambEventT = 4 + r() * 6;
     } else this.ambEventT = 5;
   }
 

@@ -18,9 +18,8 @@ export function init(c) {
   ctx = c; THREE = c.THREE;
   const stars = () => ctx.LEVELS.reduce((k, l) => { const s = ctx.save.stars[l.id] || {}; return k + !!s.done + !!s.fast + !!s.clean; }, 0);
   ctx.kuboHat = () => [...MILESTONES].reverse().find(m => stars() >= m.n) || null;
-  // the same hat for Kubo in the Garden (scaled to his size there) and on the world map (a small SVG)
+  // the same hat for Kubo in the Garden (scaled to his size there)
   ctx.makeKuboHat = (id, size = 0.56) => { const h = make(id); h.scale.multiplyScalar(size / 0.56); return h; };
-  ctx.hatSvg = id => HAT_SVG[id] || '';
   let checkT = 0, current = null;
   ctx.dressKubo = kubo => {
     // once a second is plenty: stars only change on the results panel
@@ -51,14 +50,6 @@ function box(w, h, d, color, x = 0, y = 0, z = 0) {
   m.castShadow = true;
   return m;
 }
-
-const INK = '#2a1f3d';
-const HAT_SVG = {
-  sprout: `<svg viewBox="0 0 24 16"><path d="M12 16V8" stroke="#3f8f3a" stroke-width="2.4"/><path d="M12 9C9 4 4 5 3 7c3 3 6 3 9 2zM12 8c3-5 8-5 9-3-3 4-6 4-9 3z" fill="#6fdc6a" stroke="${INK}" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
-  party: `<svg viewBox="0 0 24 20"><path d="M5 19 12 4l7 15z" fill="#ff6b6b" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 13h8" stroke="#4cc9f0" stroke-width="2.4"/><circle cx="12" cy="3.4" r="2.6" fill="#fff4e0" stroke="${INK}" stroke-width="1.4"/></svg>`,
-  crown: `<svg viewBox="0 0 24 14"><path d="M2 13V4l5 4 5-7 5 7 5-4v9z" fill="#ffc93c" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
-  star: `<svg viewBox="0 0 24 22"><path d="M2 21v-9l5 4 5-7 5 7 5-4v9z" fill="#ffc93c" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/><path d="m12 0 1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="#fff1a8" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/></svg>`,
-};
 
 function make(id) {
   const g = new THREE.Group();
