@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Κόσμοι",
   "pause.worlds": "Το Νησί του Φύλακα",
   "ending.toIsle": "Στο Νησί του Φύλακα",
+  "rotate.title": "Γύρισε τη συσκευή σου οριζόντια για να παίξεις",
 };

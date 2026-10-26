@@ -224,6 +224,26 @@ addEventListener('resize', resize);
 screen.orientation?.addEventListener?.('change', () => setTimeout(resize, 120));
 resize();
 
+// Phones and tablets play in landscape. Where the browser allows it (fullscreen on Android, an installed app)
+// the screen is locked sideways; elsewhere, held upright, a "turn your device" screen covers the game and
+// everything waits: a figure in progress pauses (its clock stops), cutscenes and walks hold still.
+const portraitMq = matchMedia('(orientation: portrait)');
+let upright = false;
+function checkUpright() {
+  const was = upright;
+  upright = mobile && portraitMq.matches;
+  document.body.classList.toggle('upright', upright);
+  if (upright === was) return;
+  if (upright) { pause(); audio.suspend(true); }
+  else if (base !== 'screen-pause' && !document.hidden) audio.suspend(false);
+}
+checkUpright();
+portraitMq.addEventListener?.('change', checkUpright);
+addEventListener('resize', checkUpright);
+document.addEventListener('fullscreenchange', () => {
+  if (mobile && document.fullscreenElement) screen.orientation?.lock?.('landscape')?.catch?.(() => {});
+});
+
 // ---------- HUD ----------
 // The bubbles row and the toast sit under whatever the top HUD really measures (the goals row, long names in
 // some languages, UI size), so they never overlap it.
@@ -640,7 +660,7 @@ input.onLockChange = locked => { if (!locked && (app === 'playing' || app === 'i
 document.addEventListener('pointerlockerror', () => { if (app === 'playing') pause(); });
 document.addEventListener('visibilitychange', () => {
   // the ambient bed keeps playing in a background tab on menus too; the pause screen stays silent
-  if (document.hidden) { pause(); audio.suspend(true); } else if (base !== 'screen-pause') audio.suspend(false);
+  if (document.hidden) { pause(); audio.suspend(true); } else if (base !== 'screen-pause' && !upright) audio.suspend(false);
 });
 
 function onComplete(stats) {
@@ -1120,8 +1140,8 @@ function frame(now) {
   lastTime = now;
   if (dt > 0.1) dt = 0.1;
   audio.updateMusic();
-  // nothing 3D is visible behind these screens
-  if (app === 'paused' || app === 'loading') return;
+  // nothing 3D is visible behind these screens (held upright, everything waits behind the turn-your-device screen)
+  if (app === 'paused' || app === 'loading' || upright) return;
   // a feature can own the frame for its own app state:
   // ctx.views[app] replaces update + render (workshop), ctx.modes[app] replaces game.update only (garden)
   if (ctx.views[app]) { ctx.views[app](dt); renderer.adapt(dt); if (healthy < 6 && (healthy += dt) >= 6) { gfxState.booting = 0; saveGfx(); } return; }

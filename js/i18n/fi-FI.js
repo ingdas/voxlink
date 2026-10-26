@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Maailmat",
   "pause.worlds": "Vartijan saari",
   "ending.toIsle": "Vartijan saarelle",
+  "rotate.title": "Käännä laite vaakasuuntaan pelataksesi",
 };

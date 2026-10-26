@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Světy",
   "pause.worlds": "Ostrov Strážce",
   "ending.toIsle": "Na Ostrov Strážce",
+  "rotate.title": "Otoč zařízení na šířku a hraj",
 };

@@ -22,6 +22,10 @@ Opening `index.html` straight from disk won't work, because browsers block ES mo
 
 ## Controls
 
+Phones and tablets play in landscape: the screen locks sideways where the browser allows it (fullscreen on
+Android, the installed app); held upright, a "turn your device sideways" screen covers the game and everything
+waits (a figure in progress pauses and its clock stops).
+
 | | Desktop | Mobile |
 |---|---|---|
 | Move | WASD / arrows, Shift to run | Left thumb (floating stick, push fully to run) |
@@ -111,8 +115,7 @@ Workshop editor:
   figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).
 - Kubo floats beside you and does the talking (`js/features/companion.js`): while he talks he stays inside the
-  view (closer to the middle on a phone held upright), his bubble above his head, or up beside him when the top HUD
-  leaves no room (landscape phones); lines queue so each gets a read (click the little Kubo to keep one up), and
+  view, his bubble above his head, or up beside him when the top HUD leaves no room (phones); lines queue so each gets a read (click the little Kubo to keep one up), and
   his bubble docks above the backpack when he's out of view. On touch screens the docked bubble lets every touch
   through, its little Kubo included (he sits where the left thumb goes down for the stick).
 - Extras: Kubo's Garden (walk among your finished
@@ -134,7 +137,7 @@ in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (
 
 `tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
 all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
-phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, Kubo and dropped blocks on phones (portrait and landscape), every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), the 3D picking up again after the phone drops the WebGL context, and the Keeper's Isle (portals in and out, gates, a world waking, the Garden's arch). Each suite starts its own static server.
+phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, phones and tablets in landscape only (the turn-your-device screen, pausing and waiting while upright), Kubo and dropped blocks on phones, every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), the 3D picking up again after the phone drops the WebGL context, and the Keeper's Isle (portals in and out, gates, a world waking, the Garden's arch). Each suite starts its own static server.
 
 ```
 PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tests/e2e/run.mjs          # everything

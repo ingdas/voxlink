@@ -96,7 +96,7 @@ await suite('keeper\'s isle', async t => {
   await p.close();
 
   // phones: the stick walks you, the card fits, nothing but the stroll HUD shows
-  const m = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true } }), query: '?debug', viewport: { width: 390, height: 844 }, mobile: true });
+  const m = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true } }), query: '?debug', viewport: { width: 844, height: 390 }, mobile: true });
   await t.hideDebug(m);
   await m.tap('#btn-map');
   await m.waitForFunction(() => window.__voxlink.ctx.nexus.session?.ready, null, { timeout: 20000 });

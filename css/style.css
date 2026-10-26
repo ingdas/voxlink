@@ -742,3 +742,12 @@ body.celebrating .done-card { display: none; }
   .dc-head img { width: 38px; height: 38px; } .dc-head b { font-size: 15px; }
   .dc-stars svg { width: 24px; height: 24px; } .dc-stats { font-size: 13px; } .dc-go { min-height: 40px; font-size: 14px; }
 }
+
+/* ---------- held upright on a phone or tablet: turn it sideways (the game waits underneath) ---------- */
+.rotate { display: none; position: fixed; inset: 0; z-index: 300; background: var(--ink); color: var(--paper); place-content: center; justify-items: center; gap: 26px; padding: 24px; text-align: center; touch-action: none; }
+body.upright .rotate { display: grid; }
+.rotate p { margin: 0; max-width: 300px; font-weight: 700; font-size: 22px; line-height: 1.3; text-wrap: balance; }
+.rotate-device { width: 64px; height: 104px; border: 5px solid var(--paper); border-radius: 14px; position: relative; animation: turn-device 2.4s ease-in-out infinite; }
+.rotate-device i { position: absolute; left: 50%; bottom: 7px; width: 14px; height: 4px; margin-left: -7px; border-radius: 2px; background: var(--paper); }
+@keyframes turn-device { 0%, 25% { transform: rotate(0deg); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+body.reduce-motion .rotate-device { animation: none; transform: rotate(-90deg); }

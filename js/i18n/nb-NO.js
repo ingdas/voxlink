@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Verdener",
   "pause.worlds": "Vokterens øy",
   "ending.toIsle": "Til Vokterens øy",
+  "rotate.title": "Snu enheten sidelengs for å spille",
 };

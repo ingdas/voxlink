@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Các thế giới",
   "pause.worlds": "Đảo Người Giữ",
   "ending.toIsle": "Đến Đảo Người Giữ",
+  "rotate.title": "Xoay ngang thiết bị để chơi",
 };

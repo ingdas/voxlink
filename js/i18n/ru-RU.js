@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Миры",
   "pause.worlds": "Остров Хранителя",
   "ending.toIsle": "На Остров Хранителя",
+  "rotate.title": "Поверни устройство горизонтально, чтобы играть",
 };

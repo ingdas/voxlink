@@ -148,4 +148,5 @@ export default {
   "toast.chain": "Chain ×{n}!",
   "toast.follow": "Follow the light to block {n}",
   "settings.language": "Language",
+  "rotate.title": "Turn your device sideways to play",
 };

@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Mondi",
   "pause.worlds": "Isola del Custode",
   "ending.toIsle": "All'Isola del Custode",
+  "rotate.title": "Gira il dispositivo in orizzontale per giocare",
 };

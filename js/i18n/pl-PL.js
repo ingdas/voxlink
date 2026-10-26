@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Światy",
   "pause.worlds": "Wyspa Strażnika",
   "ending.toIsle": "Na Wyspę Strażnika",
+  "rotate.title": "Obróć urządzenie poziomo, aby grać",
 };

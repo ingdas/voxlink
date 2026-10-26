@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Världar",
   "pause.worlds": "Väktarens ö",
   "ending.toIsle": "Till Väktarens ö",
+  "rotate.title": "Vrid enheten till liggande läge för att spela",
 };

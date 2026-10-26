@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Világok",
   "pause.worlds": "Az Őrző szigete",
   "ending.toIsle": "Az Őrző szigetére",
+  "rotate.title": "Fordítsd fekvő helyzetbe a készüléked a játékhoz",
 };

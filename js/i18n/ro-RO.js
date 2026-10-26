@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Lumi",
   "pause.worlds": "Insula Păzitorului",
   "ending.toIsle": "Spre Insula Păzitorului",
+  "rotate.title": "Rotește dispozitivul pe orizontală ca să joci",
 };

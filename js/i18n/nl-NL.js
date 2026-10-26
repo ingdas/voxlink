@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Werelden",
   "pause.worlds": "Hoedereiland",
   "ending.toIsle": "Naar het Hoedereiland",
+  "rotate.title": "Houd je toestel liggend om te spelen",
 };

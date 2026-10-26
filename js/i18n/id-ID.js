@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Dunia",
   "pause.worlds": "Pulau Penjaga",
   "ending.toIsle": "Ke Pulau Penjaga",
+  "rotate.title": "Putar perangkatmu ke posisi mendatar untuk bermain",
 };

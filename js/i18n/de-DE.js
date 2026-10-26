@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Welten",
   "pause.worlds": "Insel des Hüters",
   "ending.toIsle": "Zur Insel des Hüters",
+  "rotate.title": "Dreh dein Gerät quer, um zu spielen",
 };

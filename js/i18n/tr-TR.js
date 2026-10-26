@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Dünyalar",
   "pause.worlds": "Koruyucu'nun Adası",
   "ending.toIsle": "Koruyucu'nun Adası'na",
+  "rotate.title": "Oynamak için cihazını yan çevir",
 };

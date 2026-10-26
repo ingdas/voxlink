@@ -4,7 +4,7 @@
   "description": "Link the numbered blocks and build a 3D figure.",
   "start_url": "./",
   "display": "fullscreen",
-  "orientation": "any",
+  "orientation": "landscape",
   "background_color": "#2a1f3d",
   "theme_color": "#2a1f3d",
   "icons": [

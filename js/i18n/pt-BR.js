@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Mundos",
   "pause.worlds": "Ilha do Guardião",
   "ending.toIsle": "Para a Ilha do Guardião",
+  "rotate.title": "Gire o aparelho na horizontal para jogar",
 };

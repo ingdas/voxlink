@@ -663,4 +663,5 @@ export default {
   "title.worlds": "โลกทั้งหมด",
   "pause.worlds": "เกาะผู้พิทักษ์",
   "ending.toIsle": "ไปเกาะผู้พิทักษ์",
+  "rotate.title": "หมุนอุปกรณ์เป็นแนวนอนเพื่อเล่น",
 };

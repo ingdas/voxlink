@@ -663,4 +663,5 @@ export default {
   "title.worlds": "세계",
   "pause.worlds": "지킴이의 섬",
   "ending.toIsle": "지킴이의 섬으로",
+  "rotate.title": "기기를 가로로 돌려서 플레이하세요",
 };

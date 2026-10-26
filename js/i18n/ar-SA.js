@@ -663,4 +663,5 @@ export default {
   "title.worlds": "العوالم",
   "pause.worlds": "جزيرة الحارس",
   "ending.toIsle": "إلى جزيرة الحارس",
+  "rotate.title": "أدِر جهازك أفقيًا لتلعب",
 };

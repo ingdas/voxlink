@@ -14,7 +14,7 @@ await suite('hud', async t => {
   await p.close();
 
   const save = saveWith(MEADOW, { seen: { farm: true }, unlocked: 10 });
-  for (const v of [{ label: 'landscape ar-SA', viewport: { width: 844, height: 390 }, lang: 'ar-SA' }, { label: 'portrait 360', viewport: { width: 360, height: 640 }, lang: 'de-DE' }]) {
+  for (const v of [{ label: 'landscape ar-SA', viewport: { width: 844, height: 390 }, lang: 'ar-SA' }, { label: 'small landscape de-DE', viewport: { width: 640, height: 360 }, lang: 'de-DE' }]) {
     p = await t.page({ save: { ...save, settings: { lang: v.lang } }, viewport: v.viewport, mobile: true });
     await p.evaluate(() => window.__voxlink.startLevel(window.__voxlink.LEVELS.findIndex(l => l.id === 'windmill'), false, 'island'));
     await t.app(p, 'playing');
@@ -33,7 +33,7 @@ await suite('hud', async t => {
   }
 
   // Restart asks first; the settings list shows a scroll cue
-  p = await t.page({ save, viewport: { width: 390, height: 760 }, mobile: true });
+  p = await t.page({ save, viewport: { width: 760, height: 390 }, mobile: true });
   await p.click('#btn-settings'); await p.waitForTimeout(500);
   t.check('settings show a scroll cue while more is below', await p.evaluate(() => document.querySelector('#screen-settings .settings').classList.contains('more')));
   await p.evaluate(() => document.querySelector('#screen-settings [data-back]').click());

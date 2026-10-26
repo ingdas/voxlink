@@ -663,4 +663,5 @@ export default {
   "title.worlds": "Verdener",
   "pause.worlds": "Vogterens Ø",
   "ending.toIsle": "Til Vogterens Ø",
+  "rotate.title": "Vend enheden på tværs for at spille",
 };

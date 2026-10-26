@@ -4,7 +4,7 @@ import { suite, saveWith } from './lib.mjs';
 
 const SIZES = [
   { label: 'desktop', viewport: { width: 1280, height: 720 } },
-  { label: 'phone', viewport: { width: 390, height: 844 }, mobile: true },
+  { label: 'small phone', viewport: { width: 667, height: 375 }, mobile: true },
   { label: 'landscape', viewport: { width: 844, height: 390 }, mobile: true },
 ];
 
