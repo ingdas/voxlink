@@ -3,7 +3,8 @@
 // he drifts into view in front of you, otherwise he trails at your side. (Kubo's Garden keeps its own Kubo.)
 // The bubble stays inside the screen (its tail still points at him); when he's out of view, or with reduced
 // motion, it docks just above the backpack. Touches pass through the bubble (the thumb stick and buttons under it
-// keep working); tapping the little Kubo in a docked bubble keeps the line up for another read.
+// keep working); clicking the little Kubo in a docked bubble keeps the line up for another read (not on touch
+// screens: there he sits right where the left thumb goes down for the stick).
 import { toon } from '../render.js';
 
 let ctx, THREE;
@@ -112,9 +113,11 @@ function update(g, dt) {
   const talking = !!coachHtml || barkLeft > 0;
   // the scene shifted under us (walked onto another island): move along
   if (g.shiftSeq !== lastSeq) { if (g.shift && kubo.placed) kubo.pos.add(g.shift); lastSeq = g.shiftSeq; }
-  // where to be: ahead of you and to the right while talking, beside you otherwise
+  // where to be: ahead of you and to the right while talking (well inside the view, which is narrow on a
+  // phone held upright), beside you otherwise
   const fwd = forward(pl.yaw, new THREE.Vector3()), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
-  const desired = pl.pos.clone().addScaledVector(fwd, talking ? 4.2 : 0.6).addScaledVector(right, talking ? 2.7 : 2.3);
+  const halfW = Math.tan(THREE.MathUtils.degToRad(g.camera.fov / 2)) * g.camera.aspect; // tan of half the horizontal view
+  const desired = pl.pos.clone().addScaledVector(fwd, talking ? 4.2 : 0.6).addScaledVector(right, talking ? Math.min(2.7, 4.2 * halfW * 0.62) : 2.3);
   // stay clear of the figure on its pedestal
   const fr = (g.footR || 3) + 0.8, dh = Math.hypot(desired.x, desired.z);
   if (dh < fr && Math.hypot(pl.pos.x, pl.pos.z) > fr) desired.multiplyScalar(fr / Math.max(dh, 0.01));
@@ -163,10 +166,28 @@ function placeBubble(g, html, still) {
   const x = (p.x * 0.5 + 0.5) * W, y = (-p.y * 0.5 + 0.5) * H;
   const r = box.getBoundingClientRect(), bw = r.width || 300, bh = r.height || 60;
   const topLimit = (document.getElementById('needs')?.getBoundingClientRect().bottom || 108) + 8; // clear of the top HUD
-  // pinned above his head when there's room for the whole box; otherwise docked
+  // pinned above his head when there's room for the whole box; else beside him, on the side with more room
+  // (landscape phones: the top HUD leaves no room above); otherwise docked
   const fits = !still && view.z < 0 && x > 20 && x < W - 20 && y - bh - 18 > topLimit && y < H - 40;
-  bubble.classList.toggle('docked', !fits);
-  if (fits) {
+  let side = 0, sx = 0, sy = 0;
+  if (!fits && !still && view.z < 0 && x > 20 && x < W - 20) {
+    const mid = new THREE.Vector3(kubo.group.position.x, kubo.group.position.y, kubo.group.position.z).project(g.camera);
+    const half = Math.abs(new THREE.Vector3(0.36, 0, 0).applyQuaternion(g.camera.quaternion).add(kubo.group.position).project(g.camera).x - mid.x) * 0.5 * W;
+    sy = topLimit + bh / 2; // as high as it goes: up in the sky, clear of the pedestal and its bubbles
+    const mx = (mid.x * 0.5 + 0.5) * W;
+    side = mx > W / 2 ? -1 : 1;
+    sx = mx + side * (half + 14);
+    const room = side < 0 ? sx - 10 : W - 10 - sx;
+    const pack = document.querySelector('.pack-wrap')?.getBoundingClientRect();
+    if (room < bw || sy + bh / 2 > (pack?.height ? pack.top - 8 : H - 60)) side = 0;
+  }
+  bubble.classList.toggle('docked', !fits && !side);
+  bubble.classList.toggle('side-l', side < 0);
+  bubble.classList.toggle('side-r', side > 0);
+  if (side) {
+    bubble.style.transform = `translate(${Math.round(sx)}px, ${Math.round(sy)}px)`;
+    box.style.setProperty('--tail', '0px');
+  } else if (fits) {
     const cx = Math.min(W - bw / 2 - 10, Math.max(bw / 2 + 10, x));
     bubble.style.transform = `translate(${Math.round(cx)}px, ${Math.round(y)}px)`;
     box.style.setProperty('--tail', `${Math.round(Math.max(-bw / 2 + 22, Math.min(bw / 2 - 22, x - cx)))}px`);

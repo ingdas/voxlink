@@ -100,7 +100,9 @@ Workshop editor:
   trampolines), Frost (icy lakes), Frostwood (deep snowdrifts slow you, a slippery stream), Sunset Reef
   (wading), Shipwreck Cove (giant clams toss you up the rocks), Starfall (low gravity and jump pads),
   Moon Isle (very low gravity), Gale Cliffs and Eye of the Storm (wind gusts). Dropped blocks stack
-  instead of overlapping.
+  instead of overlapping. A dropped block lands about two metres out in front, where you can see it (closer when
+  a fence or wall is in the way). The pedestal's corner posts are slim posts with a ball on top, so they don't
+  pass for blocks.
 - Design decisions and the simulator behind them: `docs/design-notes.md`, `tools/design-sim.mjs`.
 - First launch skips the title screen and goes straight into the opening cutscene, then the Sprout with
   a step-by-step controls tutorial (look, walk, jump, grab, link, drop, hint). Each step only unlocks
@@ -108,8 +110,11 @@ Workshop editor:
 - The story opens with a cutscene (the Keeper Colossus loses the storm, the storm smashes the first
   figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).
-- Kubo floats beside you and does the talking (`js/features/companion.js`): lines queue so each gets a
-  read (tap the bubble to keep it up), and his bubble docks above the backpack when he's out of view.
+- Kubo floats beside you and does the talking (`js/features/companion.js`): while he talks he stays inside the
+  view (closer to the middle on a phone held upright), his bubble above his head, or up beside him when the top HUD
+  leaves no room (landscape phones); lines queue so each gets a read (click the little Kubo to keep one up), and
+  his bubble docks above the backpack when he's out of view. On touch screens the docked bubble lets every touch
+  through, its little Kubo included (he sits where the left thumb goes down for the stick).
 - Extras: Kubo's Garden (walk among your finished
   figures), the Workshop (build and share your own figures; your own figures earn stars too),
   and Puzzler mode (link blocks anywhere, solve sums; best times kept separately).
@@ -129,7 +134,7 @@ in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (
 
 `tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
 all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
-phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), the 3D picking up again after the phone drops the WebGL context, and the Keeper's Isle (portals in and out, gates, a world waking, the Garden's arch). Each suite starts its own static server.
+phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, Kubo and dropped blocks on phones (portrait and landscape), every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), the 3D picking up again after the phone drops the WebGL context, and the Keeper's Isle (portals in and out, gates, a world waking, the Garden's arch). Each suite starts its own static server.
 
 ```
 PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tests/e2e/run.mjs          # everything

@@ -246,9 +246,11 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   if (pedestal) {
   B.put(GEO.box(), pc1, 0, 0.125, 0, { sx: 5.2, sy: 0.25, sz: 5.2 });
   B.put(GEO.box(), pc2, 0, 0.375, 0, { sx: 4.2, sy: 0.25, sz: 4.2 });
+  // slim corner posts with a ball on top: squat cubes in the accent colour read as loose blocks to grab
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-    B.put(GEO.box(), pc3, sx * 2.35, 0.25, sz * 2.35, { sx: 0.4, sy: 0.5, sz: 0.4 });
-    W.box(sx * 2.35 - 0.2, 0, sz * 2.35 - 0.2, sx * 2.35 + 0.2, 0.5, sz * 2.35 + 0.2);
+    B.put(GEO.cyl(10), pc2, sx * 2.35, 0.32, sz * 2.35, { sx: 0.1, sy: 0.64, sz: 0.1 });
+    B.put(GEO.blob(), pc3, sx * 2.35, 0.74, sz * 2.35, { sx: 0.17, sy: 0.17, sz: 0.17 });
+    W.box(sx * 2.35 - 0.17, 0, sz * 2.35 - 0.17, sx * 2.35 + 0.17, 0.9, sz * 2.35 + 0.17);
   }
   W.box(-2.6, 0, -2.6, 2.6, 0.25, 2.6, { sound: 'stone' });
   W.box(-2.1, 0, -2.1, 2.1, 0.5, 2.1, { sound: 'stone' });

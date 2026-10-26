@@ -995,12 +995,27 @@ export class Game {
   }
   cycleSlot(d) { if (this.pack.length > 1) this.selectSlot((this.active + d + this.pack.length) % this.pack.length); }
 
+  // nothing solid along the ground from your feet to r metres ahead (a block's width, at block height)
+  clearAhead(pos, fx, fz, r) {
+    const b = new THREE.Box3();
+    for (let s = 0.6; s <= r + 1e-6; s += 0.3) {
+      const x = pos.x + fx * s, z = pos.z + fz * s;
+      b.min.set(x - S / 2, pos.y + 0.1, z - S / 2); b.max.set(x + S / 2, pos.y + 0.1 + S, z + S / 2);
+      if (this.colliders.some(c => c.intersectsBox(b))) return false;
+    }
+    return true;
+  }
+
   drop() {
     if (!this.pack.length || this.mode !== 'play') return;
     const v = this.voxels[this.pack[this.active]];
     const p = this.player;
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-    const reach = 1.2 + (v.chunk !== undefined ? this.chunkShape(this.chunks.get(v.chunk)).radius - S / 2 : 0);
+    // out in front where you can see it (right at your feet it's below the view, or fills a phone's screen),
+    // but short of a tree, fence or wall in the way
+    let ahead = 1.2;
+    for (const r of [2.1, 1.8, 1.5]) if (this.clearAhead(p.pos, fx, fz, r)) { ahead = r; break; }
+    const reach = ahead + (v.chunk !== undefined ? this.chunkShape(this.chunks.get(v.chunk)).radius - S / 2 : 0);
     let x = p.pos.x + fx * reach, z = p.pos.z + fz * reach;
     const r = Math.hypot(x, z);
     const minR = Math.max(3.7, this.footR + 0.8);
@@ -1201,11 +1216,14 @@ export class Game {
   // Kubo's next wake-up line; after the last one, the controls
   meetNext() {
     if (this.tutNext || !this.meet) return;
+    // a tap meant for the opening (Skip, or its last moment) doesn't throw away his first line unread
+    if (this.meet.since === undefined || this.t - this.meet.since < 0.35) return;
     if (++this.meet.k < this.meet.lines.length) this.audio.click();
     else this.tutAdvance('look', 0.2);
   }
   updateTutorial(dt, look, moved) {
     const tut = this.tutorial;
+    if (tut === 'meet' && this.meet && this.meet.since === undefined) this.meet.since = this.t;
     if (this.tutNext && this.t >= this.tutNext.at) {
       this.tutorial = this.tutNext.step;
       this.tutNext = null;

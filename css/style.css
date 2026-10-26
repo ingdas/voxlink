@@ -407,7 +407,15 @@ body.mobile .slot .key { display: none; }
 .kubo-speech.docked .ks-box { bottom: 0; display: flex; gap: 10px; align-items: center; text-align: start; }
 .kubo-speech.docked .ks-box::after { display: none; }
 .kubo-speech.docked .kubo.mini { display: block; flex: none; pointer-events: auto; cursor: pointer; }
+body.mobile .kubo-speech.docked .kubo.mini { pointer-events: none; } /* the left thumb's stick lives under him */
 .kubo-speech .ks-box { pointer-events: none; }
+/* beside him (no room above his head): up in the sky at his side, its tail pointing at him */
+.kubo-speech:is(.side-l, .side-r) .ks-box { top: 0; bottom: auto; transform: translateY(-50%); }
+.kubo-speech.side-l .ks-box { left: auto; right: 0; }
+.kubo-speech.side-r .ks-box { left: 0; }
+.kubo-speech:is(.side-l, .side-r) .ks-box::after { bottom: 10px; }
+.kubo-speech.side-l .ks-box::after { left: auto; right: -10px; transform: rotate(-45deg); }
+.kubo-speech.side-r .ks-box::after { left: -10px; transform: rotate(135deg); }
 /* short landscape phones: a compact bubble above the backpack, clear of the view's centre */
 @media (max-height: 500px) { .kubo-speech .ks-box { font-size: 13.5px; padding: 6px 11px; max-width: min(300px, 52vw); } .kubo-speech.docked .kubo.mini { --s: 30px; } }
 @media (max-width: 520px) { .kubo-speech .ks-box { font-size: 14.5px; max-width: 78vw; } }
