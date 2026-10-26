@@ -200,13 +200,15 @@ export function overviewHtml(f) {
   under the game's own logo, the only text on them.</p>
   <div class="grid">${f.covers.map(cover).join('\n')}</div>
   <h3 style="margin-top:22px">Preview videos</h3>
-  <p class="note">Each opens on its cover and cuts through the game: the last blocks of the Rubber Duck carried and linked in first person
-  (one link, the rest chain in, the figure's celebration), then Frost Isles, Starfall Peak, Moon Isle, Sunset Reef, the Keeper Colossus in
-  the Eye of the Storm, and the Keeper's Isle. Every frame is the game running in real time; no audio, no text but the game's own HUD.</p>
+  <p class="note">Each opens on its cover and is nearly all play, through the player's own eyes with the HUD: the Rubber Duck's last
+  blocks linked (one link, the rest chain in, the celebration), blocks grabbed off the snow on Frost Isles, the Magnet and Kubo Express at
+  the Lighthouse, a three-block chain at sunset on Sunset Reef, the updraft lifting you up the Rocket on Moon Isle, a run across the
+  Keeper's Isle to a world's portal, and one look at the Keeper Colossus to close. Every frame is the game running in real time; no audio,
+  no text but the game's own HUD.</p>
   <div class="grid wide">${f.videos.map(video).join('\n')}</div>
 
   <h2 id="extras">Press kit <small>not asked for by the form</small></h2>
-  <p class="note">1920×1080 stills of the same scenes (rendered at twice the size and scaled down), and the game's icon.</p>
+  <p class="note">1920×1080 stills of the video's moments and of the worlds at their prettiest (rendered at twice the size and scaled down), and the game's icon.</p>
   <div class="grid">${f.stills.map(s => `<figure class="asset"><img src="${s}" alt="${s}"><figcaption><a href="${s}" download>${s}</a></figcaption></figure>`).join('')}
     <figure class="asset"><img src="icon.svg" alt="icon.svg" style="background:var(--card);padding:30px"><figcaption><a href="icon.svg" download>icon.svg</a> <span class="spec">also icon-512.png</span></figcaption></figure></div>
 

@@ -78,6 +78,16 @@
       if (from) v.mesh.position.set(...from);
       game.startAnim(v, 'flying', v.target, new THREE.Quaternion(), dur);
     },
+    // set dressing: move loose block i to lie on the ground at (x, z) (where a shot wants it)
+    lay(i, x, z, turn = 0) {
+      const v = game.voxels[i], w = game.world;
+      const off = v.rest.pos.y - (w.floorAt(v.rest.pos.x, v.rest.pos.z) ?? 0);
+      v.rest.pos.set(x, (w.floorAt(x, z) ?? 0) + off, z);
+      v.rest.quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), turn);
+      v.mesh.position.copy(v.rest.pos); v.mesh.quaternion.copy(v.rest.quat);
+    },
+    // hold a key of the player's (walking, running, jumping) as if pressed
+    key(code, down) { const i = ctx.input; if (down) i.keys.add(code); else i.keys.delete(code); },
     // grab block i into the backpack (it lifts into view like a player's grab)
     grab(i) { game.grab(i); },
     link(i) { const k = game.pack.indexOf(i); if (k >= 0) game.launch(i); },

@@ -171,10 +171,11 @@ PLAYWRIGHT_DIR=… node tools/art-pack.mjs --only=covers,stills                 
   size (the figure all but rebuilt, its last blocks caught mid-flight, Kubo beside it), and a small HTML composition per
   cover (`art/store/cover-*.html`) puts the game's own logo over it. The lockup is measured against the label zone
   (`covers.json`).
-- **Previews** (`tools/art/video.mjs`, needs ffmpeg): the cover, then seven beats of the real game: the Rubber Duck's
-  last blocks carried and linked in first person (the chain and the celebration), Frost Isles, Starfall Peak, Moon Isle,
-  Sunset Reef, the Keeper Colossus and the Keeper's Isle. The page's clock is driven by the script, so every frame is
-  exactly 1/30 s of game time however slowly it renders. The same beats give the 1920×1080 stills.
+- **Previews** (`tools/art/video.mjs`, needs ffmpeg): the cover, then about 15 s of mostly first-person play with the
+  HUD: the Rubber Duck's last blocks linked (the chain and the celebration), grabbing blocks on Frost Isles, the Magnet
+  and Kubo Express, a chain at sunset on Sunset Reef, the updraft on Moon Isle, a run across the Keeper's Isle to a
+  portal, and one look at the Keeper Colossus. The page's clock is driven by the script, so every frame is exactly
+  1/30 s of game time however slowly it renders. The same beats (plus a few scenic ones) give the 1920×1080 stills.
 - **Copy and limits**: `tools/art/submission.mjs` (the form's text, options and open points) and `tools/art/spec.mjs`
   (the portal's limits and the tags that exist on the site).
 

@@ -28,58 +28,161 @@ const orbit = (a0, a1, r, y, ly, fov, r1 = r, y1 = y) =>
   `u => { const e = u * u * (3 - 2 * u), a = ${a0} + ${a1 - a0} * e, r = ${r} + ${r1 - r} * e; return { pos: [Math.sin(a) * r, ${y} + ${y1 - y} * e, Math.cos(a) * r], look: [0, ${ly}, 0], fov: ${fov} }; }`;
 
 // The beats, in order. `fig`: whose island (finished, standing) unless `fresh`; `dur`: seconds in the cut;
-// `cam(H, fov)`: camera source (H = the figure's height); `kubo`: Kubo's pose or null to let him be; `hud`;
-// `still`: the moment (0..1) for the press-kit screenshot of this beat, and its name.
+// `cam(H, fov)`: camera source (H = the figure's height; none: the player's own eyes); `kubo`: Kubo's pose or null
+// to let him be; `hud`; `setup(page)` and `frame` (a function of the beat's time t, run before every frame) script
+// the player; `still`: the moment (0..1) for the press-kit screenshot of this beat; `video: false`: a still only.
+// The cut is mostly play, seen through the player's eyes with the HUD: carrying and linking, grabbing, the tools,
+// the updraft, a walk to a portal; one look at the Keeper Colossus closes it.
+const yawTo = (from, to) => Math.atan2(-(to[0] - from[0]), -(to[1] - from[1])); // the player's yaw facing a point
 export const BEATS = [
   {
-    name: 'build', fig: 'duck', fresh: true, dur: 4.3, hud: true, still: { at: 0.12, name: 'build' },
-    // first person: the figure all but done, the last four blocks carried; one link and the rest chain in
+    name: 'build', fig: 'duck', fresh: true, dur: 3.2, hud: true, still: { at: 0.06, name: 'build' },
+    // the figure all but done, the last four blocks carried: one link and the rest chain in, then the celebration
     async setup(p) {
       await p.evaluate(() => {
         const A = window.__art, g = window.__voxlink.game;
         A.buildAllBut(4);
         for (const v of g.voxels) if (v.state !== 'placed') A.grab(v.i);
-        A.player([1.3, 0, 5.0], Math.atan2(1.3, 5.0) + 0.32, 0.02);
-        A.camera(null); A.kubo(null);
+        A.player([1.3, 0, 5.0], Math.atan2(1.3, 5.0) + 0.3, 0.02);
       });
     },
-    // turn to the figure, then link (the chain follows); the game celebrates on its own
     frame: `(t) => {
       const A = window.__art, g = window.__voxlink.game, pl = g.player;
       const goal = Math.atan2(1.3, 5.0) - 0.02;
-      if (t < 0.85) { const k = Math.min(1, t / 0.75), e = k * k * (3 - 2 * k); pl.yaw = goal + 0.36 * (1 - e); pl.pitch = 0.02 + 0.1 * e; }
-      if (t >= 0.95 && !window.__linked) {
-        const fit = g.pack.find(i => g.sockets.has(i));
-        if (fit !== undefined) { window.__linked = true; A.link(fit); }
-      }
+      if (t < 0.45) { const k = Math.min(1, t / 0.4), e = k * k * (3 - 2 * k); pl.yaw = goal + 0.32 * (1 - e); pl.pitch = 0.02 + 0.1 * e; }
+      if (t >= 0.5 && !window.__linked) { const fit = g.pack.find(i => g.sockets.has(i)); if (fit !== undefined) { window.__linked = true; A.link(fit); } }
     }`,
   },
   {
-    name: 'frost', fig: 'penguin', dur: 2.5, still: { at: 0.6, name: 'frost' },
+    name: 'grab', fig: 'penguin', fresh: true, dur: 1.8, hud: true, still: { at: 0.5, name: 'grab' },
+    // three blocks in a row picked up off the snow, turning from one to the next; the backpack fills
+    async setup(p) {
+      await p.evaluate(yawSrc => {
+        const yawTo = (0, eval)(yawSrc), A = window.__art, g = window.__voxlink.game;
+        A.buildAllBut(18);
+        const P = [1.6, 4.9], face = yawTo(P, [0, 0]) + 1.15;
+        const fits = A.fits(), loose = g.voxels.filter(v => v.state === 'loose').map(v => v.i);
+        const pick = [...fits, ...loose.filter(i => !fits.includes(i))].slice(0, 3);
+        const at = pick.map((i, k) => { const a = face + (k - 1) * 0.55, d = 2.3; return [P[0] - Math.sin(a) * d, P[1] - Math.cos(a) * d]; });
+        pick.forEach((i, k) => A.lay(i, at[k][0], at[k][1], k * 0.7));
+        window.__grab = { pick, yaws: at.map(q => yawTo(P, q)), face };
+        A.player([P[0], 0, P[1]], window.__grab.yaws[0], -0.42);
+      }, yawTo.toString());
+    },
+    frame: `(t) => {
+      const G = window.__grab, g = window.__voxlink.game, pl = g.player;
+      const keys = [[0, G.yaws[0]], [0.55, G.yaws[1]], [1.1, G.yaws[2]], [2.0, G.yaws[2]]];
+      const grabs = [0.22, 0.78, 1.33];
+      grabs.forEach((at, k) => { if (t >= at && !G['g' + k]) { G['g' + k] = true; window.__art.grab(G.pick[k]); } });
+      for (let k = 0; k < keys.length - 1; k++) {
+        const [t0, a] = keys[k], [t1, b] = keys[k + 1];
+        if (t >= t0 && t < t1) { const u = Math.min(1, Math.max(0, (t - t0 - 0.2) / (t1 - t0 - 0.2))), e = u * u * (3 - 2 * u); pl.yaw = a + (b - a) * e; }
+      }
+      pl.pitch = -0.38;
+    }`,
+  },
+  {
+    name: 'tools', fig: 'lighthouse', fresh: true, dur: 2.7, hud: true, still: { at: 0.3, name: 'tools' },
+    // the magnet pulls every block that fits into the backpack, then Kubo Express sends them across to the figure
+    async setup(p) {
+      await p.evaluate(yawSrc => {
+        const yawTo = (0, eval)(yawSrc), A = window.__art, g = window.__voxlink.game;
+        A.buildAllBut(12);
+        const P = [-4.6, 8.2], face = yawTo(P, [0, 0]);
+        A.fits().slice(0, 4).forEach((i, k) => {
+          const a = face + [-0.75, 0.6, -0.3, 0.95][k], d = [3.2, 4.0, 5.2, 2.8][k];
+          A.lay(i, P[0] - Math.sin(a) * d, P[1] - Math.cos(a) * d, k);
+        });
+        g.magnetCharges = 1; g.expressCharges = 1;
+        A.player([P[0], 0, P[1]], face, 0.12);
+      }, yawTo.toString());
+    },
+    frame: `(t) => {
+      const g = window.__voxlink.game;
+      window.__voxlink.ctx.companion?.reset();
+      if (t >= 0.3 && !window.__mag) { window.__mag = true; g.useMagnet(); }
+      if (t >= 1.15 && !window.__exp) { window.__exp = true; g.useExpress(); }
+      g.player.pitch = 0.12 + 0.1 * Math.min(1, Math.max(0, (t - 1.2) / 0.8));
+    }`,
+  },
+  {
+    name: 'reef', fig: 'clownfish', fresh: true, dur: 2.1, hud: true, still: { at: 0.15, name: 'reef-link' },
+    // at sunset on the reef: three blocks carried, one link and the other two chain in after it
+    async setup(p) {
+      await p.evaluate(() => {
+        const A = window.__art, g = window.__voxlink.game;
+        A.buildAllBut(3);
+        for (const v of g.voxels) if (v.state !== 'placed') A.grab(v.i);
+        A.player([-1.6, 0, 4.8], Math.atan2(-1.6, 4.8) - 0.18, 0.1);
+      });
+    },
+    frame: `(t) => {
+      const A = window.__art, g = window.__voxlink.game, pl = g.player, goal = Math.atan2(-1.6, 4.8);
+      const k = Math.min(1, t / 0.35), e = k * k * (3 - 2 * k); pl.yaw = goal - 0.18 * (1 - e);
+      if (t >= 0.4 && !window.__linked) { const fit = g.pack.find(i => g.sockets.has(i)); if (fit !== undefined) { window.__linked = true; A.link(fit); } }
+    }`,
+  },
+  {
+    name: 'float', fig: 'rocket', fresh: true, dur: 2.2, hud: true, still: { at: 0.65, name: 'float' },
+    // hold jump inside the glowing ring: the Keeper's updraft lifts you up the rocket, Earth over your shoulder
+    async setup(p) {
+      await p.evaluate(yawSrc => {
+        const yawTo = (0, eval)(yawSrc), A = window.__art, g = window.__voxlink.game;
+        A.buildAllBut(14);
+        const loose = g.voxels.filter(v => v.state === 'loose').slice(0, 2);
+        for (const v of loose) A.grab(v.i);
+        const P = [1.7, 3.4];
+        A.player([P[0], 0, P[1]], yawTo(P, [0, 0]) + Math.PI - 0.5, -0.12);
+        A.kubo({ pos: [-3, 1.5, -3], ground: 0.5 }); // out of the way, behind the rocket
+        A.key('Space', true);
+      }, yawTo.toString());
+    },
+    frame: `(t) => {
+      const g = window.__voxlink.game, pl = g.player;
+      window.__voxlink.ctx.companion?.reset(); // (talking, he'd float into view)
+      pl.pitch = -0.12 - 0.45 * Math.min(1, t / 2.0);
+    }`,
+  },
+  {
+    name: 'walk', isle: true, dur: 1.8, hud: true, still: { at: 0.4, name: 'keepers-isle-walk' },
+    // across the Keeper's Isle: zip along a bridge towards a world's portal
+    async setup(p) {
+      await p.evaluate(() => {
+        const N = window.__voxlink.ctx.nexus.session, k = 6, u = N.isle.islets[k].u;
+        const r = 4;
+        N.player.pos.set(u.x * r, 0, u.z * r); N.player.vel.set(0, 0, 0);
+        N.player.yaw = Math.atan2(-u.x, -u.z); N.player.pitch = 0.04;
+        window.__art.key('KeyW', true); window.__art.key('ShiftLeft', true);
+      });
+    },
+    // stop just short of the portal (stepping in would load the world mid-shot)
+    frame: `() => {
+      const N = window.__voxlink.ctx.nexus.session, q = N.isle.portalPos(6), pl = N.player.pos;
+      if (Math.hypot(q.x - pl.x, q.z - pl.z) < 3.2) { window.__art.key('KeyW', false); window.__art.key('ShiftLeft', false); }
+    }`,
+  },
+  {
+    name: 'storm', fig: 'colossus', dur: 2.3, still: { at: 0.8, name: 'storm' },
+    cam: (H, f) => glide({ pos: [4, H * 0.5, H * 1.6 + 6], look: [0, H * 0.5, 0] }, { pos: [2.5, H * 0.45, H * 1.1 + 5], look: [0, H * 0.6, 0] }, f(46)),
+  },
+  // stills only: the worlds at their prettiest
+  {
+    name: 'frost', fig: 'penguin', video: false, dur: 2.5, still: { at: 0.6, name: 'frost' },
     cam: (H, f) => glide({ pos: [-15, 10, 17], look: [0, 1.5, 0] }, { pos: [-7.5, 4.2, 8.5], look: [0, H * 0.45 + 0.5, 0] }, f(40)),
     kubo: H => ({ pos: [-1.6, H * 0.45 + 1.1, 3.2], ground: 0.5 }),
   },
   {
-    name: 'starfall', fig: 'castle', dur: 2.4, still: { at: 0.5, name: 'starfall' },
+    name: 'starfall', fig: 'castle', video: false, dur: 2.4, still: { at: 0.5, name: 'starfall' },
     cam: (H, f) => orbit(0.42, 0.8, 9.2, 2.5, H * 0.5 + 0.8, f(42), 8.4, 2.2),
     kubo: H => ({ pos: [-2.6, H * 0.4 + 0.9, 2.4], ground: 0.5 }),
   },
   {
-    name: 'moon', fig: 'rocket', dur: 2.4, still: { at: 0.7, name: 'moon' },
-    cam: (H, f) => glide({ pos: [5.6, 1.2, 7.4], look: [0, H * 0.35 + 0.5, 0] }, { pos: [6.0, 3.4, 8.0], look: [0, H * 0.62 + 0.5, 0] }, f(44)),
-    kubo: H => ({ pos: [-2.4, 1.6 + H * 0.2, 2.2], ground: 0.5 }),
-  },
-  {
-    name: 'reef', fig: 'clownfish', dur: 2.4, still: { at: 0.5, name: 'reef' },
+    name: 'reef-view', fig: 'clownfish', video: false, dur: 2.4, still: { at: 0.5, name: 'reef' },
     cam: (H, f) => orbit(0.3, 0.7, 9.5, 2.2, H * 0.5 + 0.7, f(40)),
     kubo: H => ({ pos: [-2.2, H * 0.5 + 0.9, 2.6], ground: 0.5 }),
   },
   {
-    name: 'storm', fig: 'colossus', dur: 2.6, still: { at: 0.8, name: 'storm' },
-    cam: (H, f) => glide({ pos: [4, H * 0.55, H * 1.7 + 6], look: [0, H * 0.5, 0] }, { pos: [2.5, H * 0.45, H * 1.15 + 5], look: [0, H * 0.6, 0] }, f(46)),
-  },
-  {
-    name: 'isle', isle: true, dur: 3.0, still: { at: 0.5, name: 'keepers-isle' },
+    name: 'isle', isle: true, video: false, dur: 3.0, still: { at: 0.5, name: 'keepers-isle' },
     cam: (H, f) => orbit(-0.25, 0.35, 36, 17, 0.5, f(44), 31, 14),
   },
 ];
@@ -87,6 +190,9 @@ export const BEATS = [
 // Load a beat's scene in an open game page and frame it (exported for tuning a beat on its own).
 export async function stageBeat(g, beat, shape, LEVELS) {
   const p = g.page;
+  // let the last beat's timers run out first (a figure finished in it walks you back onto its island 2.6 s later)
+  await p.evaluate(() => { window.__beatFrame = null; for (const k of ['KeyW', 'ShiftLeft', 'Space']) window.__art.key(k, false); });
+  await g.tick(4000);
   if (beat.isle) {
     await p.evaluate(() => window.__voxlink.ctx.openNexus());
     await g.until(() => window.__voxlink.ctx.app === 'nexus' && window.__voxlink.ctx.nexus.session?.ready);
@@ -95,13 +201,19 @@ export async function stageBeat(g, beat, shape, LEVELS) {
     await g.until(id => window.__voxlink.ctx.app === 'playing' && window.__voxlink.game.level.id === id && window.__voxlink.game.mode === 'play', beat.fig);
   }
   await g.tick(1200); // settled: arrival glide over, blocks landed, shaders warm
-  await p.evaluate(on => { window.__linked = false; window.__art.hud(on); window.__voxlink.ctx.hideDoneCard?.(); }, !!beat.hud);
+  await p.evaluate(on => {
+    window.__linked = window.__mag = window.__exp = false;
+    for (const k of ['KeyW', 'ShiftLeft', 'Space']) window.__art.key(k, false);
+    window.__voxlink.ctx.companion?.reset();
+    window.__voxlink.ctx.input.jumpHeld = false;
+    window.__art.hud(on); window.__voxlink.ctx.hideDoneCard?.();
+  }, !!beat.hud);
   const H = await p.evaluate(() => window.__art.info().height || 4);
   const f = fov => Math.min(80, shape === 'portrait' ? fov * PORTRAIT_FOV : fov);
-  if (beat.setup) await beat.setup(p);
+  await p.evaluate(k => window.__art.kubo(k), beat.kubo ? beat.kubo(H) : null);
+  if (beat.setup) await beat.setup(p); // (may pose Kubo itself)
   if (beat.cam) await p.evaluate(([c, d]) => window.__art.camera(c, d), [beat.cam(H, f), beat.dur]);
   else await p.evaluate(() => window.__art.camera(null));
-  await p.evaluate(k => window.__art.kubo(k), beat.kubo ? beat.kubo(H) : null);
   if (beat.frame) await p.evaluate(src => { window.__beatFrame = (0, eval)(src); }, beat.frame);
   else await p.evaluate(() => { window.__beatFrame = null; });
 }
@@ -119,7 +231,7 @@ export async function recordBeats(browser, url, save, LEVELS, shape, dir, only =
   await g.page.addScriptTag({ path: join(ROOT, 'tools/art/stage.js') });
   const dirs = [];
   for (const beat of BEATS) {
-    if (only && !only.includes(beat.name)) continue;
+    if (beat.video === false || (only && !only.includes(beat.name))) continue;
     const d = join(dir, beat.name);
     rmSync(d, { recursive: true, force: true }); mkdirSync(d, { recursive: true });
     await stageBeat(g, beat, shape, LEVELS);
@@ -159,7 +271,7 @@ export async function renderStills(browser, url, save, LEVELS) {
 function ffmpeg(args) { execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...args], { stdio: 'inherit' }); }
 
 // Cut one preview: the cover held, dissolving into the beats, which dissolve into each other.
-export function cutPreview(shape, coverPng, beatDirs, file, { hold = 0.8, fade = 0.4, xfade = 0.3, crf = 21 } = {}) {
+export function cutPreview(shape, coverPng, beatDirs, file, { hold = 0.7, fade = 0.3, xfade = 0.2, crf = 21 } = {}) {
   const S = SHAPES[shape];
   const inputs = ['-loop', '1', '-framerate', String(FPS), '-t', String(hold + fade), '-i', coverPng];
   for (const b of beatDirs) inputs.push('-framerate', String(FPS), '-i', join(b.dir, '%04d.jpg'));
