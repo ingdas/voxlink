@@ -1,0 +1,56 @@
+{
+  "title": "Kubo's Islands",
+  "covers": [
+    {
+      "file": "cover-landscape-1920x1080.png",
+      "w": 1920,
+      "h": 1080,
+      "layout": "landscape",
+      "lockup": {
+        "left": 96,
+        "top": 520,
+        "right": 1103,
+        "bottom": 794
+      },
+      "zone": {
+        "w": 768,
+        "h": 216
+      },
+      "clear": true
+    },
+    {
+      "file": "cover-portrait-800x1200.png",
+      "w": 800,
+      "h": 1200,
+      "layout": "portrait",
+      "lockup": {
+        "left": 0,
+        "top": 914,
+        "right": 800,
+        "bottom": 1136
+      },
+      "zone": {
+        "w": 320,
+        "h": 120
+      },
+      "clear": true
+    },
+    {
+      "file": "cover-square-800x800.png",
+      "w": 800,
+      "h": 800,
+      "layout": "square",
+      "lockup": {
+        "left": 0,
+        "top": 562,
+        "right": 800,
+        "bottom": 756
+      },
+      "zone": {
+        "w": 280,
+        "h": 240
+      },
+      "clear": true
+    }
+  ]
+}

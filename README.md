@@ -133,6 +133,32 @@ then the CrazyGames SDK (`user.systemInfo.locale`), then the browser. English st
 `js/i18n/en/*.js`; each locale is `js/i18n/<code>.js`. Every new user-visible string needs a key
 in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (CI runs it).
 
+## Store art (CrazyGames submission pack)
+
+`art/store/overview.html` is the whole submission pack on one self-contained page, in the order the portal's
+**Submit a game** form asks for it: the name, category, tags, description and controls with copy buttons and character
+counts, the game options, the three covers (with the portal's label zone drawn over them and a thumbnail-size
+preview), both preview videos, press-kit stills, and a check against every limit the portal enforces. Open it straight
+from disk; every asset is a file next to it.
+
+All of it is rendered from the game itself (modelled on puzzlebox's pack):
+
+```sh
+PLAYWRIGHT_DIR=/path/with/node_modules/playwright node tools/art-pack.mjs              # everything, ~2 minutes
+PLAYWRIGHT_DIR=… node tools/art-pack.mjs --only=covers,stills                          # without re-cutting the videos
+```
+
+- **Covers** (`tools/art/covers.mjs`): the game renders the Mushroom's island on the Meadow Isles at twice the cover's
+  size (the figure all but rebuilt, its last blocks caught mid-flight, Kubo beside it), and a small HTML composition per
+  cover (`art/store/cover-*.html`) puts the game's own logo over it. The lockup is measured against the label zone
+  (`covers.json`).
+- **Previews** (`tools/art/video.mjs`, needs ffmpeg): the cover, then seven beats of the real game: the Rubber Duck's
+  last blocks carried and linked in first person (the chain and the celebration), Frost Isles, Starfall Peak, Moon Isle,
+  Sunset Reef, the Keeper Colossus and the Keeper's Isle. The page's clock is driven by the script, so every frame is
+  exactly 1/30 s of game time however slowly it renders. The same beats give the 1920×1080 stills.
+- **Copy and limits**: `tools/art/submission.mjs` (the form's text, options and open points) and `tools/art/spec.mjs`
+  (the portal's limits and the tags that exist on the site).
+
 ## Browser tests
 
 `tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
