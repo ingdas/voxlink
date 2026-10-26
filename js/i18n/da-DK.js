@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Vogterens Ø",
   "ending.toIsle": "Til Vogterens Ø",
   "rotate.title": "Vend enheden på tværs for at spille",
+  "settings.mutedBySite": "Slået fra på denne side",
 };

@@ -149,4 +149,5 @@ export default {
   "toast.follow": "Follow the light to block {n}",
   "settings.language": "Language",
   "rotate.title": "Turn your device sideways to play",
+  "settings.mutedBySite": "Muted on this site",
 };

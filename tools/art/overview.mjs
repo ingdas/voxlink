@@ -221,8 +221,10 @@ export function overviewHtml(f) {
   </ol>
 
   <h2 id="open">Open points</h2>
-  <p class="note">Things the portal's QA may ask about. None blocks a submission; each is a change to the game, outside this pack.</p>
+  <p class="note">Things the portal's QA may ask about. None blocks a submission.</p>
   <ol>${S.OPEN_POINTS.map(p => `<li>${p}</li>`).join('')}</ol>
+  <h3 style="margin-top:18px">Settled: the CrazyGames integration</h3>
+  <ul>${S.SETTLED.map(p => `<li>${p}</li>`).join('')}</ul>
 </main>
 <script>
   const flash = (b, text) => { const was = b.textContent; b.textContent = text; b.classList.add('done'); setTimeout(() => { b.textContent = was; b.classList.remove('done'); }, 1400); };

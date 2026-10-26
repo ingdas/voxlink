@@ -40,6 +40,7 @@ export class Audio {
     this.surface = 'grass';
     this.ambNodes = null;
     this.ambEventT = 3;
+    this.holds = new Set(); // reasons the game must be silent whatever the player's volumes say (an ad, the portal's mute)
   }
 
   unlock() {
@@ -48,7 +49,7 @@ export class Audio {
       if (!AC) return;
       this.ctx = new AC();
       const c = this.ctx;
-      this.master = c.createGain(); this.master.gain.value = 0.9;
+      this.master = c.createGain(); this.master.gain.value = this.holds.size ? 0 : 0.9;
       this.comp = c.createDynamicsCompressor();
       this.master.connect(this.comp).connect(c.destination);
       this.sfx = c.createGain(); this.sfx.gain.value = this.sfxVol; this.sfx.connect(this.master);
@@ -72,6 +73,12 @@ export class Audio {
   setSfx(v) { this.sfxVol = v; if (this.sfx) { this.sfx.gain.value = v; this.amb.gain.value = v; } }
   setMusic(v) { this.musicVol = v; if (this.music) this.music.gain.value = v * 0.5; }
   suspend(s) { if (!this.ctx) return; s ? this.ctx.suspend() : this.ctx.resume(); }
+  // silence for a reason of the platform's (an ad playing, the portal's mute): the player's own volumes are untouched
+  hold(reason, on) {
+    if (on) this.holds.add(reason); else this.holds.delete(reason);
+    if (this.master) this.master.gain.value = this.holds.size ? 0 : 0.9;
+  }
+  get held() { return this.holds.size > 0; }
 
   // switch music flavour, footsteps and ambient bed to a world (theme id)
   setWorld(id) {

@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Isola del Custode",
   "ending.toIsle": "All'Isola del Custode",
   "rotate.title": "Gira il dispositivo in orizzontale per giocare",
+  "settings.mutedBySite": "Disattivato su questo sito",
 };

@@ -133,6 +133,25 @@ then the CrazyGames SDK (`user.systemInfo.locale`), then the browser. English st
 `js/i18n/en/*.js`; each locale is `js/i18n/<code>.js`. Every new user-visible string needs a key
 in all locales: `node tools/check-i18n.mjs` checks keys, placeholders and tags (CI runs it).
 
+## CrazyGames
+
+`js/crazygames.js` is the one place that touches the CrazyGames SDK (v3). It is only fetched on a CrazyGames page;
+everywhere else every call is a no-op.
+
+- **Lifecycle:** `loadingStart` / `loadingStop` around boot; `gameplayStart` / `gameplayStop` only on real transitions
+  (in play: an island, the Keeper's Isle, the Garden, the Workshop editor; not in menus, cutscenes, the celebration,
+  the pause menu, while held upright or during an ad); `happytime` for a rebuilt world, the finale and the 150th star.
+- **Interstitials** (`midgame`): after a finished figure (once the celebration is over, before the results card) and
+  when walking through a portal, either way between a world and the Keeper's Isle (behind the portal's flash). Never
+  on a button. From the request until it is over the game stands still and swallows all input; while the ad plays it
+  is silent. No ad available: the game simply carries on.
+- **Save:** written to `localStorage` and to `SDK.data`, and merged at boot (no star in either copy is lost); a
+  browser that blocks storage in the iframe keeps progress through the platform.
+- **Mute:** the portal's `muteAudio` outranks the game's sliders (they are disabled, with a note; the player's levels
+  come back). **Fullscreen:** no in-game switch there (the portal has its own button).
+
+`tests/e2e/crazygames.mjs` checks all of it against a stand-in SDK.
+
 ## Store art (CrazyGames submission pack)
 
 `art/store/overview.html` is the whole submission pack on one self-contained page, in the order the portal's

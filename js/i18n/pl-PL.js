@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Wyspa Strażnika",
   "ending.toIsle": "Na Wyspę Strażnika",
   "rotate.title": "Obróć urządzenie poziomo, aby grać",
+  "settings.mutedBySite": "Wyciszone na tej stronie",
 };

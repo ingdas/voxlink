@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Isla del Guardián",
   "ending.toIsle": "A la Isla del Guardián",
   "rotate.title": "Gira tu dispositivo en horizontal para jugar",
+  "settings.mutedBySite": "Silenciado en este sitio",
 };

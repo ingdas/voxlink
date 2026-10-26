@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "เกาะผู้พิทักษ์",
   "ending.toIsle": "ไปเกาะผู้พิทักษ์",
   "rotate.title": "หมุนอุปกรณ์เป็นแนวนอนเพื่อเล่น",
+  "settings.mutedBySite": "ปิดเสียงบนเว็บไซต์นี้",
 };

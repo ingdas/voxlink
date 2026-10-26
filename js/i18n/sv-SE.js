@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Väktarens ö",
   "ending.toIsle": "Till Väktarens ö",
   "rotate.title": "Vrid enheten till liggande läge för att spela",
+  "settings.mutedBySite": "Ljudet är av på den här webbplatsen",
 };

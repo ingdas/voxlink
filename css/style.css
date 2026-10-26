@@ -621,6 +621,10 @@ body:is(.museum, .nexus) #btn-express { display: none !important; }
 .pz-txt { min-width: 0; }
 .pz-txt small { display: block; white-space: normal; overflow-wrap: anywhere; }
 .set-note { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+/* the portal (CrazyGames) has muted the game: the sliders keep the player's levels but can't be moved */
+.muted-note { display: none; }
+body.site-muted .muted-note { display: block; }
+body.site-muted :is(#set-sfx, #set-music) { opacity: .45; }
 
 /* results buttons: the way on gets its own full-width row (long labels like "On to Frost Isles" in German),
    wrapping to two lines rather than cutting off; the small icon buttons sit underneath */

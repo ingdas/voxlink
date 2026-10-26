@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Vartijan saari",
   "ending.toIsle": "Vartijan saarelle",
   "rotate.title": "Käännä laite vaakasuuntaan pelataksesi",
+  "settings.mutedBySite": "Mykistetty tällä sivustolla",
 };

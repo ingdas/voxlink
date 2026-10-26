@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "جزيرة الحارس",
   "ending.toIsle": "إلى جزيرة الحارس",
   "rotate.title": "أدِر جهازك أفقيًا لتلعب",
+  "settings.mutedBySite": "مكتوم على هذا الموقع",
 };

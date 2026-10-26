@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Hoedereiland",
   "ending.toIsle": "Naar het Hoedereiland",
   "rotate.title": "Houd je toestel liggend om te spelen",
+  "settings.mutedBySite": "Gedempt op deze site",
 };

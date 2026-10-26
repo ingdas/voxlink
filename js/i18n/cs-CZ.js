@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Ostrov Strážce",
   "ending.toIsle": "Na Ostrov Strážce",
   "rotate.title": "Otoč zařízení na šířku a hraj",
+  "settings.mutedBySite": "Ztlumeno na tomto webu",
 };

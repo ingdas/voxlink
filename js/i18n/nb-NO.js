@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Vokterens øy",
   "ending.toIsle": "Til Vokterens øy",
   "rotate.title": "Snu enheten sidelengs for å spille",
+  "settings.mutedBySite": "Dempet på dette nettstedet",
 };

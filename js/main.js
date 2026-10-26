@@ -7,11 +7,13 @@ import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { FX } from './fx.js';
 import { buildLogo } from './logo.js';
+import * as cg from './crazygames.js';
 import FEATURES from './features/index.js';
 import { t, setLocale, detectLocale, applyDom, listJoin } from './i18n.js';
 import { localizeContent } from './i18n-content.js';
 
 const $ = id => document.getElementById(id);
+cg.loadingStart(); // the platform measures loading from here to cg.loadingStop() at the end of boot()
 // touch-first devices: phones/tablets (some report no coarse pointer, so look at several signals)
 const mobile = matchMedia('(pointer: coarse)').matches
   || /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle/i.test(navigator.userAgent)
@@ -46,27 +48,79 @@ document.body.classList.toggle('mobile', mobile);
 
 // ---------- persistence ----------
 // storage keys (and window.__voxlink) keep the working title Voxlink: renaming them would wipe saves
+// The save lives in this browser (localStorage) and, on CrazyGames, in the portal's cross-device store (SDK.data):
+// inside the portal's iframe Safari and other browsers that partition third-party data drop localStorage (or throw
+// on touching it), so the platform's copy is what keeps a player's stars there. Writes go to both; at boot the two
+// are merged so progress in either is never lost (adoptPlatformSave).
 const SAVE_KEY = 'voxlink.v2';
-const save = Object.assign({ unlocked: 1, best: {}, stars: {}, seen: {}, settings: {} }, safeParse(localStorage.getItem(SAVE_KEY)));
-save.settings = Object.assign({ sens: 1, sfx: 0.8, music: 0.45, invert: false, outline: true, full: mobile }, save.settings);
+const local = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode, blocked third-party storage */ } },
+};
+const blankSave = () => ({ unlocked: 1, best: {}, stars: {}, seen: {}, settings: {} });
 // Saves from the 20-figure campaign: `unlocked` counted figures in the old order. Unlock up to the furthest
 // figure the player had reached, so the new figures before it open up and nothing reached is lost.
 const OLD_ORDER = ['sprout', 'mushroom', 'duck', 'windmill', 'penguin', 'snowman', 'frostpine', 'polarbear', 'crab', 'palm',
   'sailboat', 'whale', 'robot', 'castle', 'rocket', 'dragon', 'lighthouse', 'balloon', 'octopus', 'colossus'];
-if ((save.campaign ?? 1) < 2) {
-  const reached = OLD_ORDER.slice(0, save.unlocked).map(id => LEVELS.findIndex(l => l.id === id));
-  save.unlocked = Math.max(1, ...reached.map(i => i + 1));
-  save.campaign = 2;
-  if (save.seen?.prologue) save.seen.oldSave = true; // Kubo mentions the new figures when they're back
+function normalizeSave(save) {
+  save.settings = Object.assign({ sens: 1, sfx: 0.8, music: 0.45, invert: false, outline: true, full: mobile && !cg.onPlatform() }, save.settings);
+  if ((save.campaign ?? 1) < 2) {
+    const reached = OLD_ORDER.slice(0, save.unlocked).map(id => LEVELS.findIndex(l => l.id === id));
+    save.unlocked = Math.max(1, ...reached.map(i => i + 1));
+    save.campaign = 2;
+    if (save.seen?.prologue) save.seen.oldSave = true; // Kubo mentions the new figures when they're back
+  }
+  delete save.daily; delete save.dailyStreak; // the daily figure was removed
+  // self-heal: figures can move in the campaign order (the Apple did); everything after a finished figure stays open
+  save.unlocked = Math.min(LEVELS.length, Math.max(save.unlocked, ...LEVELS.filter(l => save.stars[l.id]?.done).map(l => l.index + 2)));
+  // half-built figures: one saved run per figure (you can walk away from one and come back)
+  save.sessions = save.sessions || {};
+  if (save.session) { save.sessions[save.session.id] = save.session; delete save.session; }
+  return save;
 }
-delete save.daily; delete save.dailyStreak; // the daily figure was removed
-// self-heal: figures can move in the campaign order (the Apple did); everything after a finished figure stays open
-save.unlocked = Math.min(LEVELS.length, Math.max(save.unlocked, ...LEVELS.filter(l => save.stars[l.id]?.done).map(l => l.index + 2)));
-// half-built figures: one saved run per figure (you can walk away from one and come back)
-save.sessions = save.sessions || {};
-if (save.session) { save.sessions[save.session.id] = save.session; delete save.session; }
+const readSave = raw => normalizeSave(Object.assign(blankSave(), safeParse(raw)));
+const save = readSave(local.get(SAVE_KEY));
 function safeParse(s) { try { return JSON.parse(s) || {}; } catch { return {}; } }
-function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { /* private mode */ } }
+function persist() {
+  const raw = JSON.stringify(save);
+  local.set(SAVE_KEY, raw);
+  cg.store()?.setItem(SAVE_KEY, raw);
+}
+// Two copies of the save, one record: every star, best time, unlock and story beat in either is kept; the rest
+// (settings, half-built runs, workshop figures) comes from whichever copy has more stars (the platform's on a tie).
+function mergeSaves(a, b) {
+  const count = s => Object.values(s.stars).reduce((n, x) => n + !!x?.done + !!x?.fast + !!x?.clean, 0);
+  const [main, other] = count(a) > count(b) ? [a, b] : [b, a];
+  const m = structuredClone(main);
+  for (const [id, x] of Object.entries(other.stars)) {
+    const y = m.stars[id] || {};
+    m.stars[id] = { done: !!(x?.done || y.done), fast: !!(x?.fast || y.fast), clean: !!(x?.clean || y.clean) };
+  }
+  for (const [id, time] of Object.entries(other.best || {})) {
+    if (m.best[id] !== undefined && m.best[id] <= time) continue;
+    m.best[id] = time;
+    if (other.splits?.[id]) (m.splits ||= {})[id] = other.splits[id];
+  }
+  for (const [k, v] of Object.entries(other.seen)) if (v && !m.seen[k]) m.seen[k] = v;
+  m.unlocked = Math.max(m.unlocked, other.unlocked);
+  m.sessions = { ...other.sessions, ...m.sessions };
+  if (other.puzzler) m.puzzler = { ...other.puzzler, ...m.puzzler };
+  return normalizeSave(m);
+}
+// once the portal's store answers: merge its copy in, and write the result to both (which also moves a save that
+// only this browser had up to the platform)
+function adoptPlatformSave() {
+  const st = cg.store();
+  if (!st) return false;
+  const raw = st.getItem(SAVE_KEY);
+  if (raw) {
+    const merged = mergeSaves(save, readSave(raw));
+    for (const k of Object.keys(save)) delete save[k];
+    Object.assign(save, merged);
+  }
+  persist();
+  return true;
+}
 const starsOf = id => { const s = save.stars[id]; return s ? (s.done ? 1 : 0) + (s.fast ? 1 : 0) + (s.clean ? 1 : 0) : 0; };
 const isDone = id => !!save.stars[id]?.done;
 const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id), 0);
@@ -189,7 +243,8 @@ const game = new Game({
     isHalf: l => !!save.sessions[l.id]?.placed?.length,
     island: l => walkOnto(l),
     // a world's portal leads back to the Keeper's Isle (out of that world's portal there)
-    portal: () => { if (app === 'playing' && !overlays.length) ctx.nexus.enter({ from: game.level.chapter }); },
+    // walking into the world's portal (an interstitial goes with it, behind the flash; the menu's way there doesn't)
+    portal: () => { if (app === 'playing' && !overlays.length) ctx.nexus.enter({ from: game.level.chapter, ad: true }); },
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); ctx.companion?.nudge(); },
     // a tip Kubo gives once, ever
     tipOnce: (id, msg) => { if (!save.seen[`tip.${id}`]) { save.seen[`tip.${id}`] = true; persist(); kuboSays(msg); } },
@@ -656,12 +711,36 @@ function resume() {
   lastTime = performance.now();
 }
 
-input.onLockChange = locked => { if (!locked && (app === 'playing' || app === 'intro')) pause(); };
+input.onLockChange = locked => { if (!locked && (app === 'playing' || app === 'intro') && !cg.adShowing()) pause(); };
 document.addEventListener('pointerlockerror', () => { if (app === 'playing') pause(); });
 document.addEventListener('visibilitychange', () => {
   // the ambient bed keeps playing in a background tab on menus too; the pause screen stays silent
   if (document.hidden) { pause(); audio.suspend(true); } else if (base !== 'screen-pause' && !upright) audio.suspend(false);
 });
+
+// ---------- CrazyGames: ads and the portal's mute ----------
+// While an ad is requested or showing the game stands still (frame() skips its update, so no clock runs), takes
+// no input (every key, click and touch is swallowed before the game sees it; the ad itself lives in the portal's
+// page, outside this document) and lets go of the pointer; it goes silent only once an ad actually plays.
+let inputBeforeAd = false;
+cg.onAd(on => {
+  if (on) { inputBeforeAd = input.enabled; input.enabled = false; input.reset(); input.exitLock(); return; }
+  input.enabled = inputBeforeAd;
+  input.reset();
+  lastTime = performance.now();
+});
+for (const ev of ['keydown', 'keyup', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'touchstart', 'touchend', 'contextmenu']) {
+  addEventListener(ev, e => { if (cg.adShowing()) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); } }, { capture: true, passive: false });
+}
+cg.onAdAudio(on => audio.hold('ad', on));
+// the portal's mute outranks the game's own sliders: silent, sliders disabled with a note, the player's levels kept
+const siteMute = on => {
+  audio.hold('mute', on);
+  document.body.classList.toggle('site-muted', on);
+  for (const id of ['set-sfx', 'set-music']) $(id).disabled = on;
+};
+siteMute(cg.muted());
+cg.onMute(siteMute);
 
 function onComplete(stats) {
   app = 'complete';
@@ -671,7 +750,8 @@ function onComplete(stats) {
   const lvl = game.level, idx = game.levelIndex;
   ctx.hooks.complete.forEach(f => f(stats, lvl));
   // workshop figures end on a results panel (Share, back to the Workshop)
-  if (lvl.kind) { input.exitLock(); setTimeout(() => ctx.completeHandlers[lvl.kind]?.(stats, lvl), 2600); return; }
+  // after the celebration, before the results: the natural break for an interstitial (a no-op off CrazyGames)
+  if (lvl.kind) { input.exitLock(); setTimeout(async () => { await cg.midgame(); ctx.completeHandlers[lvl.kind]?.(stats, lvl); }, 2600); return; }
   const par = parTime(lvl);
   const run = { done: true, fast: Math.round(stats.time) <= par, clean: stats.hints === 0 }; // whole seconds, as shown
   const prev = save.stars[lvl.id] || {};
@@ -717,7 +797,9 @@ function onComplete(stats) {
       : finale || allStars ? { label: t('complete.epilogue'), run: showEnding }
       : onward ? { label: t('complete.nextWorld', { world: nextCh.name }), run: toNextWorld } : null,
   };
-  setTimeout(() => { walkOn(card); }, 2600);
+  // the site celebrates the big moments with us (rarely, as CrazyGames asks): a world rebuilt, the finale, all 150 stars
+  if (worldDone || finale || allStars) cg.happytime();
+  setTimeout(async () => { await cg.midgame(); walkOn(card); }, 2600);
 }
 
 // ---------- the results card (campaign figures) ----------
@@ -994,7 +1076,7 @@ function bindSettings() {
     setTimeout(() => location.reload(), 250);
   };
   const fsSupported = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
-  if (!fsSupported) $('set-full').closest('.setting').classList.add('hidden');
+  if (!fsSupported || cg.onPlatform()) $('set-full').closest('.setting').classList.add('hidden');
   toggle('set-full', 'full', v => goFullscreen(v));
   let armed = false;
   $('set-reset').onclick = () => {
@@ -1009,6 +1091,7 @@ function bindSettings() {
 }
 
 function goFullscreen(on) {
+  if (on && cg.onPlatform()) return; // CrazyGames has its own fullscreen button, and asks games not to add one
   const d = document, el = d.documentElement;
   try {
     if (on && !d.fullscreenElement && !d.webkitFullscreenElement) (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el, { navigationUI: 'hide' })?.catch?.(() => {});
@@ -1134,14 +1217,19 @@ addEventListener('keydown', e => {
 
 // ---------- main loop ----------
 let lastTime = performance.now();
+const PLAYING = new Set(['playing', 'intro', 'nexus', 'museum', 'editor']);
 function frame(now) {
   requestAnimationFrame(frame);
   let dt = (now - lastTime) / 1000;
   lastTime = now;
   if (dt > 0.1) dt = 0.1;
   audio.updateMusic();
-  // nothing 3D is visible behind these screens (held upright, everything waits behind the turn-your-device screen)
-  if (app === 'paused' || app === 'loading' || upright) return;
+  // CrazyGames is told when the player is in active play (walking an island, the Keeper's Isle, the Garden, the
+  // Workshop's editor), not in menus, cutscenes, the celebration, the pause menu or while held upright
+  cg.gameplay(PLAYING.has(app) && !upright && !document.hidden);
+  // nothing 3D is visible behind these screens (held upright, everything waits behind the turn-your-device screen);
+  // while an ad is requested or showing the game stands still (its clocks too)
+  if (app === 'paused' || app === 'loading' || upright || cg.adShowing()) return;
   // a feature can own the frame for its own app state:
   // ctx.views[app] replaces update + render (workshop), ctx.modes[app] replaces game.update only (garden)
   if (ctx.views[app]) { ctx.views[app](dt); renderer.adapt(dt); if (healthy < 6 && (healthy += dt) >= 6) { gfxState.booting = 0; saveGfx(); } return; }
@@ -1178,6 +1266,11 @@ async function boot() {
       new Promise(r => setTimeout(r, 2500)),
     ]);
   } catch { /* fallback fonts */ }
+  // the portal's copy of the save first (on CrazyGames; it can carry the player's language too); one that only
+  // answers later is merged in then
+  await cg.ready();
+  adoptPlatformSave();
+  cg.onLateReady(() => adoptPlatformSave());
   // language first: everything built below (thumb labels, features, menus) reads translated strings
   await setLocale(await detectLocale(save.settings.lang));
   localizeContent();
@@ -1205,6 +1298,7 @@ async function boot() {
     const wake = () => { if (app === 'cinema') audio.unlock(); };
     for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, wake, { capture: true, once: true });
   }
+  cg.loadingStop();
   requestAnimationFrame(frame);
   if (location.search.includes('thumbs')) {
     document.body.insertAdjacentHTML('beforeend', `<div style="position:fixed;inset:0;z-index:99;background:#fff4e0;display:grid;grid-template-columns:repeat(4,1fr);overflow:auto">${thumbs.map((t, i) => `<div style="text-align:center;font:700 14px Fredoka"><img src="${t}" style="width:100%"><br>${LEVELS[i].name}</div>`).join('')}</div>`);

@@ -62,18 +62,25 @@ export const CONTROLS = `<h2>Mouse and keyboard</h2>
 export const OPTIONS = [
   ['The game supports mobile devices: ON.', 'Touch controls throughout (a floating stick, look by dragging, buttons for the rest), lighter graphics on phones, tested on Android.'],
   ['Mobile orientation: Landscape.', 'Phones and tablets play sideways only: held upright, the game pauses behind a "turn your device" screen. It can only be changed later with a new build.'],
-  ['Progress save: browser storage (localStorage).', 'Not the SDK\'s Data module yet; see the open points. Saves survive reloads, not a browser that partitions or clears third-party site data.'],
-  ['The game is an online multiplayer game: OFF.', 'Workshop figures are shared as links; nothing else is online.'],
+  ['Progress save: "Yes, using the Data Module from the CrazyGames SDK".', 'The save goes to <code>SDK.data</code> as well as <code>localStorage</code>, and the two are merged at start (no star in either is ever lost), so progress follows the player across devices and survives Safari\'s partitioned iframe storage.'],
+  ['The game is an online multiplayer game: OFF.', 'Workshop figures are shared as invite links; nothing else is online.'],
   ['The game has in-game purchases: OFF.', ''],
-  ['The game supports CrazyGames muting audio through SDK: OFF.', 'It does not listen to the SDK\'s mute setting yet; see the open points.'],
-  ['The game works well in fullscreen: ON.', 'The view fills any frame. Note: Settings has a Fullscreen switch (on by default on phones); see the open points.'],
-  ['Allow non-CrazyGames websites to embed your game: OFF.', ''],
+  ['The game supports CrazyGames muting audio through SDK: ON.', 'It follows <code>settings.muteAudio</code> and its change listener: silent while the portal says so, the Sound and Music sliders disabled with a note, the player\'s own levels back when it lets go.'],
+  ['The game works well in fullscreen: ON.', 'The view fills any frame, and on CrazyGames there is no in-game fullscreen switch (the portal has its own).'],
+  ['Allow non-CrazyGames websites to embed your game: OFF.', 'Elsewhere there is no <code>SDK.data</code> or ads.'],
 ];
 
+// Still worth knowing before review; none blocks a submission.
 export const OPEN_POINTS = [
-  '<b>SDK gameplay events.</b> The game loads the CrazyGames SDK only for the player\'s language and for Workshop invite links. It does not call <code>loadingStop</code>, <code>gameplayStart</code> / <code>gameplayStop</code> (paused, menus, cutscenes) or <code>happytime</code> (a figure finished). The platform measures the initial download up to the first <code>gameplayStart</code>, and QA checks for these.',
-  '<b>Progress in the SDK\'s Data module.</b> Saves live in <code>localStorage</code> (<code>voxlink.v2</code>), which Safari and other browsers that partition third-party data can drop inside the portal\'s iframe. Moving the save to <code>SDK.data</code> (with <code>localStorage</code> as the fallback off the portal) keeps players\' stars.',
-  '<b>The portal\'s mute.</b> The game should follow <code>SDK.game.settings.muteAudio</code> and its change listener (and grey out its own sound sliders while muted), then tick "supports muting audio through SDK".',
-  '<b>The in-game Fullscreen switch.</b> CrazyGames provides its own fullscreen button and its rules ask games not to add one. The switch could be hidden on the portal (<code>onCrazyGames()</code>), keeping it for the stand-alone site, where it also locks phones in landscape.',
-  '<b>Ads.</b> There are no ad breaks. A midgame ad between figures (when the results card goes away) or when travelling through a portal would be the natural spots, if wanted.',
+  '<b>No rewarded ads.</b> There is nothing a rewarded ad could honestly sell yet: hints are free (they only cost the no-hint star), and nothing is locked behind anything but play. If one is wanted later, "keep the no-hint star" for one more hint is the natural trade.',
+  '<b>Interstitial frequency.</b> The game asks for one after every finished figure and every walk through a portal, and leaves the pacing to the platform\'s own cap (one every few minutes).',
+];
+
+// What the CrazyGames integration does (js/crazygames.js), for a reviewer who asks.
+export const SETTLED = [
+  '<b>SDK lifecycle.</b> <code>loadingStart</code> as the page starts and <code>loadingStop</code> when the first screen is up; <code>gameplayStart</code> / <code>gameplayStop</code> only on real transitions: in play on an island, the Keeper\'s Isle, the Garden and the Workshop editor; out of it in menus, cutscenes, the celebration, the pause menu, while held upright and while an ad is up. <code>happytime</code> for a rebuilt world, the finale and the 150th star.',
+  '<b>Interstitials</b> (<code>midgame</code>) after a finished figure (once its celebration is over, before the results card) and when walking through a portal, either way between a world and the Keeper\'s Isle (behind the portal\'s flash). Never on a button: the pause menu\'s and title\'s way to the Keeper\'s Isle and the results card\'s "next world" bring none. While an ad is requested the game stands still (no clock runs) and takes no input; while it plays the game is silent.',
+  '<b>Progress in the Data module</b>, merged with the browser\'s copy; and the game starts even where touching <code>localStorage</code> throws (Safari with third-party data blocked).',
+  '<b>The portal\'s mute</b> outranks the game\'s sliders, and <b>no in-game fullscreen switch</b> on CrazyGames.',
+  'Off CrazyGames the SDK is never loaded and all of it is a no-op. <code>tests/e2e/crazygames.mjs</code> checks it with a stand-in SDK; every other suite runs without one.',
 ];

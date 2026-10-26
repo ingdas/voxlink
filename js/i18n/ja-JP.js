@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "守り手の島",
   "ending.toIsle": "守り手の島へ",
   "rotate.title": "端末を横向きにしてあそんでね",
+  "settings.mutedBySite": "このサイトでミュート中",
 };

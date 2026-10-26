@@ -5,7 +5,8 @@ import { PALETTE, PATTERN, forgetLevel } from '../levels.js';
 import { S, fixedPatternPatch } from '../voxels.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from '../render.js';
 import { THEMES } from '../world.js';
-import { t, crazyGamesSdk, onCrazyGames } from '../i18n.js';
+import { t } from '../i18n.js';
+import { ready as crazyGamesSdk, onCrazyGames } from '../crazygames.js';
 import { createEditorCam } from './workshop-cam.js';
 
 const KEYS = Object.keys(PALETTE); // share-code colour index (append-only order)

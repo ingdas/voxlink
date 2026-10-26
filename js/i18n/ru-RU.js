@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Остров Хранителя",
   "ending.toIsle": "На Остров Хранителя",
   "rotate.title": "Поверни устройство горизонтально, чтобы играть",
+  "settings.mutedBySite": "Звук отключён на этом сайте",
 };

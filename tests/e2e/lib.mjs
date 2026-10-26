@@ -45,13 +45,14 @@ export async function suite(name, fn) {
   let failed = 0, passed = 0;
   const t = {
     url,
-    // a page with a seeded save (null: a fresh first launch); errors on the page fail the suite
-    async page({ save = null, query = '', viewport = { width: 1280, height: 720 }, mobile = false, waitFor = 'title' } = {}) {
+    // a page with a seeded save (null: a fresh first launch); errors on the page fail the suite; init: [fn, arg] for addInitScript
+    async page({ save = null, query = '', viewport = { width: 1280, height: 720 }, mobile = false, waitFor = 'title', init = null } = {}) {
       const p = await browser.newPage({ viewport, ...(mobile ? { isMobile: true, hasTouch: true } : {}) });
       p.on('pageerror', e => errors.push(`${e.message} ${(e.stack || '').split('\n')[1] || ''}`));
       p.on('console', m => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) errors.push(m.text()); });
       // seed the save once per page (reloads keep what the game wrote)
       await p.addInitScript(([k, s]) => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); if (s) localStorage.setItem(k, s); else localStorage.removeItem(k); } }, [SAVE_KEY, save && JSON.stringify(save)]);
+      if (init) await p.addInitScript(...init); // [fn, arg]: runs before the page's own scripts, after the save is seeded
       await p.goto(url + query);
       if (waitFor) await p.waitForFunction(w => window.__voxlink?.ctx.app === w, waitFor, { timeout: 45000 });
       return p;

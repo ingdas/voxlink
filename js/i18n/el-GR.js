@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Το Νησί του Φύλακα",
   "ending.toIsle": "Στο Νησί του Φύλακα",
   "rotate.title": "Γύρισε τη συσκευή σου οριζόντια για να παίξεις",
+  "settings.mutedBySite": "Σε σίγαση σε αυτόν τον ιστότοπο",
 };

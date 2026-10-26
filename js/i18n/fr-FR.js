@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Île du Gardien",
   "ending.toIsle": "Vers l'Île du Gardien",
   "rotate.title": "Tourne ton appareil à l’horizontale pour jouer",
+  "settings.mutedBySite": "Coupé sur ce site",
 };

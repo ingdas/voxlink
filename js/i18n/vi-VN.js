@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Đảo Người Giữ",
   "ending.toIsle": "Đến Đảo Người Giữ",
   "rotate.title": "Xoay ngang thiết bị để chơi",
+  "settings.mutedBySite": "Đã tắt tiếng trên trang này",
 };

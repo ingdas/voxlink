@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Insula Păzitorului",
   "ending.toIsle": "Spre Insula Păzitorului",
   "rotate.title": "Rotește dispozitivul pe orizontală ca să joci",
+  "settings.mutedBySite": "Sunet oprit pe acest site",
 };

@@ -664,4 +664,5 @@ export default {
   "pause.worlds": "Pulau Penjaga",
   "ending.toIsle": "Ke Pulau Penjaga",
   "rotate.title": "Putar perangkatmu ke posisi mendatar untuk bermain",
+  "settings.mutedBySite": "Dibisukan di situs ini",
 };

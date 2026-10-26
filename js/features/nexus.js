@@ -7,6 +7,7 @@ import { THEMES } from '../world.js';
 import { Player } from '../player.js';
 import { voxelMaterial } from '../voxels.js';
 import { t } from '../i18n.js';
+import { midgame } from '../crazygames.js';
 import { fitText, FONTS } from './museum.js';
 
 const plural = (key, n) => `${key}.${n === 1 ? 'one' : 'other'}`;
@@ -74,9 +75,10 @@ function buildDom() {
 }
 
 // ---------- going places ----------
-// A flash of light in `color`: the screen fills, fn() swaps what's behind it, and it fades again.
+// A flash of light in `color`: the screen fills, fn() swaps what's behind it, and it fades again. With `ad` (a walk
+// through a portal) an interstitial gets its turn while the screen is filled; off CrazyGames that's instant.
 let warping = false;
-function warp(color, fn) {
+function warp(color, fn, ad = false) {
   if (warping) return;
   warping = true;
   const el = $('warp');
@@ -86,18 +88,20 @@ function warp(color, fn) {
   ctx.input.reset();
   ctx.audio.whoosh?.();
   ctx.audio.tone({ f: 420, f2: 980, type: 'sine', dur: 0.5, vol: 0.07, wet: 0.5 });
-  setTimeout(() => {
+  const swap = () => {
     try { fn(); } finally {
       warping = false;
       requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('on')));
     }
-  }, 280);
+  };
+  setTimeout(() => { if (ad) midgame().then(swap); else swap(); }, 280);
 }
 
 // from: the world (chapter) whose portal you came through, or 'garden'; unlock: a world that has just opened (its
 // gate sinks as you arrive on the plaza in front of it). Neither: you arrive on the plaza facing your current world.
 // before(): clears away where you were, behind the flash (the Garden)
-function enter({ from = null, unlock = null, before = null } = {}) {
+// ad: arriving by walking through a world's portal (an interstitial goes with the flash; the menus' way here doesn't)
+function enter({ from = null, unlock = null, before = null, ad = false } = {}) {
   if (N || warping) return;
   const { audio, input } = ctx;
   audio.unlock();
@@ -137,7 +141,7 @@ function enter({ from = null, unlock = null, before = null } = {}) {
         if (!ctx.mobile) ctx.input.requestLock(); // the click / key that closed the dialogue allows it
       });
     } else N.talkDone = true;
-  });
+  }, ad);
 }
 
 function exit() {
@@ -306,7 +310,7 @@ class Isle {
       return;
     }
     const ch = CHAPTERS[k], T = THEMES[ch.theme];
-    const go = () => warp(hex(T.skyHorizon), () => { exit(); ctx.enterWorld(k); });
+    const go = () => warp(hex(T.skyHorizon), () => { exit(); ctx.enterWorld(k); }, true); // through a portal: an interstitial's turn
     // the first visit: Kubo tells you about the world before you go through
     if (!save.seen[ch.id]) {
       save.seen[ch.id] = true;
