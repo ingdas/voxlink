@@ -15,12 +15,15 @@ export const TOOLS = { magnet: { every: 12, max: 3, reach: 10 }, express: { ever
 const _e = new THREE.Euler();
 const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
 const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
-// First-play tutorial: one control per step. A control unlocks at the step that teaches it and stays
-// unlocked; anything not taught yet is blocked (and nudges the coach line). Looking around and pausing always work.
-// 'meet' (right after the storm): Kubo's wake-up lines in his speech bubble, one per click / tap / E / Space.
-export const TUTORIAL = ['meet', 'look', 'move', 'jump', 'grab', 'link', 'drop', 'hint', 'done'];
+// First-play tutorial: the first link comes first, with the block lying right in front of you. 'meet' (right after
+// the storm): Kubo's wake-up line in his speech bubble (a click / tap / E / Space / a step ends it, or it moves on by
+// itself); then grab and link, with looking and walking free all along. The look and walk steps only come up if you
+// haven't looked or walked around enough by then. Drop and the hint aren't drills: Kubo brings them up when they're
+// useful (a full backpack, a while without a link), and jumping waits for the first place it's needed.
+export const TUTORIAL = ['meet', 'grab', 'link', 'look', 'move', 'done'];
 const LOOK_GOAL = 1.4, WALK_GOAL = 3.5; // radians looked around / metres walked
-const NEEDS = { jump: 'jump', drop: 'drop', hint: 'hint', slot: 'grab', cycle: 'grab', magnet: 'done', express: 'done' };
+const MEET_FOR = 6; // seconds Kubo's wake-up line stays up on its own
+const LOST_AFTER = 15; // seconds without a link before Kubo brings up the hint
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
@@ -306,8 +309,11 @@ export class Game {
     this.focusKey = '';
     this.waved = false;
     this.tutorial = null; // set by main.js for a first play
+    this.freeHints = false; // the first play of the first figure (set by main.js with the tutorial)
+    this.lostTold = false;
     this.tutNext = null;
     this.tutAcc = 0;
+    this.tutLook = this.tutWalk = 0; // looked / walked so far in the tutorial
     this.tutUsed = new Set(); // controls used during the current step (the coach lights their keys)
     this.packTipShown = false;
     this.hintWarnT = -99;
@@ -932,7 +938,6 @@ export class Game {
     if (!h) return;
     if (h.far) { this.events.toast?.(t('toast.far')); this.audio.wrong(); return; }
     if (h.kind === 'loose') {
-      if (!this.tutAllows('grab')) return this.tutNudge();
       if (this.puzzler) {
         const k = this.attachSlot(h.i);
         if (k >= 0) return this.attach(k, h.i);
@@ -941,7 +946,7 @@ export class Game {
       return this.grab(h.i);
     }
     if (h.kind === 'socket') {
-      if (this.carrying(h.child)) return this.tutAllows('link') ? this.launch(h.child) : this.tutNudge();
+      if (this.carrying(h.child)) return this.launch(h.child);
       const num = this.voxels[h.child].num;
       this.audio.wrong();
       this.shakeSocket(h.child);
@@ -983,6 +988,7 @@ export class Game {
       this.packTipShown = true;
       this.events.toast?.(t('toast.carry', { n: PACK_SIZE }));
     }
+    if (this.pack.length === PACK_SIZE && !this.puzzler) this.events.packFull?.();
     this.settle();
     this.emitPack();
   }
@@ -1044,7 +1050,6 @@ export class Game {
     this.pack.splice(this.active, 1);
     this.active = Math.max(0, Math.min(this.active, this.pack.length - 1));
     this.audio.drop();
-    if (this.tutorial === 'drop') { this.tutUsed.add('drop'); this.tutAdvance('hint'); }
     this.emitPack();
   }
 
@@ -1057,7 +1062,7 @@ export class Game {
     else this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), Math.min(1.6, 0.34 + v.mesh.position.distanceTo(v.target) * 0.03));
     this.ghost.visible = false;
     this.audio.tone({ f: 500, f2: 900, type: 'sine', dur: 0.2, vol: 0.08 });
-    if (this.tutorial === 'link') this.tutAdvance('drop');
+    if (this.tutorial === 'link') this.tutAdvance('look');
     this.emitPack();
   }
 
@@ -1068,9 +1073,8 @@ export class Game {
 
   hint() {
     if (this.mode !== 'play') return;
-    // the tutorial's practice hint is free
-    const practice = this.tutorial === 'hint';
-    if (practice) { this.tutUsed.add('hint'); this.tutAdvance('done'); }
+    // hints are free on the first play of the first figure
+    const practice = this.freeHints;
     const fitInPack = this.carriedAll().find(i => this.sockets.has(i));
     if (fitInPack !== undefined) {
       // free: you're already carrying a fitting block, just point at its bubble
@@ -1105,6 +1109,9 @@ export class Game {
   complete() {
     this.mode = 'celebrate';
     this.celebrateT = 0;
+    // a figure finished mid-tutorial (every block linked before a step came up) leaves no step behind
+    this.tutorial = null;
+    this.tutNext = null;
     // (the pointer stays locked: campaign figures hand control straight back after the celebration)
     this.fx.clearBeam();
     this.camFrom = { pos: this.camera.position.clone(), quat: this.camera.quaternion.clone() };
@@ -1192,68 +1199,70 @@ export class Game {
   }
 
   // ---------- tutorial ----------
-  tutAllows(what) {
-    const k = this.tutorial ? TUTORIAL.indexOf(this.tutorial) : -1;
-    return k < 0 || TUTORIAL.indexOf(what) <= k;
-  }
   tutNudge() {
     if (this.t - (this.tutNudgeT ?? -9) < 0.8) return;
     this.tutNudgeT = this.t;
     this.audio.wrong();
     this.events.tutorialNudge?.();
   }
-  // a finished step ticks over after a short beat, so the player sees it worked
   // how far along the look / walk steps are (0..1)
   tutProgress() {
     if (this.tutNext) return 1;
-    return this.tutorial === 'look' ? Math.min(1, this.tutAcc / LOOK_GOAL) : this.tutorial === 'move' ? Math.min(1, this.tutAcc / WALK_GOAL) : 0;
+    return this.tutorial === 'look' ? Math.min(1, this.tutLook / LOOK_GOAL) : this.tutorial === 'move' ? Math.min(1, this.tutWalk / WALK_GOAL) : 0;
   }
+  // a finished step ticks over after a short beat, so the player sees it worked
   tutAdvance(step, delay = 0.6) {
     if (this.tutNext) return;
     this.tutNext = { step, at: this.t + delay };
     this.audio.tone({ f: 660, f2: 990, type: 'triangle', dur: 0.18, vol: 0.1, wet: 0.3 });
   }
-  // Kubo's next wake-up line; after the last one, the controls
+  // Kubo's next wake-up line; after the last one, the first block
   meetNext() {
     if (this.tutNext || !this.meet) return;
-    // a tap meant for the opening (Skip, or its last moment) doesn't throw away his first line unread
+    // a tap meant for the opening (Skip, or its last moment) doesn't throw away his line unread
     if (this.meet.since === undefined || this.t - this.meet.since < 0.35) return;
     if (++this.meet.k < this.meet.lines.length) this.audio.click();
-    else this.tutAdvance('look', 0.2);
+    else this.tutAdvance('grab', 0.2);
   }
   updateTutorial(dt, look, moved) {
     const tut = this.tutorial;
     if (tut === 'meet' && this.meet && this.meet.since === undefined) this.meet.since = this.t;
+    if (tut !== 'meet') { this.tutLook += Math.abs(look.x) + Math.abs(look.y); this.tutWalk += moved; }
     if (this.tutNext && this.t >= this.tutNext.at) {
-      this.tutorial = this.tutNext.step;
+      let step = this.tutNext.step;
+      // looking and walking come free with the first link: their steps only show if they're still to learn
+      if (step === 'look' && this.tutLook >= LOOK_GOAL) step = 'move';
+      if (step === 'move' && this.tutWalk >= WALK_GOAL) step = 'done';
+      this.tutorial = step;
       this.tutNext = null;
       this.tutAcc = 0;
       this.tutUsed.clear();
       return;
     }
     if (this.tutNext) return;
+    if (tut === 'meet' && this.meet && this.t - this.meet.since > MEET_FOR * this.meet.lines.length) this.tutAdvance('grab', 0);
+    // the block was dropped (or swapped) before it was linked: back to finding it
+    if (tut === 'link' && !this.carriedAll().some(c => this.sockets.has(c))) { this.tutorial = 'grab'; return; }
     if (tut === 'move') for (const d of ['forward', 'left', 'back', 'right']) if (this.input.held(d)) this.tutUsed.add(d);
     // look and walk advance the moment they're done (the coach shows the progress filling up)
-    if (tut === 'look' && (this.tutAcc += Math.abs(look.x) + Math.abs(look.y)) > LOOK_GOAL) this.tutAdvance('move', 0.15);
-    else if (tut === 'move' && (this.tutAcc += moved) > WALK_GOAL) this.tutAdvance('jump', 0.15);
+    if (tut === 'look' && this.tutLook > LOOK_GOAL) this.tutAdvance('move', 0.15);
+    else if (tut === 'move' && this.tutWalk > WALK_GOAL) this.tutAdvance('done', 0.15);
     else if (tut === 'done' && (this.tutAcc += dt) > 4.5) this.tutorial = null;
   }
 
   updatePlay(dt) {
     const look = this.input.poll();
-    if (this.tutorial) {
+    // while Kubo says hello you can look around; a step (like a click, E or Space) moves on to the first block
+    if (this.tutorial === 'meet') {
       const m = this.input.move;
-      if (!this.tutAllows('move')) {
-        if ((m.x || m.y) && !this.tutHeld) this.tutNudge();
-        this.tutHeld = !!(m.x || m.y);
-        m.x = m.y = 0; m.sprint = false;
-      }
-      if (!this.tutAllows('jump')) this.input.jumpHeld = false;
+      if ((m.x || m.y) && !this.tutHeld) this.meetNext();
+      this.tutHeld = !!(m.x || m.y);
+      m.x = m.y = 0; m.sprint = false;
+      this.input.jumpHeld = false;
     }
     for (const a of this.input.takeActions()) {
-      if (this.tutorial === 'meet' && (a.type === 'interact' || a.type === 'jump')) { this.meetNext(); continue; }
-      if (NEEDS[a.type] && !this.tutAllows(NEEDS[a.type])) { this.tutNudge(); continue; }
-      if (a.type === 'jump') { this.player.jumpBuffer = 0.14; if (this.tutorial === 'jump') { this.tutUsed.add('jump'); this.tutAdvance('grab', 0.5); } }
+      if (this.tutorial === 'meet' && a.type !== 'pause') { if (a.type === 'interact' || a.type === 'jump') this.meetNext(); else this.tutNudge(); continue; }
+      if (a.type === 'jump') this.player.jumpBuffer = 0.14;
       else if (a.type === 'interact') this.interact(a.x, a.y);
       else if (a.type === 'drop') this.drop();
       else if (a.type === 'hint') { if (!(this.roaming && this.events.roamAction?.())) this.hint(); }
@@ -1296,8 +1305,14 @@ export class Game {
     this.hintCooldown = Math.max(0, this.hintCooldown - dt);
     if (this.stageCount > 1 && !this.districtTip && this.islandT > 2.5) { this.districtTip = true; this.events.tip?.('districts'); }
 
-    // no block tooltips before the tutorial gets to grabbing (looking and walking come first)
-    this.setFocus(this.input.mobile || !this.tutAllows('grab') ? null : this.rayFrom());
+    // lost for a while: Kubo brings up the hint (once ever; the first figure's are free)
+    if (!this.lostTold && !this.tutorial && !this.puzzler && this.mode === 'play' && !this.roaming && this.onIsland && this.sinceLink > LOST_AFTER && !this.hasFitInPack() && this.voxels.some(v => v.state === 'loose' && this.sockets.has(v.i))) {
+      this.lostTold = true;
+      this.events.lost?.();
+    }
+
+    // no block tooltips while Kubo says hello
+    this.setFocus(this.input.mobile || this.tutorial === 'meet' ? null : this.rayFrom());
     this.events.tick?.(this);
   }
 

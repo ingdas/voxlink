@@ -235,3 +235,24 @@ to the next.
   ending's replay moved to the isle's pause menu. Kubo explains the isle the first time you arrive.
 - Kubo's companion only hid itself during a world's frames, so on the isle (and in the Garden) it kept claiming
   his lines while invisible; it now re-checks whether it should be shown whenever it's asked.
+
+## 2026-10-30 · The first minute: the first link comes first
+
+A playtest of a fresh first launch (a bot playing at a human pace, never skipping) put the first link at **53 s**:
+a 22 s opening, 15 s of Kubo's four wake-up lines, then look / walk / jump drills that turned the player away from
+the block placed in front of them (on a phone the grab step came up facing the river, the pedestal off screen), and
+drop / hint drills after it. The same run now links at about **20 s** (control at 11 s).
+
+- **Opening: 21.8 s → 9.6 s.** Both shots stay (the Colossus loses the storm, the storm smashes the Sprout) with
+  two captions instead of four.
+- **Kubo says one line** (his hello); the rest of his intro was either the cutscene again or the mechanic told
+  before it's seen. A click, E, Space, a step or six seconds end it.
+- **Grab and link first**, with the block still in front of you. Looking and walking are never locked; the look
+  and walk steps (with their bars) only show after the first link if they're still to learn.
+- **No jump, drop or hint drills.** Jumping waits for the first place it's needed (the Tulip's updraft tip), drop
+  is explained the first time the backpack is full, and the hint after 15 s without a link (each once, ever). The
+  drop drill used to have you grab a block that didn't fit, so the first thing it practised was a failure.
+- **No step outlives the figure.** Linking every block while the drop step was up left "Grab another block, then
+  drop it" on a finished island (and the figure ran at 0:00, since the clock waits for the tutorial). Finishing the
+  figure now clears the tutorial; dropping the block during the link step goes back to the grab step.
+

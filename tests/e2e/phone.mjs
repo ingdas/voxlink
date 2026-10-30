@@ -66,7 +66,7 @@ await suite('phone', async t => {
       };
     });
     const where = /docked/.test(r.cls) ? 'docked' : /side-/.test(r.cls) ? 'side' : 'above';
-    t.check(`${s.label}: Kubo says the look step from where you can see him (${s.place === "side" ? "beside" : "above"} him)`, r.step === 'look' && where === s.place, r);
+    t.check(`${s.label}: Kubo says the first step from where you can see him (${s.place === "side" ? "beside" : "above"} him)`, r.step === 'grab' && where === s.place, r);
     t.check(`${s.label}: his bubble keeps clear of the top HUD, the backpack and the first block`, r.box[1] >= r.needs && r.box[3] <= r.pack && !r.overBlock, r);
     await p.close();
   }

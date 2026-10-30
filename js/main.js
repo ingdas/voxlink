@@ -248,6 +248,10 @@ const game = new Game({
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); ctx.companion?.nudge(); },
     // a tip Kubo gives once, ever
     tipOnce: (id, msg) => { if (!save.seen[`tip.${id}`]) { save.seen[`tip.${id}`] = true; persist(); kuboSays(msg); } },
+    // the first full backpack: how to put a block down (once, ever)
+    packFull: () => game.events.tipOnce('drop', coachText('drop')),
+    // a while without a link: the hint (once, ever)
+    lost: () => game.events.tipOnce('hint', coachText('hint')),
     // first steps onto a figure's island this visit: its intro line, the first time ever
     arrive: l => onArrive(l),
     // finished islands stand built: R (or the Rebuild button) starts a fresh run for the missing stars
@@ -427,8 +431,6 @@ function coachText(step) {
   if (step === 'look' || step === 'move') html += `<span class="coach-bar"><i style="width:${Math.round(game.tutProgress() * 20) * 5}%"></i></span>`;
   return html;
 }
-// the on-screen button each step teaches gets a pulsing ring
-const COACH_BTN = { jump: 'btn-jump', drop: 'btn-drop', hint: 'btn-hint' };
 let coachStep = null;
 const edgeV = new THREE.Vector3();
 function placeEdge(el, pos, show) {
@@ -458,9 +460,7 @@ function placeEdge(el, pos, show) {
 const homePos = new THREE.Vector3(0, 1.2, 0);
 function tickHud(g) {
   if (g.tutorial !== coachStep) {
-    $(COACH_BTN[coachStep])?.classList.remove('tut-focus');
     coachStep = g.tutorial;
-    $(COACH_BTN[coachStep])?.classList.add('tut-focus');
     $('coach').classList.toggle('show', !!coachStep);
     if (coachStep === 'done' && !save.seen.tutorial) { save.seen.tutorial = true; persist(); }
   }
@@ -670,10 +670,11 @@ function startLevel(index, resume = false, arrive = 'island') {
   lastNeeds = '';
   renderNeeds();
   renderFocus(null);
-  // first play of the first figure: the step-by-step controls tutorial (players who finished it before skip it),
-  // right after the storm opening with Kubo's wake-up lines first
-  game.tutorial = lvl === LEVELS[0] && !session && !save.seen.tutorial && !isDone(lvl.id) ? (meetKubo ? 'meet' : 'look') : null;
-  game.meet = game.tutorial === 'meet' ? { lines: CHAPTERS[0].intro, k: 0 } : null;
+  // first play of the first figure: the controls tutorial (players who finished it before skip it), right after the
+  // storm opening with Kubo's wake-up line first (just his hello: the rest of his intro is learnt by doing)
+  game.tutorial = lvl === LEVELS[0] && !session && !save.seen.tutorial && !isDone(lvl.id) ? (meetKubo ? 'meet' : 'grab') : null;
+  game.meet = game.tutorial === 'meet' ? { lines: CHAPTERS[0].intro.slice(0, 1), k: 0 } : null;
+  game.freeHints = !!game.tutorial;
   meetKubo = false;
   $('keys').classList.remove('fade');
   $('hud').classList.remove('off');

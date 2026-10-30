@@ -108,11 +108,14 @@ Workshop editor:
   a fence or wall is in the way). The pedestal's corner posts are slim posts with a ball on top, so they don't
   pass for blocks.
 - Design decisions and the simulator behind them: `docs/design-notes.md`, `tools/design-sim.mjs`.
-- First launch skips the title screen and goes straight into the opening cutscene, then the Sprout with
-  a step-by-step controls tutorial (look, walk, jump, grab, link, drop, hint). Each step only unlocks
-  the control it teaches; anything else shakes the coach line. Its practice hint is free.
-- The story opens with a cutscene (the Keeper Colossus loses the storm, the storm smashes the first
-  figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
+- First launch skips the title screen and goes straight into the opening cutscene, then the Sprout, where the
+  first link comes first: Kubo says hello (one line; a click, a step or a few seconds move on), then grab the block
+  lying right in front of you and link it, with looking and walking free all along. A look step and a walk step
+  follow only if you haven't looked or walked around enough by then. Drop and the hint aren't drills: Kubo brings
+  them up when they're useful (the first full backpack, 15 s without a link), and the first figure's hints are free.
+  Finishing the figure before a step comes up leaves no step behind.
+- The story opens with a short cutscene (under 10 s: the Keeper Colossus loses the storm, the storm smashes the
+  first figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).
 - Kubo floats beside you and does the talking (`js/features/companion.js`): while he talks he stays inside the
   view, his bubble above his head, or up beside him when the top HUD leaves no room (phones); lines queue so each gets a read (click the little Kubo to keep one up), and

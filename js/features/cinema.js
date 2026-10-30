@@ -660,7 +660,7 @@ function prologue(done) {
     bolt.set(0);
     const ring = makeRing(V(0, PEDESTAL_TOP + 0.05, 0), 0xfff4c8);
     // far-off lightning over the sea behind the island while the camera comes down (cutscene times)
-    const far = [[11.3, V(34, -2, -40)], [12.4, V(-6, -2, -52)], [13.3, V(52, -2, -16)], [13.85, V(18, -2, -46)]];
+    const far = [[4.2, V(34, -2, -40)], [4.7, V(-6, -2, -52)], [5.0, V(52, -2, -16)], [5.25, V(18, -2, -46)]];
     shot = {
       name: 'meadow', w, base, storm, rain, top, fliers, bolt, ceiling, strikes, ring, far, strikeT: Infinity,
       strike() {
@@ -709,34 +709,31 @@ function prologue(done) {
   };
 
   const quat = new THREE.Quaternion(), spinQ = new THREE.Quaternion(), ID = new THREE.Quaternion();
+  // short on purpose (the first minute is for playing): the Colossus loses the storm, the storm smashes the Sprout
   play({
-    end: 21.8,
+    end: 9.6,
     cues: [
       [0, () => fade('#000', 1, 0)],
       [0.02, () => keeper()],
-      [0.3, () => fade('#000', 0, 1.6)],
-      [0.9, () => say('cine.pro.0')],
-      [3.2, () => rumble(3.6)],
-      [5.1, () => say('cine.pro.1')],
-      [5.6, () => sfx(a => a.thunder())],
-      [7.0, () => shot.shatter()],
-      [8.3, () => { flashAt(0.8); sfx(a => a.thunder()); }],
-      [9.6, () => { flashAt(0.6); }],
-      [9.9, () => say(null)],
-      [10.1, () => fade('#fff', 1, 0.4)],
-      [10.55, () => meadow()],
-      [10.65, () => fade('#fff', 0, 1.0)],
-      [11.1, () => say('cine.pro.2')],
-      [12.4, () => { flashAt(0.5); sfx(a => a.thunder()); }],
-      [14.4, () => shot.strike()],
-      [14.9, () => say('cine.pro.3')],
-      [18.4, () => say(null)],
-      [18.6, () => fade('#000', 1, 0.9)],
-      [19.6, () => { bars('shut'); wake(); }],
-      [19.75, () => fade('#000', 0, 0)],
-      [20.3, () => bars('peek')],
-      [20.6, () => bars('shut')],
-      [20.9, () => bars('open')],
+      [0.1, () => fade('#000', 0, 0.6)],
+      [0.3, () => say('cine.pro.0')],
+      [0.4, () => rumble(2)],
+      [1.4, () => sfx(a => a.thunder())],
+      [2.2, () => shot.shatter()],
+      [2.9, () => { flashAt(0.8); sfx(a => a.thunder()); }],
+      [3.5, () => fade('#fff', 1, 0.35)],
+      [3.9, () => meadow()],
+      [3.95, () => fade('#fff', 0, 0.8)],
+      [4.1, () => say('cine.pro.1')],
+      [4.8, () => { flashAt(0.5); sfx(a => a.thunder()); }],
+      [5.4, () => shot.strike()],
+      [7.4, () => say(null)],
+      [7.5, () => fade('#000', 1, 0.6)],
+      [8.2, () => { bars('shut'); wake(); }],
+      [8.3, () => fade('#000', 0, 0)],
+      [8.6, () => bars('peek')],
+      [8.85, () => bars('shut')],
+      [9.1, () => bars('open')],
     ],
     update(T, dt) {
       if (!shot) return;
@@ -745,14 +742,14 @@ function prologue(done) {
         const { w, orb, hands, vortex } = shot;
         const sT = T - shot.shatterT;
         // the grip slips: the ball trembles and cracks, then everything blows apart
-        const tremble = span(T, 4.6, 7.0);
+        const tremble = span(T, 0.8, 2.2);
         orb.u.time.value = g.t * (1 + tremble * 2);
         orb.u.crack.value = tremble * (0.6 + 0.4 * Math.sin(g.t * 30));
         orb.u.zap.value = 0.5 + tremble;
         orb.group.position.copy(hands).add(V(Math.sin(g.t * 47) * 0.08 * tremble, Math.sin(g.t * 53) * 0.08 * tremble, 0));
         orb.halo.material.opacity = 0.4 + tremble * 0.3 * Math.sin(g.t * 22);
         // a little hurricane spins around the ball and sparks jump off it, wilder as it slips
-        shot.wisps.update(dt, orb.group.position, span(T, 0.3, 1.8), 1 + tremble * 2.5, sT >= 0 ? easeOut(sT / 0.9) : 0);
+        shot.wisps.update(dt, orb.group.position, span(T, 0, 0.8), 1 + tremble * 2.5, sT >= 0 ? easeOut(sT / 0.9) : 0);
         shot.arcs.update(T, orb.group.position, 1.15, sT >= 0 ? 0 : 0.3 + tremble * 0.7, 0.8 + tremble * 0.9);
         // the blast: a ring of light, the storm spiralling up out of the hands, rain and lightning
         shot.ring.set(sT >= 0 ? sT / 1.5 : 0, 46);
@@ -794,8 +791,8 @@ function prologue(done) {
         }
         // camera: a wide shot pushing in on the ball and the face, then thrown back by the blast
         // (it stays above the lintel of the gate arch in front of the pedestal)
-        const a = ease(span(T, 0.3, 7.0));
-        let pos = lerpV(V(4.5, 13, 23), V(2.2, 8.4, 12.5), a), look = lerpV(V(0, 6.2, 0.5), V(0, 6.1, 1), a);
+        const a = ease(span(T, 0, 2.2));
+        let pos = lerpV(V(3.4, 10.5, 18), V(2.2, 8.4, 12.5), a), look = lerpV(V(0, 6.2, 0.5), V(0, 6.1, 1), a);
         if (sT >= 0) {
           const b = easeOut(sT / 2.8);
           pos = lerpV(pos, V(7, 8.5, 28), b);
@@ -806,7 +803,7 @@ function prologue(done) {
         const { w, rain } = shot;
         const sT = T - shot.strikeT;
         applyMood(w, shot.base, shot.storm, 1, f);
-        rain.update(dt, ctx.camera.position, span(T, 10.6, 11.4));
+        rain.update(dt, ctx.camera.position, span(T, 3.9, 4.4));
         shot.bolt.set(sT >= 0 ? 1 - span(sT, 0.25, 0.7) : 0);
         shot.ring.set(sT >= 0 ? sT / 1.1 : 0, 9);
         shot.ceiling.u.time.value = g.t;
@@ -836,7 +833,7 @@ function prologue(done) {
           }
         }
         // camera: from high over the island, down towards the little figure; a jolt and a step back at the strike
-        const a = ease(span(T, 10.55, 14.4));
+        const a = ease(span(T, 3.9, 5.4));
         let pos = lerpV(V(-10, 7.5, 12), V(-3.4, 2.5, 5.4), a), look = lerpV(V(0, 0.6, 0), V(0, 1.3, 0), a);
         if (sT >= 0) {
           const b = easeOut(sT / 1.8);

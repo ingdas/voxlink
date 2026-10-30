@@ -3,14 +3,14 @@
 import { suite, saveWith, MEADOW } from './lib.mjs';
 
 await suite('hud', async t => {
-  // keyboard-only: J / L turn, which completes the tutorial's look step
+  // keyboard-only: J / L turn, which counts as the tutorial's looking around
   let p = await t.page({ save: { campaign: 2, seen: { prologue: true, meadow: true } } });
   await p.click('#btn-play');
   await t.app(p, 'playing');
   await p.evaluate(() => { window.__voxlink.ctx.input.enabled = true; });
   await p.keyboard.down('KeyL'); await p.waitForTimeout(900); await p.keyboard.up('KeyL');
   await p.waitForTimeout(400);
-  t.check('J / L turning completes the look step', (await p.evaluate(() => window.__voxlink.game.tutorial)) === 'move');
+  t.check('J / L turning counts as looking around', (await p.evaluate(() => window.__voxlink.game.tutLook)) > 1.4);
   await p.close();
 
   const save = saveWith(MEADOW, { seen: { farm: true }, unlocked: 10 });
