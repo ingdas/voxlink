@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Koppints bármelyik buborékra: {list} – mind összekapcsolódik",
   "pack.link.click.all": "Kattints bármelyik buborékra: {list} – mind összekapcsolódik",
   "kubo.chain": "Láttad? Ha összekötsz egy kockát, <b>a hátizsákodból minden illő kocka</b> magától követi.",
+  "kubo.firstLink": "Katt! Tökéletesen illik! Minden <b>számpár</b> összetartozik — keressük meg a következőt.",
   "nexus.name": "Az Őrző szigete",
   "nexus.talk.welcome": "Ez itt <b>az Őrző szigete</b>, a Szigetvilág szíve. Minden itteni portál az egyik világba vezet.",
   "nexus.talk.portals": "Egy portál akkor ébred fel, ha újraépítetted az előtte lévő világot. Csak sétálj bele, és már utazol is!",

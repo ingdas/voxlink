@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Napauta mitä tahansa kuplista {list}: kaikki yhdistyvät",
   "pack.link.click.all": "Klikkaa mitä tahansa kuplista {list}: kaikki yhdistyvät",
   "kubo.chain": "Huomasitko? Kun yhdistät palikan, <b>kaikki repun sopivat palikat</b> tulevat perässä itsestään.",
+  "kubo.firstLink": "Naks! Täydellinen pari! Jokainen <b>numeropari</b> kuuluu yhteen — etsitään seuraava.",
   "nexus.name": "Vartijan saari",
   "nexus.talk.welcome": "Tämä on <b>Vartijan saari</b>, Saariston sydän. Jokainen täkäläinen portaali vie yhteen maailmoista.",
   "nexus.talk.portals": "Portaali herää, kun olet koonnut sitä edeltävän maailman. Kävele vain sisään matkataksesi!",

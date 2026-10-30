@@ -258,3 +258,27 @@ drop / hint drills after it. The same run now links at about **25 s** (control a
   drop it" on a finished island (and the figure ran at 0:00, since the clock waits for the tutorial). Finishing the
   figure now clears the tutorial; dropping the block during the link step goes back to the grab step.
 
+### The first minute, part two: weight, legibility, momentum, a quiet screen
+
+From the same playtest's frames:
+
+- **Links had little weight** (a block flies over, the counter ticks). Now the two matching numbers slide together
+  where the blocks join, merge into one and pop; on the first figure the last 28% of each flight runs at 0.3× for
+  0.3 s (off with reduced motion), a bell an octave up rings over the existing rising chime, Kubo hops and spins,
+  and the very first link ever gets a line ("Click! A perfect match!…", which also says what the skipped intro line
+  used to explain, now that it has been seen).
+- **Hard to read**: the first block lay with its number on its side, the pedestal's bubble was a dot, and on a phone
+  Kubo's bubble sat right over the pedestal bubble it was pointing to (on desktop it hid the hint toast). The first
+  block now turns its number to you, upright and tipped towards your eyes; during the grab and link steps the bubbles
+  are 1.45× and beat. Kubo's bubble tries its spots in order (above his head, beside him on either side up in the sky
+  or level with him, docked in the middle or at either edge) and takes the first that covers none of the open
+  bubbles, the blocks that fit within 9 m or the toast, staying put while its spot is still clear. The toast also
+  draws above it.
+- **Dead air after the first win**: a small card, one line, an arrow at the screen's edge. Now you get control back
+  facing this island's bridge, Kubo flies ahead to it and waits until you're within 4 m, the Sprout's door swings
+  open (it used to snap open while you were in the celebration), and the stars that are new fly from the card into
+  a world star count added to the top pill.
+- **A busy screen before anything happened** (progress, bubble list, backpack, hint, jump). On the first play each
+  comes in when it's first needed: backpack at the first grab, progress / bubble list / jump at the first link, the
+  hint once the tutorial is over or Kubo brings it up.
+

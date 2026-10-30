@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Touche une des bulles {list} : elles se relient toutes",
   "pack.link.click.all": "Clique sur une des bulles {list} : elles se relient toutes",
   "kubo.chain": "Tu as vu ? Quand tu relies un bloc, <b>tout ce qui s’emboîte dans ton sac</b> suit tout seul.",
+  "kubo.firstLink": "Clic ! Parfaitement assortis ! Chaque <b>paire de nombres</b> va ensemble — trouvons la suivante.",
   "nexus.name": "Île du Gardien",
   "nexus.talk.welcome": "Voici l'<b>Île du Gardien</b>, le cœur de l'Archipel. Chaque portail ici mène à l'un des mondes.",
   "nexus.talk.portals": "Un portail s'éveille quand tu as reconstruit le monde d'avant. Entre simplement pour voyager !",

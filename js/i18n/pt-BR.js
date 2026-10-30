@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Toque em qualquer uma das bolhas {list}: todas se conectam",
   "pack.link.click.all": "Clique em qualquer uma das bolhas {list}: todas se conectam",
   "kubo.chain": "Viu só? Quando você conecta um bloco, <b>tudo o que encaixa na sua mochila</b> vai junto sozinho.",
+  "kubo.firstLink": "Clique! Encaixe perfeito! Cada <b>par de números</b> fica junto — vamos achar o próximo.",
   "nexus.name": "Ilha do Guardião",
   "nexus.talk.welcome": "Esta é a <b>Ilha do Guardião</b>, o coração do Arquipélago. Cada portal aqui leva a um dos mundos.",
   "nexus.talk.portals": "Um portal desperta quando você reconstrói o mundo anterior. É só entrar para viajar!",

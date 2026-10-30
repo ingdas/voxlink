@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Tryck på någon av bubblorna {list}: alla länkas",
   "pack.link.click.all": "Klicka på någon av bubblorna {list}: alla länkas",
   "kubo.chain": "Såg du? När du länkar en kloss <b>följer allt i ryggsäcken som passar</b> med av sig självt.",
+  "kubo.firstLink": "Klick! Perfekt match! Varje <b>sifferpar</b> hör ihop – nu letar vi upp nästa.",
   "nexus.name": "Väktarens ö",
   "nexus.talk.welcome": "Det här är <b>Väktarens ö</b>, Skärgårdens hjärta. Varje portal här leder till en av världarna.",
   "nexus.talk.portals": "En portal vaknar när du har byggt upp världen före den. Gå bara in för att resa!",

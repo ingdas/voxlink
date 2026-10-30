@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Ketuk salah satu gelembung {list}: semuanya terhubung",
   "pack.link.click.all": "Klik salah satu gelembung {list}: semuanya terhubung",
   "kubo.chain": "Lihat? Saat kamu menghubungkan satu balok, <b>semua yang cocok di ranselmu</b> ikut dengan sendirinya.",
+  "kubo.firstLink": "Klik! Pas sekali! Setiap <b>pasangan angka</b> itu satu kesatuan — ayo cari yang berikutnya.",
   "nexus.name": "Pulau Penjaga",
   "nexus.talk.welcome": "Ini <b>Pulau Penjaga</b>, jantung Kepulauan. Setiap portal di sini menuju salah satu dunia.",
   "nexus.talk.portals": "Sebuah portal bangun setelah kamu membangun ulang dunia sebelumnya. Tinggal masuk saja untuk berpindah!",

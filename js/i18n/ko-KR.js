@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "{list}번 방울 중 하나를 누르면 모두 이어져요",
   "pack.link.click.all": "{list}번 방울 중 하나를 클릭하면 모두 이어져요",
   "kubo.chain": "봤어요? 블록 하나를 이으면 <b>가방 속 맞는 블록이 모두</b> 저절로 따라와요.",
+  "kubo.firstLink": "딸깍! 딱 맞아요! 똑같은 <b>숫자 한 쌍</b>은 서로 짝이에요. 다음 짝을 찾아봐요!",
   "nexus.name": "지킴이의 섬",
   "nexus.talk.welcome": "여기는 <b>지킴이의 섬</b>, 군도의 심장이에요. 이곳의 포털은 저마다 한 세계로 이어져요.",
   "nexus.talk.portals": "앞 세계를 다 되살리면 포털이 깨어나요. 그냥 걸어 들어가면 이동해요!",

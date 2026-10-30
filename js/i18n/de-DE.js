@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Tippe auf eine der Blasen {list}: alle verbinden sich",
   "pack.link.click.all": "Klicke auf eine der Blasen {list}: alle verbinden sich",
   "kubo.chain": "Gesehen? Wenn du einen Block verbindest, <b>kommt alles aus deinem Rucksack, was passt,</b> von selbst hinterher.",
+  "kubo.firstLink": "Klick! Passt perfekt! Jedes <b>Zahlenpaar</b> gehört zusammen – suchen wir das nächste.",
   "nexus.name": "Insel des Hüters",
   "nexus.talk.welcome": "Das ist die <b>Insel des Hüters</b>, das Herz des Inselreichs. Jedes Portal hier führt in eine der Welten.",
   "nexus.talk.portals": "Ein Portal erwacht, sobald du die Welt davor wieder aufgebaut hast. Geh einfach hinein, um zu reisen!",

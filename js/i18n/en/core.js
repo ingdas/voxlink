@@ -64,6 +64,7 @@ export default {
   "pack.link.tap.all": "Tap one of bubbles {list}: they all link",
   "pack.link.click.all": "Click one of bubbles {list}: they all link",
   "kubo.chain": "See that? When you link a block, <b>everything in your backpack that fits</b> follows by itself.",
+  "kubo.firstLink": "Click! A perfect match! Every <b>pair of numbers</b> belongs together — let's find the next one.",
   "pack.none": "No open bubble for these yet",
   "tip.closer": "Get closer",
   "tip.swap": "Click to swap",

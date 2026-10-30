@@ -363,6 +363,10 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     update(dt, t, cam) {
       const c = cam ? cam.clone().add(A) : null;
       beacon.animate(t, api.calmMotion?.());
+      for (const pt of parts) for (const h of pt.leaves) if (h.rotation.y !== h.userData.to) {
+        const d = h.userData.to - h.rotation.y;
+        h.rotation.y = Math.abs(d) < 0.002 ? h.userData.to : h.rotation.y + d * Math.min(1, dt * 2.6);
+      }
       for (const k of pieces) k.world.update(dt, t, c ? c.clone().sub(k.p) : null);
       // the sun's shadow follows you round the archipelago
       const sun = hubWorld.atmos.sun;
@@ -416,7 +420,9 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       pt.shut = doorShut(pt.level);
       pt.door.visible = pt.shut || pt.hadDoor;
       if (pt.shut) pt.hadDoor = true;
-      for (const h of pt.leaves) h.rotation.y = pt.shut ? 0 : h.userData.s * 1.75; // swung open
+      // swung open: it swings while you watch (the figure just finished), and stands open from the start otherwise
+      for (const h of pt.leaves) { h.userData.to = pt.shut ? 0 : h.userData.s * 1.75; if (!pt.dressed) h.rotation.y = h.userData.to; }
+      pt.dressed = true;
       const show = pt !== active && isDone(pt.level);
       if (show && !displays.has(pt)) {
         const m = new THREE.Mesh(mergeFigure(expandLevel(pt.level).cells), figureMaterial);

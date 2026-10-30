@@ -252,6 +252,8 @@ const game = new Game({
     packFull: () => game.events.tipOnce('drop', coachText('drop')),
     // a while without a link: the hint (once, ever)
     lost: () => game.events.tipOnce('hint', coachText('hint')),
+    // a link on the first figure: Kubo hops, and the very first one ever gets a word from him
+    cheer: () => { ctx.companion?.cheer(); game.events.tipOnce('firstLink', t('kubo.firstLink')); },
     // first steps onto a figure's island this visit: its intro line, the first time ever
     arrive: l => onArrive(l),
     // finished islands stand built: R (or the Rebuild button) starts a fresh run for the missing stars
@@ -458,7 +460,19 @@ function placeEdge(el, pos, show) {
   el.classList.add('on');
 }
 const homePos = new THREE.Vector3(0, 1.2, 0);
+// The first play starts with an almost empty screen; each part comes in when it's first needed: the backpack with
+// the first grab, the figure's progress (and the jump button) with the first link, the hint once the tutorial is
+// over or Kubo brings it up.
+function hudIntro(g) {
+  const b = document.body.classList;
+  if (!b.contains('hud-intro')) return;
+  if (g.pack.length || g.linkOrder.length) b.add('hud-pack');
+  if (g.linkOrder.length) b.add('hud-prog');
+  if (!g.tutorial || g.tutorial === 'done' || g.lostTold) b.add('hud-tools');
+  if (!g.tutorial && b.contains('hud-pack') && b.contains('hud-prog') && b.contains('hud-tools')) b.remove('hud-intro');
+}
 function tickHud(g) {
+  hudIntro(g);
   if (g.tutorial !== coachStep) {
     coachStep = g.tutorial;
     $('coach').classList.toggle('show', !!coachStep);
@@ -500,7 +514,7 @@ function tickHud(g) {
 
 // the goals while you build (par time and hints, each with its star: kept from before, still on, or lost);
 // while roaming, the progress pill shows the world instead
-let rebuildShown = false, rebuildHold = false, wasAway = false;
+let rebuildShown = false, rebuildHold = false, wasAway = false, starsFlying = 0;
 let goalsKey = '', goalPar = { level: null, par: 0 };
 function renderGoals(g) {
   const lvl = g.level;
@@ -513,10 +527,12 @@ function renderGoals(g) {
   wasAway = away;
   if (away) {
     const ch = CHAPTERS[lvl.chapter], done = ch.levels.filter(l => isDone(l.id)).length;
-    key = `w${lvl.chapter}:${done}`;
+    // the world's stars (new ones count up as they fly in from the results card)
+    const stars = ch.levels.reduce((n, l) => n + starsOf(l.id), 0) - starsFlying;
+    key = `w${lvl.chapter}:${done}:${stars}`;
     if (key !== goalsKey) {
       $('lvl-name').textContent = ch.name;
-      $('count').innerHTML = `<svg class="ic"><use href="#i-cube"/></svg>${done} / ${ch.levels.length}`;
+      $('count').innerHTML = `<svg class="ic"><use href="#i-cube"/></svg>${done} / ${ch.levels.length}<span class="w-stars"><svg class="ic"><use href="#i-star"/></svg><bdi>${stars}</bdi></span>`;
       $('stage').textContent = '';
       $('bar-fill').style.width = `${(done / ch.levels.length) * 100}%`;
     }
@@ -653,6 +669,7 @@ function startLevel(index, resume = false, arrive = 'island') {
     renderNeeds();
     renderFocus(null);
     game.tutorial = null;
+    document.body.classList.remove('hud-intro');
     game.mode = 'play';
     return;
   }
@@ -675,6 +692,8 @@ function startLevel(index, resume = false, arrive = 'island') {
   game.tutorial = lvl === LEVELS[0] && !session && !save.seen.tutorial && !isDone(lvl.id) ? (meetKubo ? 'meet' : 'grab') : null;
   game.meet = game.tutorial === 'meet' ? { lines: CHAPTERS[0].intro.slice(0, 1), k: 0 } : null;
   game.freeHints = !!game.tutorial;
+  document.body.classList.remove('hud-pack', 'hud-prog', 'hud-tools');
+  document.body.classList.toggle('hud-intro', !!game.tutorial);
   meetKubo = false;
   $('keys').classList.remove('fade');
   $('hud').classList.remove('off');
@@ -746,6 +765,8 @@ cg.onMute(siteMute);
 function onComplete(stats) {
   app = 'complete';
   document.body.classList.add('celebrating');
+  document.body.classList.remove('hud-intro');
+  ctx.companion?.coach(''); // a figure finished mid-tutorial: no step left in Kubo's bubble
   input.enabled = false;
   document.body.classList.remove('playing');
   const lvl = game.level, idx = game.levelIndex;
@@ -824,8 +845,32 @@ function showDoneCard(o) {
   $('done-card').classList.add('show');
   doneCard = { level: game.level, until: performance.now() + (o.action ? 40000 : 11000), action: o.action };
   if (o.action) $('dc-go').onclick = () => doneCardAction();
-  // the stars pop in one by one
-  $('done-card').querySelectorAll('.cs.on svg').forEach((s, k) => setTimeout(() => { s.classList.add('pop'); audio.star(k); }, 300 + k * 260));
+  // the stars pop in one by one; the new ones then fly up into the world's star count in the top pill
+  const fresh = o.stars.map((on, k) => on && !o.prevStars[k]);
+  starsFlying = fresh.filter(Boolean).length;
+  $('done-card').querySelectorAll('.cs').forEach((el, k) => {
+    if (!o.stars[k]) return;
+    const svg = el.querySelector('svg');
+    setTimeout(() => { svg.classList.add('pop'); audio.star(k); }, 300 + k * 260);
+    if (fresh[k]) setTimeout(() => flyStar(svg), 1100 + k * 260);
+  });
+}
+function flyStar(from) {
+  const to = document.querySelector('#count .w-stars svg');
+  const a = from.getBoundingClientRect(), b = to?.getBoundingClientRect();
+  const land = () => { starsFlying = Math.max(0, starsFlying - 1); goalsKey = ''; const w = document.querySelector('#count .w-stars'); w?.classList.remove('bump'); void w?.offsetWidth; w?.classList.add('bump'); audio.tone({ f: 1320, f2: 1760, type: 'sine', dur: 0.12, vol: 0.05 }); };
+  if (!b?.width || !a.width || document.body.classList.contains('reduce-motion')) { land(); return; }
+  const fly = document.createElement('div');
+  fly.className = 'star-fly';
+  fly.innerHTML = '<svg><use href="#i-star"/></svg>';
+  fly.style.left = `${a.left + a.width / 2}px`; fly.style.top = `${a.top + a.height / 2}px`;
+  document.body.appendChild(fly);
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  fly.animate([
+    { transform: 'translate(-50%, -50%) scale(1)' },
+    { transform: `translate(calc(-50% + ${dx * 0.5}px), calc(-50% + ${dy * 0.5 - 60}px)) scale(1.5)`, offset: 0.45 },
+    { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.7)` },
+  ], { duration: 650, easing: 'cubic-bezier(.45, 0, .55, 1)' }).onfinish = () => { fly.remove(); land(); };
 }
 function hideDoneCard() { doneCard = null; $('done-card').classList.remove('show'); }
 function doneCardAction() {
@@ -973,6 +1018,8 @@ function walkOn(card = null) {
   const lvl = game.level, nextCh = CHAPTERS[lvl.chapter + 1];
   const openFig = CHAPTERS[lvl.chapter].levels.some(l => l !== lvl && !isDone(l.id) && l.index < save.unlocked);
   if (card) { ctx.companion?.reset(); showDoneCard(card); if (card.say) kuboSays(card.say, true); if (card.action) return; }
+  // Kubo flies ahead to this island's bridge and waits for you there
+  if (openFig && game.arch) ctx.companion?.lead(game.arch.entryOf(lvl).setY(0));
   setTimeout(() => {
     if (openFig) kuboSays(t('way.next'));
     else if (nextCh && chapterUnlocked(lvl.chapter + 1)) kuboSays(t('way.nextWorld', { world: `<b>${nextCh.name}</b>` }));

@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Atinge oricare dintre bulele {list}: se leagă toate",
   "pack.link.click.all": "Dă clic pe oricare dintre bulele {list}: se leagă toate",
   "kubo.chain": "Ai văzut? Când legi un bloc, <b>tot ce se potrivește din rucsac</b> îl urmează singur.",
+  "kubo.firstLink": "Clic! Se potrivesc perfect! Fiecare <b>pereche de numere</b> merge împreună — hai s-o găsim pe următoarea.",
   "nexus.name": "Insula Păzitorului",
   "nexus.talk.welcome": "Aceasta e <b>Insula Păzitorului</b>, inima Arhipelagului. Fiecare portal de aici duce într-una dintre lumi.",
   "nexus.talk.portals": "Un portal se trezește după ce reconstruiești lumea dinaintea lui. Intră pur și simplu ca să călătorești!",

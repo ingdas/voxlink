@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Klepni na kteroukoli z bublin {list}: spojí se všechny",
   "pack.link.click.all": "Klikni na kteroukoli z bublin {list}: spojí se všechny",
   "kubo.chain": "Vidíš? Když spojíš kostku, <b>všechno v batohu, co pasuje,</b> přiletí samo.",
+  "kubo.firstLink": "Cvak! Přesně sedí! Každý <b>pár stejných čísel</b> patří k sobě — najdeme další.",
   "nexus.name": "Ostrov Strážce",
   "nexus.talk.welcome": "Tohle je <b>Ostrov Strážce</b>, srdce Souostroví. Každý portál tady vede do jednoho ze světů.",
   "nexus.talk.portals": "Portál se probudí, jakmile obnovíš svět před ním. Stačí do něj vejít a jsi na cestě!",

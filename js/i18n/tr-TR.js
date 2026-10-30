@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Baloncuklardan birine dokun ({list}): hepsi bağlanır",
   "pack.link.click.all": "Baloncuklardan birine tıkla ({list}): hepsi bağlanır",
   "kubo.chain": "Gördün mü? Bir blok bağladığında <b>sırt çantandaki uyan her şey</b> kendiliğinden peşinden gelir.",
+  "kubo.firstLink": "Klik! Tam oturdu! Eşleşen her <b>sayı çifti</b> birbirine aittir — hadi sıradakini bulalım.",
   "nexus.name": "Koruyucu'nun Adası",
   "nexus.talk.welcome": "Burası <b>Koruyucu'nun Adası</b>, Takımadaların kalbi. Buradaki her portal dünyalardan birine açılır.",
   "nexus.talk.portals": "Bir portal, ondan önceki dünyayı yeniden kurduğunda uyanır. Yolculuk etmek için içine yürümen yeter!",

@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Tryk på en af boblerne {list}: de forbindes alle",
   "pack.link.click.all": "Klik på en af boblerne {list}: de forbindes alle",
   "kubo.chain": "Så du det? Når du forbinder en klods, <b>følger alt i rygsækken, der passer,</b> helt af sig selv.",
+  "kubo.firstLink": "Klik! Et perfekt match! Hvert <b>talpar</b> hører sammen — lad os finde det næste.",
   "nexus.name": "Vogterens Ø",
   "nexus.talk.welcome": "Det her er <b>Vogterens Ø</b>, hjertet af Øriget. Hver portal her fører til en af verdenerne.",
   "nexus.talk.portals": "En portal vågner, når du har bygget verdenen før den op igen. Gå bare ind for at rejse!",

@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Tocca una qualsiasi delle bolle {list}: si collegano tutte",
   "pack.link.click.all": "Clicca una qualsiasi delle bolle {list}: si collegano tutte",
   "kubo.chain": "Visto? Quando colleghi un blocco, <b>tutto ciò che si incastra nello zaino</b> lo segue da solo.",
+  "kubo.firstLink": "Clic! Combaciano alla perfezione! Ogni <b>coppia di numeri</b> va insieme: cerchiamo la prossima.",
   "nexus.name": "Isola del Custode",
   "nexus.talk.welcome": "Questa è l'<b>Isola del Custode</b>, il cuore dell'Arcipelago. Ogni portale qui porta a uno dei mondi.",
   "nexus.talk.portals": "Un portale si sveglia quando hai ricostruito il mondo che lo precede. Basta entrarci per viaggiare!",

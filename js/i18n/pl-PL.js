@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Dotknij dowolnej z baniek {list}: połączą się wszystkie",
   "pack.link.click.all": "Kliknij dowolną z baniek {list}: połączą się wszystkie",
   "kubo.chain": "Widzisz? Gdy połączysz klocek, <b>wszystko z plecaka, co pasuje,</b> poleci za nim samo.",
+  "kubo.firstLink": "Klik! Idealnie pasuje! Każda <b>para takich samych liczb</b> pasuje do siebie — szukajmy następnej.",
   "nexus.name": "Wyspa Strażnika",
   "nexus.talk.welcome": "To <b>Wyspa Strażnika</b>, serce Archipelagu. Każdy portal tutaj prowadzi do jednego ze światów.",
   "nexus.talk.portals": "Portal budzi się, gdy odbudujesz świat przed nim. Wystarczy do niego wejść, żeby się przenieść!",

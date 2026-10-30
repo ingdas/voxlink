@@ -404,6 +404,10 @@ body.mobile .slot .key { display: none; }
 .kubo-speech.docked { left: 50%; top: auto; bottom: var(--dock-bottom, calc(150px + var(--sab))); transform: none !important; }
 .kubo-speech.docked .ks-box { bottom: 0; display: flex; gap: 10px; align-items: center; text-align: start; }
 .kubo-speech.docked .ks-box::after { display: none; }
+.kubo-speech.docked.dock-l { left: calc(12px + var(--sal, 0px)); }
+.kubo-speech.docked.dock-r { left: auto; right: calc(12px + var(--sar, 0px)); }
+.kubo-speech.docked:is(.dock-l, .dock-r) .ks-box { transform: none; }
+.kubo-speech.docked.dock-r .ks-box { left: auto; right: 0; }
 .kubo-speech.docked .kubo.mini { display: block; flex: none; pointer-events: auto; cursor: pointer; }
 body.mobile .kubo-speech.docked .kubo.mini { pointer-events: none; } /* the left thumb's stick lives under him */
 .kubo-speech .ks-box { pointer-events: none; }
@@ -753,3 +757,19 @@ body.upright .rotate { display: grid; }
 .rotate-device i { position: absolute; left: 50%; bottom: 7px; width: 14px; height: 4px; margin-left: -7px; border-radius: 2px; background: var(--paper); }
 @keyframes turn-device { 0%, 25% { transform: rotate(0deg); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
 body.reduce-motion .rotate-device { animation: none; transform: rotate(-90deg); }
+
+/* the first play starts with an almost empty screen: each part comes in when it's first needed (main.js hudIntro) */
+body.hud-intro :is(.pack-wrap, .progress.tag, #needs, #btn-hint, #btn-jump) { transition: opacity .4s ease, visibility .4s; }
+body.hud-intro:not(.hud-pack) .pack-wrap,
+body.hud-intro:not(.hud-prog) :is(.progress.tag, #needs, #btn-jump),
+body.hud-intro:not(.hud-tools) #btn-hint { opacity: 0; visibility: hidden; }
+
+/* the world's stars in the top pill (while roaming); new ones fly in from the results card */
+#count .w-stars { display: inline-flex; align-items: center; margin-inline-start: 10px; }
+#count .w-stars .ic { fill: var(--sun); }
+#count .w-stars.bump { animation: pop-chip .35s cubic-bezier(.3, 1.6, .5, 1); }
+.star-fly { position: fixed; z-index: 40; width: 34px; height: 34px; pointer-events: none; filter: drop-shadow(0 2px 0 var(--ink)); }
+.star-fly svg { width: 100%; height: 100%; fill: var(--sun); stroke: var(--ink); stroke-width: 1.6; }
+
+/* the toast reads over Kubo's bubble (which also keeps clear of it) */
+.toast { z-index: 3; }

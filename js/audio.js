@@ -129,7 +129,7 @@ export class Audio {
   }
   drop() { this.tone({ f: 420, f2: 200, type: 'triangle', dur: 0.14, vol: 0.2 }); }
   thud() { this.tone({ f: 140, f2: 60, type: 'sine', dur: 0.12, vol: 0.3 }); this.noise({ dur: 0.05, vol: 0.06, freq: 500 }); }
-  link(progress, chain = 0) {
+  link(progress, chain = 0, big = false) {
     // rising pentatonic as the figure fills up; chains climb further
     const step = Math.floor(progress * 14) + chain * 2;
     const base = 60 + 12 * Math.floor(step / 5) + PENTA[step % 5];
@@ -137,6 +137,11 @@ export class Audio {
     this.tone({ f: 180, f2: 90, type: 'sine', dur: 0.1, vol: 0.3 });
     this.tone({ f: this.midi(base), type: 'triangle', t: 0.02, dur: 0.35, vol: 0.22, wet: 0.4 });
     this.tone({ f: this.midi(base + 7), type: 'sine', t: 0.07, dur: 0.4, vol: 0.14, wet: 0.5 });
+    // the first figure's links: a bell an octave up rings out as the numbers merge
+    if (big) {
+      this.tone({ f: this.midi(base + 12), type: 'sine', t: 0.16, dur: 0.9, vol: 0.09, wet: 0.7 });
+      this.tone({ f: this.midi(base + 19), type: 'sine', t: 0.22, dur: 0.7, vol: 0.04, wet: 0.7 });
+    }
   }
   wrong() {
     this.tone({ f: 220, f2: 150, type: 'square', dur: 0.12, vol: 0.07 });

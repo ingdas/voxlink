@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Chạm một bong bóng bất kỳ trong {list}: tất cả sẽ nối",
   "pack.link.click.all": "Nhấp một bong bóng bất kỳ trong {list}: tất cả sẽ nối",
   "kubo.chain": "Thấy chưa? Khi bạn nối một khối, <b>mọi khối vừa trong ba lô</b> sẽ tự bay theo.",
+  "kubo.firstLink": "Tách! Khớp hoàn hảo! Mỗi <b>cặp số</b> giống nhau là thuộc về nhau — mình tìm cặp tiếp theo nhé.",
   "nexus.name": "Đảo Người Giữ",
   "nexus.talk.welcome": "Đây là <b>Đảo Người Giữ</b>, trái tim của Quần đảo. Mỗi cổng dịch chuyển ở đây dẫn đến một thế giới.",
   "nexus.talk.portals": "Cổng sẽ thức dậy khi bạn đã xây lại thế giới trước nó. Chỉ cần bước vào là đi được!",

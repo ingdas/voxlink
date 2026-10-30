@@ -645,6 +645,7 @@ export default {
   "pack.link.tap.all": "Tik op een van de bubbels {list}: ze verbinden allemaal",
   "pack.link.click.all": "Klik op een van de bubbels {list}: ze verbinden allemaal",
   "kubo.chain": "Zag je dat? Als je een blok verbindt, <b>komt alles uit je rugzak dat past</b> vanzelf mee.",
+  "kubo.firstLink": "Klik! Perfect! Elk <b>paar getallen</b> hoort bij elkaar – op naar het volgende.",
   "nexus.name": "Hoedereiland",
   "nexus.talk.welcome": "Dit is het <b>Hoedereiland</b>, het hart van de Archipel. Elk portaal hier leidt naar een van de werelden.",
   "nexus.talk.portals": "Een portaal wordt wakker zodra je de wereld ervoor weer hebt opgebouwd. Loop er gewoon in om te reizen!",

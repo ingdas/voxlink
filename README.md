@@ -113,12 +113,22 @@ Workshop editor:
   lying right in front of you and link it, with looking and walking free all along. A look step and a walk step
   follow only if you haven't looked or walked around enough by then. Drop and the hint aren't drills: Kubo brings
   them up when they're useful (the first full backpack, 15 s without a link), and the first figure's hints are free.
-  Finishing the figure before a step comes up leaves no step behind.
+  Finishing the figure before a step comes up leaves no step behind. That first play starts on an almost empty
+  screen: the backpack comes in with the first grab, the figure's progress (and the jump button) with the first
+  link, the hint once the tutorial is over or Kubo brings it up. The first block's number faces you, upright, and the
+  bubble Kubo is talking about is bigger and beats.
+- Links have weight: the two matching numbers slide together where the blocks join, merge and pop. On the first
+  figure the last moment of each flight runs in slow motion, a bell rings over the rising link chime, Kubo hops, and
+  the very first link gets a word from him.
+- After a finished figure you get your eyes back facing the way on (this island's bridge), Kubo flies ahead to it and
+  waits, the first island's door swings open while you watch, and the new stars fly from the results card into the
+  world's star count in the top pill.
 - The story opens with a short cutscene (about 15 s: the Keeper Colossus loses the storm, the storm smashes the
   first figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).
 - Kubo floats beside you and does the talking (`js/features/companion.js`): while he talks he stays inside the
-  view, his bubble above his head, or up beside him when the top HUD leaves no room (phones); lines queue so each gets a read (click the little Kubo to keep one up), and
+  view, his bubble above his head, beside him, or docked (in the middle or at either edge), whichever spot covers none
+  of what you're looking for (the open bubbles on the figure, a nearby block that fits, the toast); lines queue so each gets a read (click the little Kubo to keep one up), and
   his bubble docks above the backpack when he's out of view. On touch screens the docked bubble lets every touch
   through, its little Kubo included (he sits where the left thumb goes down for the stick).
 - Extras: Kubo's Garden (walk among your finished
@@ -184,7 +194,7 @@ PLAYWRIGHT_DIR=… node tools/art-pack.mjs --only=covers,stills                 
 
 ## Browser tests
 
-`tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial,
+`tests/e2e/` drives the real game in headless Chrome (Playwright, WebGL through SwiftShader): the tutorial, the first minute (the screen filling in, the first block facing you, links with weight, Kubo's bubble keeping clear, facing the way on, the stars flying in),
 all 50 figures, walking between islands, the results card and the way on, gifts, Rebuild, the HUD layout on
 phones and in Arabic, keyboard / touch controls, and chain links, the next-figure beacon and the tool buttons, and hints for a block behind you, phones and tablets in landscape only (the turn-your-device screen, pausing and waiting while upright), Kubo and dropped blocks on phones, every island's own landmark (`MOODS_SHOTS=1` saves a picture of each to `tests/e2e/out/`), the 3D picking up again after the phone drops the WebGL context, and the Keeper's Isle (portals in and out, gates, a world waking, the Garden's arch). Each suite starts its own static server.
 

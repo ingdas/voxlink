@@ -119,6 +119,8 @@ const DISTRICT_COLORS = ['#ff6b6b', '#ffc93c', '#3ddc97', '#4cc9f0', '#b693f5', 
 export class Game {
   constructor({ renderer, scene, camera, audio, input, fx, events }) {
     Object.assign(this, { renderer, scene, camera, audio, input, fx, events });
+    this.snaps = []; // a link's two numbers meeting (see snap())
+    this.slow = 0; // seconds of slow motion left (a link landing on the first figure)
     this.player = new Player();
     this.player.onStep = (hs, surf) => {
       this.audio.step(surf?.sound);
@@ -257,6 +259,13 @@ export class Game {
       const first = this.voxels[this.puzzle.children[this.puzzle.root][0]];
       first.rest.pos.set(0.9, S / 2, Math.min(R - 3, 9) - 3.2);
       first.mesh.position.copy(first.rest.pos);
+      // its number faces you, upright and tipped back a little towards your eyes (a face's text runs along u, up v)
+      const D = DIRS[this.puzzle.parentDir[first.i]];
+      const F = new THREE.Vector3(-0.9, 1.1, 3.2).normalize(), U = new THREE.Vector3(0, 1, 0).addScaledVector(F, -F.y).normalize();
+      const local = new THREE.Matrix4().makeBasis(new THREE.Vector3(...D.u), new THREE.Vector3(...D.v), new THREE.Vector3(...D.n));
+      const world = new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(U, F), U, F);
+      first.rest.quat.setFromRotationMatrix(world.multiply(local.transpose()));
+      first.mesh.quaternion.copy(first.rest.quat);
     }
     for (const r of this.puzzle.roots) this.place(r, true);
     // big figures start with a small pre-built core so several bubbles are open from the start
@@ -696,6 +705,8 @@ export class Game {
     if (!this.voxels?.length) return;
     for (const v of this.voxels) { this.scene.remove(v.mesh); v.mesh.geometry.dispose(); v.mat.dispose(); }
     for (const s of [...this.sockets.values()]) this.removeSocket(s);
+    for (const s of this.snaps.splice(0)) this.endSnap(s);
+    this.slow = 0;
     this.mat.dispose();
     this.fx.clearBeam();
     this.liftFx?.dispose();
@@ -827,7 +838,10 @@ export class Game {
       }
       if (n >= 16 && left === 3 && !this.barked.has('last')) { this.barked.add('last'); this.events.kubo?.(t('kubo.last3')); }
       this.fx.burst(v.target, v.cell.color, 24, 4);
-      if (!this.quietLink) { this.audio.link(this.placedCount / this.voxels.length, this.chain); this.events.vibrate?.(18); }
+      const big = this.firstFigure();
+      if (!this.puzzler) this.snap(i, big);
+      if (!this.quietLink) { this.audio.link(this.placedCount / this.voxels.length, this.chain, big); this.events.vibrate?.(big ? 30 : 18); }
+      if (big) this.events.cheer?.(this.placedCount < this.voxels.length);
       this.emitProgress();
       this.linkOrder.push(i);
       this.sinceLink = 0;
@@ -1060,6 +1074,8 @@ export class Game {
     this.active = Math.max(0, Math.min(this.active > k ? this.active - 1 : this.active, this.pack.length - 1));
     if (v.chunk !== undefined) this.launchChunk(i);
     else this.startAnim(v, 'flying', v.target, new THREE.Quaternion(), Math.min(1.6, 0.34 + v.mesh.position.distanceTo(v.target) * 0.03));
+    // on the first figure the last moment of the flight runs in slow motion, so the two faces meeting land
+    if (v.anim && this.firstFigure()) v.anim.slowAt = 0.72;
     this.ghost.visible = false;
     this.audio.tone({ f: 500, f2: 900, type: 'sine', dur: 0.2, vol: 0.08 });
     if (this.tutorial === 'link') this.tutAdvance('look');
@@ -1122,6 +1138,7 @@ export class Game {
 
   // ---------- per-frame ----------
   update(dt) {
+    if (this.slow > 0) { this.slow -= dt; dt *= 0.3; }
     this.t += dt;
     this.lastDt = dt;
     if (!this.world) return;
@@ -1137,7 +1154,49 @@ export class Game {
     this.updateIslands();
     this.events.frame?.(this, dt);
     this.updateSockets(dt);
+    this.updateSnaps(dt);
     this.fx.update(dt, this.camera);
+  }
+
+  // the first figure of a first play: links get more weight there (slow motion, a bigger snap, Kubo cheering)
+  firstFigure() { return this.levelIndex === 0 && !this.roaming && !this.puzzler && !this.level?.kind; }
+
+  // a link's two numbers slide together where the blocks meet, merge into one, pop and fade
+  snap(i, big) {
+    const p = this.voxels[this.puzzle.parent[i]];
+    if (!p) return;
+    const map = badgeTexture(this.voxels[i].num, 'ready');
+    const pair = [0, 1].map(() => {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map, depthTest: false, depthWrite: false, transparent: true }));
+      sp.layers.set(LAYER_OVERLAY);
+      sp.renderOrder = 6;
+      sp.scale.setScalar(0.001);
+      this.scene.add(sp);
+      return sp;
+    });
+    this.snaps.push({ at: this.voxels[i].target.clone().add(p.target).multiplyScalar(0.5), pair, t: 0, big });
+  }
+  endSnap(s) { for (const sp of s.pair) { this.scene.remove(sp); sp.material.dispose(); } }
+  updateSnaps(dt) {
+    if (!this.snaps.length) return;
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+    for (const s of this.snaps) {
+      s.t += dt;
+      const meet = Math.min(1, s.t / 0.2), after = Math.max(0, s.t - 0.2);
+      const far = Math.max(1, s.at.distanceTo(this.camera.position) / 9);
+      const size = (s.big ? 0.42 : 0.32) * far;
+      // together: one badge pops up, then fades
+      const sc = meet < 1 ? size : size * (1 + (s.big ? 0.7 : 0.45) * easeBack(Math.min(1, after / 0.3)));
+      const fade = 1 - Math.min(1, Math.max(0, after - 0.25) / 0.35);
+      s.pair.forEach((sp, k) => {
+        const off = (1 - ease(meet)) * 0.5 * far * (k ? 1 : -1);
+        sp.position.copy(s.at).addScaledVector(right, off);
+        sp.scale.setScalar(sc);
+        sp.material.opacity = fade;
+        sp.visible = k === 0 || meet < 1;
+      });
+    }
+    for (let k = this.snaps.length - 1; k >= 0; k--) if (this.snaps[k].t > 0.85) this.endSnap(this.snaps.splice(k, 1)[0]);
   }
 
   orbitPose(angle, distMul = 1) {
@@ -1351,6 +1410,9 @@ export class Game {
     this.fx.clearBeam();
     for (const v of this.voxels) { v.mesh.position.copy(v.target); v.mesh.rotation.set(0, 0, 0); v.mesh.scale.setScalar(1); }
     this.arch?.refresh();
+    // you get your eyes back facing the way on: this island's bridge, when there's another figure (or the portal) to go to
+    const exit = this.nextStop() && this.arch?.entryOf(this.level);
+    if (exit) { this.player.yaw = Math.atan2(this.player.pos.x - exit.x, this.player.pos.z - exit.z); this.player.pitch = -0.08; }
     this.startIntro();
   }
 
@@ -1440,6 +1502,7 @@ export class Game {
         m.position.y += Math.sin(k * Math.PI) * (v.state === 'flying' ? 0.5 : 0.6);
         m.quaternion.slerpQuaternions(a.fromQ, a.toQ, v.state === 'flying' ? easeBack(k) : ease(k));
         m.scale.setScalar(THREE.MathUtils.lerp(a.fromScale, 1, ease(k)));
+        if (a.slowAt && a.t >= a.slowAt) { a.slowAt = 0; this.slow = Math.max(this.slow, 0.3 * this.comfort.kick); }
         if (a.t >= 1) {
           if (v.state === 'flying') {
             if (a.group) this.placeGroup(a.group);
@@ -1501,6 +1564,8 @@ export class Game {
       if (style === 'ready') sc *= 1.25 + 0.08 * Math.sin(this.t * 9);
       if (style === 'dim') sc *= 0.8;
       if (focused) sc *= 1.15;
+      // the first steps: the bubble Kubo is talking about is bigger and beats
+      if (this.tutorial === 'grab' || this.tutorial === 'link') sc *= 1.45 + 0.15 * Math.sin(this.t * 6);
       // keep far bubbles readable
       sc *= Math.max(1, s.sprite.position.distanceTo(this.camera.position) / 9);
       s.sprite.scale.setScalar(sc);
