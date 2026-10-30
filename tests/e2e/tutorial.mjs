@@ -21,7 +21,7 @@ await suite('tutorial', async t => {
   const clock = await w.evaluate(() => new Promise(done => {
     const iv = setInterval(() => { const v = window.__voxlink; if (v.ctx.app !== 'cinema') { clearInterval(iv); done(v.ctx.cinema.clock); } }, 50);
   }));
-  t.check('the opening is over in about ten seconds', clock > 8 && clock < 11, clock);
+  t.check('the opening is over in about fifteen seconds', clock > 14 && clock < 17, clock);
   await t.app(w, 'playing');
   await w.waitForTimeout(600);
   const state = () => w.evaluate(() => ({ step: window.__voxlink.game.tutorial, k: window.__voxlink.game.meet?.k, kubo: document.body.classList.contains('companion'), bubble: document.querySelector('#kubo-speech.show .ks-text')?.innerText || '' }));

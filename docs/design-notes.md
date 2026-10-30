@@ -241,10 +241,12 @@ to the next.
 A playtest of a fresh first launch (a bot playing at a human pace, never skipping) put the first link at **53 s**:
 a 22 s opening, 15 s of Kubo's four wake-up lines, then look / walk / jump drills that turned the player away from
 the block placed in front of them (on a phone the grab step came up facing the river, the pedestal off screen), and
-drop / hint drills after it. The same run now links at about **20 s** (control at 11 s).
+drop / hint drills after it. The same run now links at about **25 s** (control at 16 s).
 
-- **Opening: 21.8 s → 9.6 s.** Both shots stay (the Colossus loses the storm, the storm smashes the Sprout) with
-  two captions instead of four.
+- **Opening: 21.8 s → 15.3 s.** Both shots stay (the Colossus loses the storm, the storm smashes the Sprout) with
+  two captions instead of four. A first cut to 9.6 s felt rushed: each beat (the push-in on the Colossus, the
+  shatter, the descent onto the Sprout, waking up) needs a moment to land, so they got most of their time back and
+  only the extra captions stayed out.
 - **Kubo says one line** (his hello); the rest of his intro was either the cutscene again or the mechanic told
   before it's seen. A click, E, Space, a step or six seconds end it.
 - **Grab and link first**, with the block still in front of you. Looking and walking are never locked; the look

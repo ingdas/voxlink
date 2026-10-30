@@ -114,7 +114,7 @@ Workshop editor:
   follow only if you haven't looked or walked around enough by then. Drop and the hint aren't drills: Kubo brings
   them up when they're useful (the first full backpack, 15 s without a link), and the first figure's hints are free.
   Finishing the figure before a step comes up leaves no step behind.
-- The story opens with a short cutscene (under 10 s: the Keeper Colossus loses the storm, the storm smashes the
+- The story opens with a short cutscene (about 15 s: the Keeper Colossus loses the storm, the storm smashes the
   first figure, whose blocks land where you will find them) and closes with one after the Colossus is rebuilt
   (`js/features/cinema.js`; Skip or Esc fast-forwards).
 - Kubo floats beside you and does the talking (`js/features/companion.js`): while he talks he stays inside the
