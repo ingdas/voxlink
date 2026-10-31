@@ -5,9 +5,10 @@
 // motion, it docks just above the backpack. Touches pass through the bubble (the thumb stick and buttons under it
 // keep working); clicking the little Kubo in a docked bubble keeps the line up for another read (not on touch
 // screens: there he sits right where the left thumb goes down for the stick). The bubble never covers what the
-// player is looking for (the open bubbles on the figure, a nearby block that fits, the toast): it tries above his
-// head, beside him on either side (up in the sky, or level with him) and docked, and takes the first spot that's
-// clear. He hops on the first figure's links, and after a finished figure he flies ahead to the way on.
+// player is looking for (the open bubbles on the figure, a nearby block that fits, the toast, the results card): it
+// tries above his head, beside him on either side (up in the sky, or level with him) and docked, and takes the
+// first spot that's clear. He hops on the first figure's links, after a finished figure he leads the way on along
+// the bridges, and on a first play he flies over to the first block if you can't find it.
 import { toon } from '../render.js';
 
 let ctx, THREE;
@@ -15,6 +16,7 @@ let kubo = null; // { group, body, eyes, mouth, pos, ... }
 let bubble, box, bubbleText, live;
 let bark = '', barkLeft = 0, barkAge = 9, coachHtml = '', nudgeT = 0, hold = false, lastLevel = null, lastCoach = '';
 let shown = false, lastSeq = -1, cheerT = 0, leadAt = null, lastPick = '';
+let route = [], leadOpts = {}; // the points still ahead when he leads you somewhere
 const queue = []; // lines waiting their turn (each gets a fair read before the next)
 
 // how long a line stays up: dense scripts (CJK, Thai) carry more per character
@@ -66,8 +68,19 @@ export function init(c) {
     nudge() { nudgeT = 0.45; box.classList.remove('nudge'); void box.offsetWidth; box.classList.add('nudge'); },
     // a hop and a spin (a link on the first figure)
     cheer() { cheerT = 0.7; },
-    // fly ahead and wait there (the way on after a finished figure) until you come close; null: back to your side
-    lead(pos) { leadAt = pos ? pos.clone() : null; },
+    // fly ahead and wait there until you come close, then on to the next point (a point or a list: the way on
+    // along the bridges after a finished figure, the first block for a player who's stuck); he goes there even
+    // while he talks (his bubble comes along). above: float that much higher (over a block); near: how close counts
+    // as caught up (4 m); reached(i): you got to point i. null: back to your side
+    lead(pts, opts = {}) {
+      route = (Array.isArray(pts) ? pts : pts ? [pts] : []).map(p => p.clone());
+      leadOpts = opts;
+      leadAt = route.shift() || null;
+      leadOpts.k = 0;
+    },
+    // where he's waiting for you (null: at your side), and where he is
+    leading: () => leadAt,
+    where: () => (kubo?.placed ? kubo.pos.clone() : null),
   };
   ctx.hooks.frame.push((g, dt) => update(g, dt));
 }
@@ -113,7 +126,7 @@ function update(g, dt) {
 
   barkLeft -= dt; barkAge += dt;
   // another island's lines don't carry over; waiting lines also go stale after a while (you've walked on)
-  if (g.level !== lastLevel) { lastLevel = g.level; queue.length = 0; leadAt = null; }
+  if (g.level !== lastLevel) { lastLevel = g.level; queue.length = 0; leadAt = null; route = []; }
   while (queue.length && performance.now() - queue[0].at > 9000) queue.shift();
   if (queue.length && (barkLeft <= 0 || (!hold && barkAge >= Math.min(4, readTime(bark) * 0.8)))) speak(queue.shift().msg);
   const pl = g.player;
@@ -124,15 +137,17 @@ function update(g, dt) {
   // phone held upright), beside you otherwise
   const fwd = forward(pl.yaw, new THREE.Vector3()), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
   const halfW = Math.tan(THREE.MathUtils.degToRad(g.camera.fov / 2)) * g.camera.aspect; // tan of half the horizontal view
-  if (leadAt && Math.hypot(pl.pos.x - leadAt.x, pl.pos.z - leadAt.z) < 4) leadAt = null; // you caught up
-  const desired = leadAt && !talking ? leadAt.clone()
+  // you caught up: on to the next point, if there is one
+  if (leadAt && Math.hypot(pl.pos.x - leadAt.x, pl.pos.z - leadAt.z) < (leadOpts.near ?? 4)) { leadOpts.reached?.(leadOpts.k++); leadAt = route.shift() || null; }
+  const desired = leadAt ? leadAt.clone()
     : pl.pos.clone().addScaledVector(fwd, talking ? 4.2 : 0.6).addScaledVector(right, talking ? Math.min(2.7, 4.2 * halfW * 0.62) : 2.3);
   // stay clear of the figure on its pedestal
   const fr = (g.footR || 3) + 0.8, dh = Math.hypot(desired.x, desired.z);
   if (dh < fr && Math.hypot(pl.pos.x, pl.pos.z) > fr) desired.multiplyScalar(fr / Math.max(dh, 0.01));
   const floor = g.world.floorAt?.(desired.x, desired.z);
-  desired.y = Math.max(floor ?? pl.pos.y, pl.pos.y - 1) + 1.05;
-  if (!kubo.placed || kubo.pos.distanceTo(desired) > 18) { kubo.pos.copy(desired); kubo.placed = true; }
+  desired.y = Math.max(floor ?? pl.pos.y, pl.pos.y - 1) + 1.05 + (leadAt ? leadOpts.above || 0 : 0);
+  // (far off: he jumps there, unless he's flying ahead along a long boardwalk)
+  if (!kubo.placed || (!leadAt && kubo.pos.distanceTo(desired) > 18)) { kubo.pos.copy(desired); kubo.placed = true; }
   const k = 1 - Math.exp(-dt * (talking ? 3.2 : 2.4));
   const before = kubo.pos.clone();
   kubo.pos.lerp(desired, k);
@@ -168,7 +183,7 @@ function update(g, dt) {
 }
 
 // what his bubble mustn't cover: the open bubbles on the figure, the blocks that fit nearby (what he's usually
-// talking about) and the toast
+// talking about), the toast and the results card
 const _v = {};
 function keepClear(g, W, H) {
   const pts = [], rects = [];
@@ -183,8 +198,10 @@ function keepClear(g, W, H) {
   const cam = g.camera.position;
   for (const sk of g.sockets?.values() || []) if (sk.sprite.position.distanceToSquared(cam) < 900) add(sk.sprite.position, 26);
   for (const vx of g.voxels || []) if (vx.state === 'loose' && g.sockets.has(vx.i) && vx.mesh.position.distanceToSquared(cam) < 81) add(vx.mesh.position, 36);
-  const toast = document.getElementById('toast');
-  if (toast?.classList.contains('show')) { const r = toast.getBoundingClientRect(); if (r.width) rects.push(r); }
+  for (const id of ['toast', 'done-card']) {
+    const el = document.getElementById(id);
+    if (el?.classList.contains('show')) { const r = el.getBoundingClientRect(); if (r.width) rects.push(r); }
+  }
   return { pts, rects };
 }
 const covers = (c, k) => k.pts.filter(p => p.x > c.l - p.r && p.x < c.r + p.r && p.y > c.t - p.r && p.y < c.b + p.r).length
@@ -267,5 +284,5 @@ function hide() {
   document.body.classList.remove('companion');
   bubble.classList.remove('show');
   if (kubo) { kubo.group.visible = false; kubo.placed = false; }
-  leadAt = null;
+  leadAt = null; route = [];
 }

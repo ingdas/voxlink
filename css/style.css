@@ -250,6 +250,8 @@ body.mobile .touch-btns { display: flex; }
 #btn-drop { transform: scale(0); transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); }
 #btn-drop.show { transform: scale(1); }
 #btn-drop.show:active { transform: translateY(5px); }
+/* the first block of a first play: no drop button yet (a stray tap would undo the grab) */
+body.tut-early #btn-drop.show { transform: scale(0); pointer-events: none; }
 
 #stick { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; transition: opacity .15s; }
 #stick.on { opacity: 1; }
@@ -426,6 +428,8 @@ body.mobile .kubo-speech.docked .kubo.mini { pointer-events: none; } /* the left
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .kubo-speech .coach-bar { background: rgba(42, 31, 61, .15); }
 .coach-more { display: block; margin-top: 5px; font-size: .78em; opacity: .65; }
+/* the number Kubo means, drawn like a bubble */
+:is(.coach, .kubo-speech) b.coach-num { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; padding: 0 .2em; margin: 0 .1em; border-radius: 999px; background: #fff; border: 2.5px solid var(--ink); color: var(--ink); font-weight: 800; line-height: 1; vertical-align: middle; }
 .coach-more svg { width: .9em; height: .9em; vertical-align: -.1em; fill: currentColor; }
 body.companion #coach, body.companion #kubo-bark { display: none !important; }
 body.celebrating .kubo-speech { opacity: 0; }
@@ -729,7 +733,7 @@ body.reduce-motion .done-card { animation: none; }
 .dc-stars .cs.on svg.pop { fill: var(--sun); animation: star-pop .5s cubic-bezier(.3, 1.8, .5, 1) both; }
 body.reduce-motion .dc-stars .cs.on svg { fill: var(--sun); animation: none; }
 .dc-stars small { font-size: 11px; font-weight: 700; color: var(--ink-soft); text-align: center; line-height: 1.1; }
-.dc-stars em { position: absolute; top: 18px; inset-inline-end: -10px; font-style: normal; font-size: 9px; font-weight: 700; text-transform: uppercase; background: var(--coral); color: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 4px; rotate: 8deg; }
+.dc-stars em { position: absolute; top: -5px; inset-inline-end: -14px; font-style: normal; font-size: 9px; font-weight: 700; text-transform: uppercase; background: var(--coral); color: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 4px; rotate: 8deg; }
 .dc-stats { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 15px; }
 .dc-stats span { display: inline-flex; align-items: center; gap: 4px; }
 .dc-stats svg { width: 17px; height: 17px; stroke: var(--ink); stroke-width: 2.2; fill: none; }

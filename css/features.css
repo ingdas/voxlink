@@ -469,6 +469,15 @@ body:is(.museum, .nexus) #btn-magnet { display: none !important; }
 .cine-skip kbd { margin: 0; font-size: 11px; opacity: .75; }
 body.mobile .cine-skip kbd { display: none; }
 .cinema.over .cine-skip, .screen.cinema:not(.show) .cine-skip { opacity: 0; pointer-events: none; visibility: hidden; }
+.cine-motion {
+  position: absolute; top: calc(max(10px, 5.5vh - 26px) + var(--sat)); left: calc(14px + var(--sal)); z-index: 4; display: none;
+  pointer-events: auto; font-size: 15px; min-height: 46px; padding: 6px 8px 6px 16px; gap: 10px; --lift: 5px; transition: opacity .3s;
+}
+.cine-motion .toggle { width: 48px; height: 28px; flex: none; }
+.cine-motion .toggle i { width: 18px; height: 18px; }
+.cine-motion .toggle.on i { left: 23px; }
+.cinema.comfort .cine-motion { display: inline-flex; }
+.cinema.over .cine-motion, .screen.cinema:not(.show) .cine-motion { opacity: 0; pointer-events: none; visibility: hidden; }
 .cine-bar { position: absolute; left: 0; right: 0; height: 0; background: #0b0814; z-index: 1; transition: height .9s cubic-bezier(.6, 0, .3, 1); }
 .cine-bar.top { top: 0; }
 .cine-bar.bottom { bottom: 0; }

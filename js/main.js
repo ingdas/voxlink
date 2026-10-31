@@ -245,6 +245,8 @@ const game = new Game({
     // a world's portal leads back to the Keeper's Isle (out of that world's portal there)
     // walking into the world's portal (an interstitial goes with it, behind the flash; the menu's way there doesn't)
     portal: () => { if (app === 'playing' && !overlays.length) ctx.nexus.enter({ from: game.level.chapter, ad: true }); },
+    // stuck on the first step: Kubo flies over to the block and waits above it (until you come close or grab it)
+    tutorialStuck: pos => { showingBlock = true; ctx.companion?.lead(pos.clone().setY(0), { above: 0.9, near: 1.5 }); },
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); ctx.companion?.nudge(); },
     // a tip Kubo gives once, ever
     tipOnce: (id, msg) => { if (!save.seen[`tip.${id}`]) { save.seen[`tip.${id}`] = true; persist(); kuboSays(msg); } },
@@ -416,24 +418,26 @@ function coachText(step) {
   if (step === 'done') return t('coach.done');
   if (step === 'meet') {
     const { lines, k } = game.meet;
-    return `${lines[Math.min(k, lines.length - 1)]}<span class="coach-more">${t('talk.more')} <svg><use href="#i-next"/></svg></span>`;
+    return `${lines[Math.min(k, lines.length - 1)]}<span class="coach-more">${t(mobile ? 'talk.more' : 'talk.more.desk')} <svg><use href="#i-next"/></svg></span>`;
   }
   const used = game.tutUsed || new Set();
-  const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', interact: 'E', ...ctx.coachLabels?.() };
+  // the number of the first block (drawn like its bubble)
+  const fit = game.voxels.find(x => x.state === 'loose' && game.sockets.has(x.i));
+  const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', interact: 'E', n: `<b class="coach-num">${fit?.num ?? ''}</b>`, ...ctx.coachLabels?.() };
   const keys = !mobile && ctx.coachKeys?.();
   if (keys) {
     v.move = ['forward', 'left', 'back', 'right'].map(d => keycap(keys[d], used.has(d))).join('');
     v.jump = keycap(keys.jump, used.has('jump'));
     v.drop = `${keycap(keys.rightClick, used.has('drop'))} / ${keycap(keys.drop, used.has('drop'))}`;
     v.hint = keycap(keys.hint, used.has('hint'));
-    v.look = `${v.look} / ${['turnLeft', 'turnRight', 'lookUp', 'lookDown'].map(k => keycap(keys[k], false)).join('')}`;
+    v.look = `${v.look} (${['turnLeft', 'turnRight'].map(k => keycap(keys[k], false)).join(' ')})`;
     v.interact = keycap(keys.interact, false);
   }
   let html = t(`coach.${step}.${mobile ? 'touch' : 'desk'}`, v);
   if (step === 'look' || step === 'move') html += `<span class="coach-bar"><i style="width:${Math.round(game.tutProgress() * 20) * 5}%"></i></span>`;
   return html;
 }
-let coachStep = null;
+let coachStep = null, showingBlock = false;
 const edgeV = new THREE.Vector3();
 function placeEdge(el, pos, show) {
   if (!show) { el.classList.remove('on'); return; }
@@ -474,7 +478,9 @@ function hudIntro(g) {
 function tickHud(g) {
   hudIntro(g);
   if (g.tutorial !== coachStep) {
+    if (showingBlock) { showingBlock = false; ctx.companion?.lead(null); } // off the first block: he was showing it to you
     coachStep = g.tutorial;
+    document.body.classList.toggle('tut-early', ['meet', 'grab', 'link'].includes(coachStep));
     $('coach').classList.toggle('show', !!coachStep);
     if (coachStep === 'done' && !save.seen.tutorial) { save.seen.tutorial = true; persist(); }
   }
@@ -839,7 +845,7 @@ function showDoneCard(o) {
   $('done-card').innerHTML = `
     <div class="dc-head"><img src="${o.img || ''}" alt=""><div><small>${t('complete.ribbon')}</small><b>${escapeHtml(o.name)}</b></div></div>
     <div class="dc-stars">${stars}</div>
-    <div class="dc-stats"><span><svg><use href="#i-clock"/></svg><b>${fmt(o.time)}</b> <bdi dir="ltr"><em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em></bdi></span><span><svg><use href="#i-bulb"/></svg><b>${o.hints}</b></span>${o.best ? `<span class="dc-best">${t('complete.newBest')}</span>` : ''}</div>
+    <div class="dc-stats"><span><svg><use href="#i-clock"/></svg>${o.time < 1 ? `<b>${t('complete.warmup')}</b>` : `<b>${fmt(o.time)}</b> <bdi dir="ltr"><em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em></bdi>`}</span><span><svg><use href="#i-bulb"/></svg><b>${o.hints}</b></span>${o.best ? `<span class="dc-best">${t('complete.newBest')}</span>` : ''}</div>
     ${w ? `<div class="dc-world"><b>${w.crown ? '<svg class="wd-crown"><use href="#i-star"/></svg> ' : ''}${w.title}</b><span><svg><use href="#i-star"/></svg> <bdi class="n">${w.stars} / ${w.total}</bdi></span></div>` : ''}
     ${o.action ? `<button class="btn mint dc-go" id="dc-go">${key}<span>${escapeHtml(o.action.label)}</span><svg><use href="#i-next"/></svg></button>` : ''}`;
   $('done-card').classList.add('show');
@@ -1018,8 +1024,10 @@ function walkOn(card = null) {
   const lvl = game.level, nextCh = CHAPTERS[lvl.chapter + 1];
   const openFig = CHAPTERS[lvl.chapter].levels.some(l => l !== lvl && !isDone(l.id) && l.index < save.unlocked);
   if (card) { ctx.companion?.reset(); showDoneCard(card); if (card.say) kuboSays(card.say, true); if (card.action) return; }
-  // Kubo flies ahead to this island's bridge and waits for you there
-  if (openFig && game.arch) ctx.companion?.lead(game.arch.entryOf(lvl).setY(0));
+  // Kubo leads the way along the bridges to the next figure's island, waiting for you at each turn
+  const stop = openFig && game.arch && game.nextStop();
+  // (close enough counts as there a little later than usual: past the turn, not cutting across it into the rails)
+  if (stop && stop !== 'portal') ctx.companion?.lead(game.arch.routeFrom(lvl, stop), { near: 2.5, reached: i => { if (i === 1) kuboSays(t('way.thisWay'), true); } });
   setTimeout(() => {
     if (openFig) kuboSays(t('way.next'));
     else if (nextCh && chapterUnlocked(lvl.chapter + 1)) kuboSays(t('way.nextWorld', { world: `<b>${nextCh.name}</b>` }));

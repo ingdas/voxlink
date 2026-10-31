@@ -24,6 +24,7 @@ export const TUTORIAL = ['meet', 'grab', 'link', 'look', 'move', 'done'];
 const LOOK_GOAL = 1.4, WALK_GOAL = 3.5; // radians looked around / metres walked
 const MEET_FOR = 6; // seconds Kubo's wake-up line stays up on its own
 const LOST_AFTER = 15; // seconds without a link before Kubo brings up the hint
+const STUCK_SHOW = 8, STUCK_HOP = 14; // seconds on the first block before Kubo flies to it / it hops under a beam
 export const hashId = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) % 100000; };
 const ease = t => 1 - Math.pow(1 - t, 3);
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
@@ -725,7 +726,20 @@ export class Game {
     const ok = (x, z, y) => placedPts.every(p => Math.hypot(p.x - x, p.z - z) > 1.15 || Math.abs(p.y - y) > 1);
     const loose = this.voxels.filter(v => !this.puzzle.roots.includes(v.i));
     const rots = cubeRotations();
-    const nTop = Math.min(w.tops.length * 3, Math.round(loose.length * topShare));
+    // the very first figure: every block on the grass near the pedestal, in plain sight from it (nothing up high,
+    // across water or behind a railing)
+    const first = this.levelIndex === 0;
+    const nTop = first ? 0 : Math.min(w.tops.length * 3, Math.round(loose.length * topShare));
+    const inSight = (x, z) => {
+      const r = Math.hypot(x, z), n = Math.ceil(r / 0.4);
+      for (let k = 0; k <= n; k++) {
+        const px = (x * k) / n, pz = (z * k) / n;
+        if (Math.hypot(px, pz) < this.footR + 0.8) continue;
+        if (w.walkSd(px, pz) > -0.6 || Math.abs(w.groundY(px, pz)) > 0.35) return false;
+        if (w.colliders.some(b => px > b.min.x - 0.3 && px < b.max.x + 0.3 && pz > b.min.z - 0.3 && pz < b.max.z + 0.3 && b.max.y > 0.3)) return false;
+      }
+      return true;
+    };
     // shuffle so the high-up blocks are a random selection; a Fisher-Yates shuffle gives the same layout in every
     // browser (sort with a random comparator depends on the engine), older saved runs keep their old layout
     const order = legacyShuffle ? loose.slice().sort(() => rng() - 0.5) : shuffle(loose.slice(), rng);
@@ -749,9 +763,9 @@ export class Game {
         } else {
           const th = D === 1 || tries > 200 ? rng() * Math.PI * 2 : this.districtAngle(d) + (rng() - 0.5) * width * 0.92;
           const r0 = Math.max(4, this.footR + 1.2);
-          const r = r0 + Math.sqrt(rng()) * (w.R - 1 - r0);
+          const r = r0 + Math.sqrt(rng()) * (first && tries < 300 ? Math.min(4.5, w.R - 1 - r0) : w.R - 1 - r0);
           const x = Math.cos(th) * r, z = Math.sin(th) * r;
-          if (w.isFreeGround(x, z, tries < 300 ? 0.5 : 0)) {
+          if (w.isFreeGround(x, z, tries < 300 ? 0.5 : 0) && (!first || tries >= 300 || inSight(x, z))) {
             const y = w.groundY ? w.groundY(x, z) : 0;
             if (tries >= 340 || ok(x, z, y)) pos = new THREE.Vector3(x, y, z);
           }
@@ -1301,7 +1315,17 @@ export class Game {
     if (this.tutNext) return;
     if (tut === 'meet' && this.meet && this.t - this.meet.since > MEET_FOR * this.meet.lines.length) this.tutAdvance('grab', 0);
     // the block was dropped (or swapped) before it was linked: back to finding it
-    if (tut === 'link' && !this.carriedAll().some(c => this.sockets.has(c))) { this.tutorial = 'grab'; return; }
+    if (tut === 'link' && !this.carriedAll().some(c => this.sockets.has(c))) { this.tutorial = 'grab'; this.tutAcc = 0; return; }
+    // still looking for the first block: Kubo flies over to it, a little later it hops under the hint beam
+    if (tut === 'grab') {
+      const was = this.tutAcc;
+      this.tutAcc += dt;
+      const at = k => was < k && this.tutAcc >= k;
+      const v = (at(STUCK_SHOW) || at(STUCK_HOP)) && this.voxels.filter(v => v.state === 'loose' && this.sockets.has(v.i))
+        .sort((a, b) => a.mesh.position.distanceToSquared(this.player.pos) - b.mesh.position.distanceToSquared(this.player.pos))[0];
+      if (v && at(STUCK_SHOW)) this.events.tutorialStuck?.(v.mesh.position);
+      if (v && at(STUCK_HOP)) { for (const m of this.membersOf(v.i)) this.voxels[m].hop = 4; this.fx.pointBeam(v.mesh); this.audio.hint(); }
+    }
     if (tut === 'move') for (const d of ['forward', 'left', 'back', 'right']) if (this.input.held(d)) this.tutUsed.add(d);
     // look and walk advance the moment they're done (the coach shows the progress filling up)
     if (tut === 'look' && this.tutLook > LOOK_GOAL) this.tutAdvance('move', 0.15);
@@ -1565,7 +1589,7 @@ export class Game {
       if (style === 'dim') sc *= 0.8;
       if (focused) sc *= 1.15;
       // the first steps: the bubble Kubo is talking about is bigger and beats
-      if (this.tutorial === 'grab' || this.tutorial === 'link') sc *= 1.45 + 0.15 * Math.sin(this.t * 6);
+      if (this.tutorial === 'grab' || this.tutorial === 'link') sc *= (this.input.mobile ? 2 : 1.45) + 0.15 * Math.sin(this.t * 6);
       // keep far bubbles readable
       sc *= Math.max(1, s.sprite.position.distanceTo(this.camera.position) / 9);
       s.sprite.scale.setScalar(sc);

@@ -38,10 +38,16 @@ function buildDom() {
   el.innerHTML = `<div class="cine-bar top"></div><div class="cine-bar bottom"></div>
     <p class="cine-caption" id="cine-caption"></p>
     <div class="cine-fade" id="cine-fade"></div>
-    <button class="btn cine-skip" id="cine-skip"><span data-i18n="cine.skip">${t('cine.skip')}</span><kbd>Esc</kbd><svg><use href="#i-next"/></svg></button>`;
+    <button class="btn cine-skip" id="cine-skip"><span data-i18n="cine.skip">${t('cine.skip')}</span><kbd>Esc</kbd><svg><use href="#i-next"/></svg></button>
+    <button class="btn cine-motion" id="cine-motion"><span data-i18n="access.set.motion">${t('access.set.motion')}</span><span class="toggle"><i></i></span></button>`;
   $('screen-talk').before(el);
   $('cine-skip').onclick = e => { e.stopPropagation(); skip(); };
+  // the very first opening plays before Settings can be opened: reduced motion right here (the same setting; it
+  // softens the flashes still to come)
+  $('cine-motion').onclick = e => { e.stopPropagation(); $('acc-motion')?.click(); motionState(); };
 }
+
+const motionState = () => $('cine-motion').querySelector('.toggle').classList.toggle('on', document.body.classList.contains('reduce-motion'));
 
 // eyes: 'bars' (letterbox), 'shut', 'peek', 'open'
 function bars(state) {
@@ -111,6 +117,8 @@ function play(script) {
   $('cine-caption').classList.remove('on');
   ctx.setBase('screen-cinema');
   $('screen-cinema').classList.remove('over');
+  $('screen-cinema').classList.toggle('comfort', !!script.comfort);
+  motionState();
   bars('bars');
 }
 
@@ -581,7 +589,8 @@ function prologue(done) {
   const L = ctx.LEVELS, boss = L[L.length - 1], first = L[0];
   const g = ctx.game;
   let shot = null;
-  const flashAt = k => { if (C) C.flash = Math.max(C.flash, k); };
+  // (lightning in the sky, much softer with reduced motion)
+  const flashAt = k => { if (C) C.flash = Math.max(C.flash, k * (document.body.classList.contains('reduce-motion') ? 0.3 : 1)); };
 
   // Shot 1: the Colossus on the eye of the storm, holding the storm in a ball.
   const keeper = () => {
@@ -712,6 +721,7 @@ function prologue(done) {
   // kept short (the first minute is for playing), with room for each beat: the Colossus loses the storm, the storm
   // smashes the Sprout, you wake up
   play({
+    comfort: !ctx.save.seen.prologue, // a first launch: the reduced-motion switch next to Skip
     end: 15.3,
     cues: [
       [0, () => fade('#000', 1, 0)],
