@@ -123,7 +123,9 @@ await suite('first-island', async t => {
   t.check('phone: the first step shows the block\'s number', String(step.num) === step.chip, step);
   const dropShown = () => m.evaluate(() => { const b = document.getElementById('btn-drop').getBoundingClientRect(); return b.width > 2; });
   await m.evaluate(() => { const g = window.__voxlink.game; g.grab(g.voxels.find(v => v.state === 'loose' && g.sockets.has(v.i)).i); });
-  await m.waitForTimeout(900);
+  await m.waitForTimeout(150);
+  t.check('phone: the number stays in the step while you grab the block', /\d/.test(await m.evaluate(() => document.querySelector('#coach .coach-num')?.innerText || '')));
+  await m.waitForTimeout(750);
   t.check('phone: no drop button while linking the first block', (await m.evaluate(() => window.__voxlink.game.tutorial)) === 'link' && !(await dropShown()), await m.evaluate(() => [window.__voxlink.game.tutorial, document.body.className, getComputedStyle(document.getElementById('btn-drop')).transform]));
   await finish(m);
   await m.waitForTimeout(2200);

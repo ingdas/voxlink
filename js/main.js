@@ -421,9 +421,9 @@ function coachText(step) {
     return `${lines[Math.min(k, lines.length - 1)]}<span class="coach-more">${t(mobile ? 'talk.more' : 'talk.more.desk')} <svg><use href="#i-next"/></svg></span>`;
   }
   const used = game.tutUsed || new Set();
-  // the number of the first block (drawn like its bubble)
-  const fit = game.voxels.find(x => x.state === 'loose' && game.sockets.has(x.i));
-  const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', interact: 'E', n: `<b class="coach-num">${fit?.num ?? ''}</b>`, ...ctx.coachLabels?.() };
+  // the number of the first block (drawn like its bubble; the open bubble's, so it stays put while you grab it)
+  const open = game.sockets.values().next().value;
+  const v = { move: 'WASD', look: t('access.coach.mouse'), jump: 'Space', drop: 'Q', hint: 'H', interact: 'E', n: `<b class="coach-num">${open?.num ?? ''}</b>`, ...ctx.coachLabels?.() };
   const keys = !mobile && ctx.coachKeys?.();
   if (keys) {
     v.move = ['forward', 'left', 'back', 'right'].map(d => keycap(keys[d], used.has(d))).join('');
