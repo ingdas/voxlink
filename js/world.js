@@ -162,7 +162,10 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
       if (top) tops.push({ box: b, y: y1 });
       return b;
     },
-    spawnPath: (x, z, pad = 0) => Math.abs(x) < 2.5 + pad && z > 2 - pad && z < spawnZ + 2 + pad,
+    // the path in, kept clear of trees, rocks and drifts: from the pedestal south past the spawn point, and on a
+    // figure's island in an archipelago all the way to the shore, where its bridge lands (big islands reach well past
+    // the spawn point, and a pine or rock there could close off the way to the bridge)
+    spawnPath: (x, z, pad = 0) => Math.abs(x) < 2.5 + pad && z > 2 - pad && z < (part && !opts.dir ? R + 2 : spawnZ + 2) + pad,
     nearCentre: (x, z, pad = 0) => Math.hypot(x, z) < Math.max(3.6, clearR + 1) + pad,
     // a collider footprint overlaps the disc (x, z, r) at height y
     blocked(x, z, r, y = 0, hgt = 1) {

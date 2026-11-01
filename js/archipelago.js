@@ -357,7 +357,13 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
         if (Math.abs(pos.x - x) + Math.abs(pos.z - z) > 1e-4 && bridgeSd(x + A.x, z + A.z) < 0.3) api.onBlocked?.();
         return;
       }
-      if (floating && (pos.y > 0.05 || pos.y < -0.3)) return;
+      if (floating && (pos.y > 0.05 || pos.y < -0.3)) {
+        // up on a bridge's deck, or in the air over one (low gravity carries a jump a long way): you can't step or
+        // drift off its side into the void (off an island's edge you still can)
+        const ax = pos.x + A.x, az = pos.z + A.z;
+        if (pos.y > -0.1 && bridgeSd(ax, az) < 1.6 && !pieceAt(ax, az, 0.3) && api.walkSd(pos.x, pos.z) > -0.45) projectInside(api.walkSd, pos, 0.45);
+        return;
+      }
       if (api.walkSd(pos.x, pos.z) > -0.45) projectInside(api.walkSd, pos, 0.45);
     },
     update(dt, t, cam) {
