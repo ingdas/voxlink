@@ -246,7 +246,8 @@ const game = new Game({
     // walking into the world's portal (an interstitial goes with it, behind the flash; the menu's way there doesn't)
     portal: () => { if (app === 'playing' && !overlays.length) ctx.nexus.enter({ from: game.level.chapter, ad: true }); },
     // stuck on the first step: Kubo flies over to the block and waits above it (until you come close or grab it)
-    tutorialStuck: pos => { showingBlock = true; ctx.companion?.lead(pos.clone().setY(0), { above: 0.9, near: 1.5 }); },
+    // (and if you haven't walked at all yet, his line says how)
+    tutorialStuck: pos => { showingBlock = true; walkTip = game.tutWalk < 1; ctx.companion?.lead(pos.clone().setY(0), { above: 0.9, near: 1.5 }); },
     tutorialNudge: () => { const el = $('coach'); el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); ctx.companion?.nudge(); },
     // a tip Kubo gives once, ever
     tipOnce: (id, msg) => { if (!save.seen[`tip.${id}`]) { save.seen[`tip.${id}`] = true; persist(); kuboSays(msg); } },
@@ -434,10 +435,12 @@ function coachText(step) {
     v.interact = keycap(keys.interact, false);
   }
   let html = t(`coach.${step}.${mobile ? 'touch' : 'desk'}`, v);
+  // stuck on the first block without having walked: how to walk over to it
+  if (step === 'grab' && walkTip && game.tutWalk < 1) html += `<span class="coach-sub">${t(`coach.walkThere.${mobile ? 'touch' : 'desk'}`, v)}</span>`;
   if (step === 'look' || step === 'move') html += `<span class="coach-bar"><i style="width:${Math.round(game.tutProgress() * 20) * 5}%"></i></span>`;
   return html;
 }
-let coachStep = null, showingBlock = false;
+let coachStep = null, showingBlock = false, walkTip = false;
 const edgeV = new THREE.Vector3();
 function placeEdge(el, pos, show) {
   if (!show) { el.classList.remove('on'); return; }
@@ -478,7 +481,7 @@ function hudIntro(g) {
 function tickHud(g) {
   hudIntro(g);
   if (g.tutorial !== coachStep) {
-    if (showingBlock) { showingBlock = false; ctx.companion?.lead(null); } // off the first block: he was showing it to you
+    if (showingBlock) { showingBlock = false; walkTip = false; ctx.companion?.lead(null); } // off the first block: he was showing it to you
     coachStep = g.tutorial;
     document.body.classList.toggle('tut-early', ['meet', 'grab', 'link'].includes(coachStep));
     $('coach').classList.toggle('show', !!coachStep);

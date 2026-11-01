@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "ลาก<b>นิ้วโป้งขวา</b>เพื่อมองไปรอบๆ",
   "coach.move.desk": "ใช้ <b>{move}</b> เพื่อเดิน",
   "coach.move.touch": "ลาก<b>นิ้วโป้งซ้าย</b>เพื่อเดิน",
+  "coach.walkThere.desk": "เดินไปหาด้วย <b>{move}</b>",
+  "coach.walkThere.touch": "เดินไปหาด้วย<b>นิ้วโป้งซ้าย</b>",
   "coach.grab.touch": "หาบล็อกที่มีเลข {n} แล้วแตะเลย!",
   "coach.grab.desk": "เห็น<b>ฟอง</b>บนแท่นไหม? หาบล็อกที่มี<b>เลขเดียวกัน</b>แล้วคลิกเลย (หรือกด {interact})",
   "coach.link.touch": "ทีนี้แตะฟองที่มี<b>✓</b>เพื่อเชื่อมเลย!",

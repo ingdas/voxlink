@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Geser <b>jempol kanan</b> untuk melihat sekeliling",
   "coach.move.desk": "<b>{move}</b> untuk berjalan",
   "coach.move.touch": "Geser <b>jempol kiri</b> untuk berjalan",
+  "coach.walkThere.desk": "Berjalan ke sana dengan <b>{move}</b>",
+  "coach.walkThere.touch": "Berjalan ke sana dengan <b>ibu jari kiri</b>",
   "coach.grab.touch": "Cari balok bertuliskan {n} lalu ketuk!",
   "coach.grab.desk": "Lihat <b>gelembung</b> di atas alas itu? Cari balok lepas dengan <b>angka yang sama</b>, lalu klik (atau tekan {interact})",
   "coach.link.touch": "Sekarang ketuk gelembung bertanda <b>✓</b> untuk menghubungkannya!",

@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Dra med <b>høyre tommel</b> for å se deg rundt",
   "coach.move.desk": "<b>{move}</b> for å gå rundt",
   "coach.move.touch": "Dra med <b>venstre tommel</b> for å gå rundt",
+  "coach.walkThere.desk": "Gå bort dit med <b>{move}</b>",
+  "coach.walkThere.touch": "Gå bort dit med <b>venstre tommel</b>",
   "coach.grab.touch": "Finn klossen med {n} på og trykk på den!",
   "coach.grab.desk": "Ser du <b>boblen</b> på sokkelen? Finn den løse klossen med <b>samme tall</b>, og klikk på den (eller trykk {interact})",
   "coach.link.touch": "Trykk nå på boblen med <b>✓</b> for å koble den!",

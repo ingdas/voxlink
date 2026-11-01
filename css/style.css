@@ -428,6 +428,7 @@ body.mobile .kubo-speech.docked .kubo.mini { pointer-events: none; } /* the left
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .kubo-speech .coach-bar { background: rgba(42, 31, 61, .15); }
 .coach-more { display: block; margin-top: 5px; font-size: .78em; opacity: .65; }
+.coach-sub { display: block; margin-top: 6px; }
 /* the number Kubo means, drawn like a bubble */
 :is(.coach, .kubo-speech) b.coach-num { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; padding: 0 .2em; margin: 0 .1em; border-radius: 999px; background: #fff; border: 2.5px solid var(--ink); color: var(--ink); font-weight: 800; line-height: 1; vertical-align: middle; }
 .coach-more svg { width: .9em; height: .9em; vertical-align: -.1em; fill: currentColor; }

@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Dra med <b>höger tumme</b> för att titta runt",
   "coach.move.desk": "<b>{move}</b> för att gå runt",
   "coach.move.touch": "Dra med <b>vänster tumme</b> för att gå runt",
+  "coach.walkThere.desk": "Gå dit med <b>{move}</b>",
+  "coach.walkThere.touch": "Gå dit med <b>vänster tumme</b>",
   "coach.grab.touch": "Hitta klossen med {n} på och tryck på den!",
   "coach.grab.desk": "Ser du <b>bubblan</b> på sockeln? Hitta den lösa klossen med <b>samma siffra</b> och klicka på den (eller tryck på {interact})",
   "coach.link.touch": "Tryck nu på bubblan med <b>✓</b> för att länka!",

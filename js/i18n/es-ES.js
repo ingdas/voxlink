@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Arrastra el <b>pulgar derecho</b> para mirar alrededor",
   "coach.move.desk": "<b>{move}</b> para andar",
   "coach.move.touch": "Arrastra el <b>pulgar izquierdo</b> para andar",
+  "coach.walkThere.desk": "Camina hasta él con <b>{move}</b>",
+  "coach.walkThere.touch": "Camina hasta él con el <b>pulgar izquierdo</b>",
   "coach.grab.touch": "¡Busca el bloque con el {n} y tócalo!",
   "coach.grab.desk": "¿Ves la <b>burbuja</b> del pedestal? Busca el bloque suelto con el <b>mismo número</b> y haz clic en él (o pulsa {interact})",
   "coach.link.touch": "¡Ahora toca la burbuja con el <b>✓</b> para conectarlo!",

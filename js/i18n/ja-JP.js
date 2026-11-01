@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "<b>右の親指</b>でドラッグしてまわりを見よう",
   "coach.move.desk": "<b>{move}</b>で歩きまわろう",
   "coach.move.touch": "<b>左の親指</b>でドラッグして歩こう",
+  "coach.walkThere.desk": "<b>{move}</b> で歩いていこう",
+  "coach.walkThere.touch": "<b>左の親指</b>で歩いていこう",
   "coach.grab.touch": "{n} のブロックを見つけてタップしよう！",
   "coach.grab.desk": "台の上の<b>バブル</b>が見えるかな？<b>同じ数字</b>のブロックを見つけてクリックしよう（{interact}をおしてもOK）",
   "coach.link.touch": "こんどは<b>✓</b>のついたバブルをタップしてつなごう！",

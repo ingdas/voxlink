@@ -77,6 +77,8 @@ export default {
   "coach.look.touch": "Drag your <b>right thumb</b> to look around",
   "coach.move.desk": "<b>{move}</b> to walk around",
   "coach.move.touch": "Drag your <b>left thumb</b> to walk around",
+  "coach.walkThere.desk": "Walk over with <b>{move}</b>",
+  "coach.walkThere.touch": "Walk over with your <b>left thumb</b>",
   "coach.grab.touch": "Find the block with {n} on it and tap it!",
   "coach.grab.desk": "See the <b>bubble</b> on the pedestal? Find the loose block with the <b>same number</b> and click it (or press {interact})",
   "coach.link.touch": "Now tap the bubble with the <b>✓</b> to link it!",

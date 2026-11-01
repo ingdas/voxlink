@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Trage cu <b>degetul drept</b> ca să te uiți în jur",
   "coach.move.desk": "<b>{move}</b> ca să mergi",
   "coach.move.touch": "Trage cu <b>degetul stâng</b> ca să mergi",
+  "coach.walkThere.desk": "Mergi până la el cu <b>{move}</b>",
+  "coach.walkThere.touch": "Mergi până la el cu <b>degetul mare stâng</b>",
   "coach.grab.touch": "Găsește blocul cu {n} și atinge-l!",
   "coach.grab.desk": "Vezi <b>bula</b> de pe piedestal? Găsește blocul rătăcit cu <b>același număr</b> și dă clic pe el (sau apasă {interact})",
   "coach.link.touch": "Acum atinge bula cu <b>✓</b> ca să-l legi!",

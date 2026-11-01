@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Húzd a <b>jobb hüvelykujjad</b> a körülnézéshez",
   "coach.move.desk": "<b>{move}</b>: járás",
   "coach.move.touch": "Húzd a <b>bal hüvelykujjad</b> a járáshoz",
+  "coach.walkThere.desk": "Sétálj oda ezekkel: <b>{move}</b>",
+  "coach.walkThere.touch": "Sétálj oda a <b>bal hüvelykujjaddal</b>",
   "coach.grab.touch": "Keresd meg a kockát, amin {n} van, és koppints rá!",
   "coach.grab.desk": "Látod a <b>buborékot</b> a talapzaton? Keresd meg a szabad kockát az <b>ugyanolyan számmal</b>, és kattints rá (vagy nyomd meg ezt: {interact})",
   "coach.link.touch": "Most koppints a <b>✓</b> jelű buborékra, hogy összekösd!",

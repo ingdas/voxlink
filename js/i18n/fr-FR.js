@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Glisse ton <b>pouce droit</b> pour regarder autour",
   "coach.move.desk": "<b>{move}</b> pour te déplacer",
   "coach.move.touch": "Glisse ton <b>pouce gauche</b> pour marcher",
+  "coach.walkThere.desk": "Marche jusqu’à lui avec <b>{move}</b>",
+  "coach.walkThere.touch": "Marche jusqu’à lui avec le <b>pouce gauche</b>",
   "coach.grab.touch": "Trouve le bloc avec le {n} et touche-le !",
   "coach.grab.desk": "Tu vois la <b>bulle</b> sur le socle ? Trouve le bloc perdu avec le <b>même nombre</b> et clique dessus (ou appuie sur {interact})",
   "coach.link.touch": "Maintenant, touche la bulle avec le <b>✓</b> pour le relier !",

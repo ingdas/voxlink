@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Sleep met je <b>rechterduim</b> om rond te kijken",
   "coach.move.desk": "<b>{move}</b> om rond te lopen",
   "coach.move.touch": "Sleep met je <b>linkerduim</b> om rond te lopen",
+  "coach.walkThere.desk": "Loop erheen met <b>{move}</b>",
+  "coach.walkThere.touch": "Loop erheen met je <b>linkerduim</b>",
   "coach.grab.touch": "Zoek het blok met {n} erop en tik erop!",
   "coach.grab.desk": "Zie je de <b>bubbel</b> op de sokkel? Zoek het losse blok met <b>hetzelfde getal</b> en klik erop (of druk op {interact})",
   "coach.link.touch": "Tik nu op de bubbel met het <b>✓</b> om het te verbinden!",

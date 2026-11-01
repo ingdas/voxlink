@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Etrafa bakmak için <b>sağ başparmağını</b> kaydır",
   "coach.move.desk": "<b>{move}</b> ile yürü",
   "coach.move.touch": "Yürümek için <b>sol başparmağını</b> kaydır",
+  "coach.walkThere.desk": "<b>{move}</b> ile yanına yürü",
+  "coach.walkThere.touch": "<b>Sol başparmağınla</b> yanına yürü",
   "coach.grab.touch": "Üzerinde {n} olan bloğu bul ve dokun!",
   "coach.grab.desk": "Kaidedeki <b>baloncuğu</b> görüyor musun? <b>Aynı sayıyı</b> taşıyan boştaki bloğu bul ve ona tıkla (ya da {interact} tuşuna bas)",
   "coach.link.touch": "Şimdi bağlamak için <b>✓</b> işaretli baloncuğa dokun!",

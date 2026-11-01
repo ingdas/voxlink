@@ -59,6 +59,7 @@ await suite('first-island', async t => {
   t.check('…not right away', await p.evaluate(() => window.__voxlink.ctx.companion.leading() === null));
   await p.waitForTimeout(5500);
   t.check('stuck on the first block: Kubo flies over to it', (await kuboOff()) < 1.2, await kuboOff());
+  t.check('…and, not having walked yet, his line says how to walk over', /Walk over with/.test(await speech(p)), await speech(p));
   await p.waitForTimeout(5000);
   t.check('…and a little later the hint beam points at it', await p.evaluate(() => { const g = window.__voxlink.game, v = g.voxels.find(v => v.state === 'loose' && g.sockets.has(v.i)); return g.fx.beamTarget === v.mesh; }));
   await p.evaluate(() => { const g = window.__voxlink.game; g.grab(g.voxels.find(v => v.state === 'loose' && g.sockets.has(v.i)).i); });

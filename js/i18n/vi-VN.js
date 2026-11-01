@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Kéo <b>ngón cái phải</b> để nhìn xung quanh",
   "coach.move.desk": "<b>{move}</b> để đi lại",
   "coach.move.touch": "Kéo <b>ngón cái trái</b> để đi lại",
+  "coach.walkThere.desk": "Đi tới đó bằng <b>{move}</b>",
+  "coach.walkThere.touch": "Đi tới đó bằng <b>ngón cái trái</b>",
   "coach.grab.touch": "Tìm khối có số {n} rồi chạm vào nhé!",
   "coach.grab.desk": "Thấy <b>bong bóng</b> trên bệ không? Tìm khối rời có <b>cùng con số</b> rồi nhấp vào nó (hoặc nhấn {interact})",
   "coach.link.touch": "Giờ chạm vào bong bóng có dấu <b>✓</b> để nối nhé!",

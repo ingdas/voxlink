@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "اسحب <b>إبهامك الأيمن</b> لتنظر حولك",
   "coach.move.desk": "استخدم <b>{move}</b> للمشي",
   "coach.move.touch": "اسحب <b>إبهامك الأيسر</b> لتمشي",
+  "coach.walkThere.desk": "امشِ إليه باستخدام <b>{move}</b>",
+  "coach.walkThere.touch": "امشِ إليه بـ<b>إبهامك الأيسر</b>",
   "coach.grab.touch": "ابحث عن المكعّب الذي عليه {n} وانقره!",
   "coach.grab.desk": "هل ترى <b>الفقاعة</b> على القاعدة؟ ابحث عن المكعّب الذي عليه <b>الرقم نفسه</b> وانقره (أو اضغط {interact})",
   "coach.link.touch": "الآن انقر الفقاعة التي عليها <b>✓</b> لتربطه!",

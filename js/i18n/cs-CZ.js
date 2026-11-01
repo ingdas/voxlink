@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Táhni <b>pravým palcem</b> a rozhlédni se",
   "coach.move.desk": "Chůze: <b>{move}</b>",
   "coach.move.touch": "Táhni <b>levým palcem</b> a choď",
+  "coach.walkThere.desk": "Dojdi k ní pomocí <b>{move}</b>",
+  "coach.walkThere.touch": "Dojdi k ní <b>levým palcem</b>",
   "coach.grab.touch": "Najdi kostku s číslem {n} a ťukni na ni!",
   "coach.grab.desk": "Vidíš <b>bublinu</b> na podstavci? Najdi volnou kostku se <b>stejným číslem</b> a klikni na ni (nebo zmáčkni {interact})",
   "coach.link.touch": "Teď klepni na bublinu s <b>✓</b> a spoj je!",

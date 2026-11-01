@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "<b>오른쪽 엄지</b>를 끌어서 둘러봐요",
   "coach.move.desk": "<b>{move}</b>: 걷기",
   "coach.move.touch": "<b>왼쪽 엄지</b>를 끌어서 걸어요",
+  "coach.walkThere.desk": "<b>{move}</b>(으)로 걸어가 봐",
+  "coach.walkThere.touch": "<b>왼손 엄지</b>로 걸어가 봐",
   "coach.grab.touch": "{n}이(가) 적힌 블록을 찾아서 탭해!",
   "coach.grab.desk": "받침대 위에 <b>방울</b> 보이죠? <b>같은 숫자</b>가 적힌 블록을 찾아서 클릭해요 ({interact} 키를 눌러도 돼요)",
   "coach.link.touch": "이제 <b>✓</b> 표시가 있는 방울을 눌러서 이어요!",

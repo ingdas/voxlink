@@ -189,6 +189,10 @@ const BUILD = {
       L.p(GEO.cyl(9), 0xf5ecd8, lx, h / 2, lz, { sx: cr * 0.32, sy: h, sz: cr * 0.32 });
       const c = pick(W, caps);
       L.p(GEO.dome(), c, lx, h - 0.05, lz, { sx: cr, sy: cr * 0.6, sz: cr, kind: o.glow ? 'glow' : 'solid' });
+      // the underside (the dome is open at the bottom: from below you'd look straight into it): gills, a darker
+      // ring round the stem
+      L.p(GEO.cyl(12), o.glow ? 0xe8f6ff : 0xf3e2c4, lx, h - 0.08, lz, { sx: cr * 0.99, sy: 0.06, sz: cr * 0.99, kind: o.glow ? 'glow' : 'solid' });
+      L.p(GEO.cyl(12), o.glow ? 0xc9e4f5 : 0xdcc49c, lx, h - 0.12, lz, { sx: cr * 0.55, sy: 0.04, sz: cr * 0.55 });
       for (let k = 0; k < 5; k++) {
         const a = k * 1.26 + W.rng(), rr = cr * (0.35 + W.rng() * 0.35);
         L.p(GEO.ico(), 0xffffff, lx + Math.cos(a) * rr, h - 0.05 + cr * 0.6 * Math.sqrt(1 - (rr / cr) ** 2), lz + Math.sin(a) * rr, { sx: cr * 0.12, sy: cr * 0.06, sz: cr * 0.12 });

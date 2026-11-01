@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Zieh mit dem <b>rechten Daumen</b>, um dich umzuschauen",
   "coach.move.desk": "<b>{move}</b> zum Herumlaufen",
   "coach.move.touch": "Zieh mit dem <b>linken Daumen</b>, um herumzulaufen",
+  "coach.walkThere.desk": "Lauf mit <b>{move}</b> hin",
+  "coach.walkThere.touch": "Lauf mit dem <b>linken Daumen</b> hin",
   "coach.grab.touch": "Such den Block mit der {n} und tippe ihn an!",
   "coach.grab.desk": "Siehst du die <b>Blase</b> auf dem Sockel? Such den losen Block mit der <b>gleichen Zahl</b> und klick ihn an (oder drück {interact})",
   "coach.link.touch": "Jetzt tippe auf die Blase mit dem <b>✓</b>, um ihn zu verbinden!",

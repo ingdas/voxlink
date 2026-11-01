@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Przesuwaj <b>prawym kciukiem</b>, by się rozglądać",
   "coach.move.desk": "<b>{move}</b>: chodzenie",
   "coach.move.touch": "Przesuwaj <b>lewym kciukiem</b>, by chodzić",
+  "coach.walkThere.desk": "Podejdź tam za pomocą <b>{move}</b>",
+  "coach.walkThere.touch": "Podejdź tam <b>lewym kciukiem</b>",
   "coach.grab.touch": "Znajdź klocek z liczbą {n} i stuknij go!",
   "coach.grab.desk": "Widzisz <b>bańkę</b> na postumencie? Znajdź luźny klocek z <b>tą samą liczbą</b> i go kliknij (albo naciśnij {interact})",
   "coach.link.touch": "Teraz dotknij bańki z <b>✓</b>, by go połączyć!",

@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Trascina il <b>pollice destro</b> per guardarti intorno",
   "coach.move.desk": "<b>{move}</b> per camminare",
   "coach.move.touch": "Trascina il <b>pollice sinistro</b> per camminare",
+  "coach.walkThere.desk": "Raggiungilo con <b>{move}</b>",
+  "coach.walkThere.touch": "Raggiungilo con il <b>pollice sinistro</b>",
   "coach.grab.touch": "Trova il blocco con il {n} e toccalo!",
   "coach.grab.desk": "Vedi la <b>bolla</b> sul piedistallo? Trova il blocco sparso con lo <b>stesso numero</b> e cliccalo (o premi {interact})",
   "coach.link.touch": "Ora tocca la bolla con il <b>✓</b> per collegarlo!",

@@ -48,6 +48,8 @@ export default {
   "coach.look.touch": "Katsele ympärillesi vetämällä <b>oikeaa peukaloa</b>",
   "coach.move.desk": "<b>{move}</b>: kävele",
   "coach.move.touch": "Kävele vetämällä <b>vasenta peukaloa</b>",
+  "coach.walkThere.desk": "Kävele sen luo näppäimillä <b>{move}</b>",
+  "coach.walkThere.touch": "Kävele sen luo <b>vasemmalla peukalolla</b>",
   "coach.grab.touch": "Etsi palikka, jossa on {n}, ja napauta sitä!",
   "coach.grab.desk": "Näetkö jalustalla <b>kuplan</b>? Etsi irtopalikka, jossa on <b>sama numero</b>, ja klikkaa sitä (tai paina {interact})",
   "coach.link.touch": "Yhdistä se nyt napauttamalla kuplaa, jossa on <b>✓</b>!",
