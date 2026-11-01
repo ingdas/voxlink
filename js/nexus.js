@@ -9,6 +9,7 @@ import { STYLES, makeBeacon, lockTexture } from './archipelago.js';
 import { Batch, GEO, projectInside } from './world-kit.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from './render.js';
 import { mulberry32, mergeFigure, S } from './voxels.js';
+import { makePortal, paintView } from './portal.js';
 
 const PLAZA_R = 10, ISLET_R = 6.2, RING = 28; // the plaza, each islet, and how far out the islets stand
 const DECK = 0.22, HW = 1.2; // bridge deck height and half width
@@ -153,31 +154,29 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
     k.gate = g;
   }
 
-  // ---- portals: a window onto the world (its sky over its ground) with a swirl of light; a sleeping one is dark ----
+  // ---- portals: the way into the world (js/portal.js: its sky, hills and trees down a twisting tunnel of its
+  // light); a sleeping one is dark. (The heart writes depth, so the beacon's beam behind it stays hidden.)
   const discGeo = keep(new THREE.CircleGeometry(1.25, 40));
-  const swirlTex = keep(swirlTexture());
+  const hearts = [];
   for (const k of islets) {
     const o = k.world.out.portal;
     const g = new THREE.Group();
     g.position.set(k.p.x + o.x, PORTAL_Y, k.p.z + o.z);
     g.rotation.y = k.ry + Math.PI; // facing the plaza (the depth pass only sees front faces)
-    const view = new THREE.Mesh(discGeo, keep(new THREE.MeshBasicMaterial({ map: keep(viewTexture(k.T, k.slot.garden)), side: THREE.DoubleSide })));
-    const swirl = new THREE.Mesh(discGeo, keep(new THREE.MeshBasicMaterial({ map: swirlTex, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })));
-    swirl.position.z = -0.02;
+    const heart = makePortal({ view: paintView(k.T, { garden: k.slot.garden, seed: k.i + 1 }), color: k.slot.garden ? 0xff8fc7 : k.T.pedestal[2] });
+    hearts.push(heart);
     const sleep = new THREE.Mesh(discGeo, keep(new THREE.MeshBasicMaterial({ color: 0x3a3150, side: THREE.DoubleSide })));
-    swirl.layers.set(LAYER_FX); // (the window itself writes depth, so the beacon's beam behind it stays hidden)
-    g.add(view, swirl, sleep);
+    g.add(heart.group, sleep);
     root.add(g);
-    k.portal = { g, view, swirl, sleep, pos: g.position.clone(), wake: k.open ? 1 : 0, waking: false };
+    k.portal = { g, heart, sleep, pos: g.position.clone(), wake: k.open ? 1 : 0, waking: false };
     setWake(k, k.portal.wake);
   }
   function setWake(k, w) {
     const P = k.portal;
     P.wake = w;
-    P.view.scale.setScalar(Math.max(0.001, w));
-    P.swirl.scale.setScalar(Math.max(0.001, w));
+    P.heart.group.scale.setScalar(Math.max(0.001, w));
     P.sleep.visible = w < 1;
-    P.view.visible = P.swirl.visible = w > 0;
+    P.heart.group.visible = w > 0;
   }
 
   // ---- the world's rebuilt figures in miniature, its finale on top of the portal ----
@@ -288,9 +287,7 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
       beacon.animate(t, calm);
       for (const k of islets) {
         const P = k.portal;
-        if (!P.view.visible) continue;
-        P.swirl.rotation.z = calm ? 0 : -t * 0.9;
-        P.swirl.material.opacity = 0.45 + Math.sin(t * 2.2 + k.i) * 0.12;
+        if (P.heart.group.visible) P.heart.update(t + k.i * 1.7, calm);
       }
       crystal.rotation.y = t * 0.6;
       crystal.position.y = calm ? 0 : Math.sin(t * 1.3) * 0.12;
@@ -363,60 +360,12 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
     dispose() {
       for (const k of pieces) k.world.dispose();
       for (const g of figGeos) g.dispose();
+      for (const h of hearts) h.dispose();
       for (const x of new Set(own)) x.dispose();
       beacon.dispose();
     },
   };
   return nexus;
-}
-
-// a portal's window: the world's sky down to its horizon, its ground below
-function viewTexture(T, garden) {
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 128;
-  const g = cv.getContext('2d');
-  const hex = c => `#${c.toString(16).padStart(6, '0')}`;
-  const sky = g.createLinearGradient(0, 0, 0, 128);
-  sky.addColorStop(0, hex(T.skyTop));
-  sky.addColorStop(0.62, hex(T.skyHorizon));
-  sky.addColorStop(0.62, hex(garden ? 0x8fdc6a : T.grass));
-  sky.addColorStop(1, hex(garden ? 0x5fbf68 : T.cliff));
-  g.fillStyle = sky;
-  g.fillRect(0, 0, 128, 128);
-  if (garden) {
-    for (let i = 0; i < 26; i++) {
-      g.fillStyle = hex(T.flowers[i % T.flowers.length]);
-      g.beginPath(); g.arc((i * 37) % 128, 84 + ((i * 23) % 40), 3, 0, Math.PI * 2); g.fill();
-    }
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-// two soft spiral arms of light, brightest at the rim
-function swirlTexture() {
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 128;
-  const g = cv.getContext('2d');
-  g.translate(64, 64);
-  g.lineCap = 'round';
-  for (let arm = 0; arm < 3; arm++) {
-    for (let i = 0; i < 40; i++) {
-      const t = i / 40, a = arm * (Math.PI * 2 / 3) + t * 4.2, r = 8 + t * 54;
-      g.strokeStyle = `rgba(255,255,255,${(0.15 + t * 0.6).toFixed(3)})`;
-      g.lineWidth = 2 + t * 7;
-      g.beginPath(); g.arc(0, 0, r, a, a + 0.22); g.stroke();
-    }
-  }
-  const rim = g.createRadialGradient(0, 0, 40, 0, 0, 64);
-  rim.addColorStop(0, 'rgba(255,255,255,0)');
-  rim.addColorStop(1, 'rgba(255,255,255,0.8)');
-  g.fillStyle = rim;
-  g.beginPath(); g.arc(0, 0, 64, 0, Math.PI * 2); g.fill();
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
 }
 
 function glowTexture() {

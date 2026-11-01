@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { LAYER_FX, LAYER_OVERLAY, toon } from './render.js';
 import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnion } from './world-kit.js';
 import { GRAVITY } from './player.js';
+import { makePortal, paintView } from './portal.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -1421,23 +1422,21 @@ function hub(W) {
     const a = rng() * Math.PI * 2, r = 1 + rng() * 4.2;
     put(W, GEO.box(), rng() < 0.5 ? 0xd9cfbd : 0xc9bea9, Math.cos(a) * r, 0.015, Math.sin(a) * r, { sx: 0.5 + rng() * 0.4, sy: 0.04, sz: 0.45 + rng() * 0.3, ry: rng(), kind: 'fx' });
   }
-  // the portal: a stone ring standing on the south side, a swirl of light inside
+  // the portal: a ring of stones in the world's colours on a stepped slab, a glowing keystone, and inside it the
+  // way to the Keeper's Isle (js/portal.js)
   const pz = R - 3.2;
   W.portal = { x: 0, z: pz };
-  for (let k = 0; k < 14; k++) {
-    const a = (k / 14) * Math.PI * 2, r = 1.55;
-    put(W, GEO.box(), k % 2 ? 0x9a96b4 : 0xb4b0cc, Math.cos(a) * r, 1.85 + Math.sin(a) * r, pz, { sx: 0.62, sy: 0.62, sz: 0.5, rz: a });
-  }
-  put(W, GEO.box(), 0x77728f, 0, 0.12, pz, { sx: 3.6, sy: 0.24, sz: 1.3 });
+  portalRing(W, 0, pz, 0, [T.pedestal[0], T.pedestal[1]], T.pedestal[2]);
+  put(W, GEO.box(), T.pedestal[0], 0, 0.12, pz, { sx: 3.6, sy: 0.24, sz: 1.3 });
+  put(W, GEO.box(), T.pedestal[1], 0, 0.06, pz + 0.95, { sx: 2.6, sy: 0.12, sz: 0.7, kind: 'ground' });
+  put(W, GEO.box(), T.pedestal[1], 0, 0.06, pz - 0.95, { sx: 2.6, sy: 0.12, sz: 0.7, kind: 'ground' });
   for (const s of [-1, 1]) W.box(s * 1.55 - 0.35, 0, pz - 0.3, s * 1.55 + 0.35, 3.4, pz + 0.3, { sound: 'stone' });
   W.extras = W.extras || [];
   W.extras.push(() => {
-    const mat = new THREE.MeshBasicMaterial({ color: 0x9cf5ff, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(1.25, 32), mat);
-    disc.position.set(0, 1.85, pz);
-    disc.layers.set(LAYER_FX);
-    W.group.add(disc);
-    W.updaters.push((dt, t) => { disc.rotation.z = t * 0.8; mat.opacity = 0.45 + Math.sin(t * 2.2) * 0.15; disc.scale.setScalar(1 + Math.sin(t * 1.7) * 0.04); });
+    const P = makePortal({ view: paintView(T, { isle: true, seed }), color: T.pedestal[2] });
+    P.group.position.set(0, 1.85, pz);
+    W.group.add(P.group);
+    W.updaters.push((dt, t) => P.update(t, document.body.classList.contains('reduce-motion')));
   });
   W.obstacles.push({ x: 0, z: pz, r: 2.4 });
   // lamps and the world's own trees round the rim
@@ -1508,6 +1507,23 @@ function keeper(W) {
   W.clouds = 20; W.cloudR = 55; W.cloudY = -14; W.cloudScale = 1.3;
 }
 
+// a portal's ring of stones (two colours, a little bevel of the second on each), standing at (x, z) across ry, with a
+// keystone on top holding a gem of the portal's light and two small gems where the ring meets its pillars
+function portalRing(W, x, z, ry, cols, light) {
+  const c = Math.cos(ry), s = Math.sin(ry);
+  const at = (lx, y, lz = 0) => [x + lx * c + lz * s, y, z - lx * s + lz * c];
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI * 2, r = 1.55;
+    put(W, GEO.box(), cols[k % 2], ...at(Math.cos(a) * r, 1.85 + Math.sin(a) * r), { sx: 0.62, sy: 0.62, sz: 0.5, ry, rz: a });
+  }
+  put(W, GEO.box(), cols[1], ...at(0, 1.85 + 1.62), { sx: 0.82, sy: 0.7, sz: 0.62, ry });
+  // gems on both faces (you see the portal from either side)
+  for (const f of [-1, 1]) {
+    put(W, GEO.octa(), light, ...at(0, 1.85 + 1.62, f * 0.33), { sx: 0.2, sy: 0.3, sz: 0.1, ry, kind: 'glow' });
+    for (const side of [-1, 1]) put(W, GEO.octa(), light, ...at(side * 1.62, 1.85, f * 0.27), { sx: 0.12, sy: 0.2, sz: 0.07, ry, kind: 'glow' });
+  }
+}
+
 // a world's islet off the Keeper's Isle: its own ground and trees, its portal on the far side facing the plaza,
 // lamps in the world's colour where the bridge lands and four spots for little pedestals (out.minis: nexus.js
 // stands the world's rebuilt figures on them). opts.dir points away from the plaza; opts.garden makes it the
@@ -1523,10 +1539,12 @@ function gate(W) {
   const pa = R - 2.3, [px, pz] = at(pa, 0);
   W.out.portal = { x: px, z: pz, ry };
   const ring = garden ? [0x4f9e52, 0x63b862] : [T.pedestal[0], T.pedestal[1]];
-  for (let k = 0; k < 14; k++) {
-    const a = (k / 14) * Math.PI * 2, r = 1.55, [x, z] = at(pa, Math.cos(a) * r), y = 1.85 + Math.sin(a) * r;
-    put(W, GEO.box(), ring[k % 2], x, y, z, { sx: 0.62, sy: 0.62, sz: 0.5, ry, rz: a });
-    if (garden && k % 2) put(W, GEO.blob(), T.flowers[k % T.flowers.length], x - u.x * 0.3, y + 0.2, z - u.z * 0.3, { sx: 0.13, sy: 0.13, sz: 0.13 });
+  portalRing(W, px, pz, ry, ring, garden ? 0xff8fc7 : T.pedestal[2]);
+  if (garden) {
+    for (let k = 1; k < 14; k += 2) {
+      const a = (k / 14) * Math.PI * 2, r = 1.55, [x, z] = at(pa, Math.cos(a) * r), y = 1.85 + Math.sin(a) * r;
+      put(W, GEO.blob(), T.flowers[k % T.flowers.length], x - u.x * 0.3, y + 0.2, z - u.z * 0.3, { sx: 0.13, sy: 0.13, sz: 0.13 });
+    }
   }
   put(W, GEO.box(), garden ? 0xb07a50 : T.pedestal[0], px, 0.12, pz, { sx: 3.6, sy: 0.24, sz: 1.3, ry });
   for (const s of [-1, 1]) {
