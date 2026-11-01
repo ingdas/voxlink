@@ -24,7 +24,7 @@ void main(){
   c += col * (arms * 0.6 + rings * 0.3);
   // the rim glows, its edge white; a soft bright core that breathes
   c += col * pow(r, 6.0) * 1.3 + vec3(smoothstep(0.93, 1.0, r) * 0.55);
-  c += mix(col, vec3(1.0), 0.65) * pow(1.0 - r, 4.0) * (0.4 + 0.15 * sin(time * 2.0));
+  c += mix(col, vec3(1.0), 0.5) * pow(1.0 - r, 4.0) * (0.22 + 0.08 * sin(time * 2.0));
   gl_FragColor = vec4(c, 1.0);
   #include <colorspace_fragment>
 }`;
@@ -53,9 +53,13 @@ export function makePortal({ view, color, radius = 1.25, motes = 16 }) {
   const col = new THREE.Color(color);
   const group = new THREE.Group();
   const u = { view: { value: view }, col: { value: col }, time: { value: 0 }, spin: { value: 1 } };
-  const disc = new THREE.Mesh(new THREE.CircleGeometry(radius, 48), new THREE.ShaderMaterial({ uniforms: u, vertexShader: vert, fragmentShader: frag, side: THREE.DoubleSide }));
+  // two discs back to back (not one two-sided disc: the outline pass only sees front faces, and would draw what's
+  // behind the portal through it)
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(radius, 48), new THREE.ShaderMaterial({ uniforms: u, vertexShader: vert, fragmentShader: frag }));
   disc.material.addEventListener('dispose', () => view.dispose());
-  group.add(disc);
+  const back = new THREE.Mesh(disc.geometry, disc.material);
+  back.rotation.y = Math.PI;
+  group.add(disc, back);
   // a thin ring of light just inside the stones
   const ringMat = new THREE.MeshBasicMaterial({ color: col.clone().lerp(new THREE.Color(0xffffff), 0.35), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
   const ring = new THREE.Mesh(new THREE.TorusGeometry(radius + 0.04, 0.045, 6, 56), ringMat);
@@ -123,8 +127,8 @@ export function paintView(T, { garden = false, isle = false, seed = 1 } = {}) {
   g.fillRect(0, 0, N, N);
   // the sun's glow
   const sun = g.createRadialGradient(N * 0.68, hz * 0.55, 0, N * 0.68, hz * 0.55, N * 0.3);
-  sun.addColorStop(0, 'rgba(255,248,220,0.95)');
-  sun.addColorStop(0.15, 'rgba(255,240,200,0.5)');
+  sun.addColorStop(0, 'rgba(255,248,220,0.8)');
+  sun.addColorStop(0.15, 'rgba(255,240,200,0.35)');
   sun.addColorStop(1, 'rgba(255,240,200,0)');
   g.fillStyle = sun;
   g.fillRect(0, 0, N, N);
@@ -150,7 +154,7 @@ export function paintView(T, { garden = false, isle = false, seed = 1 } = {}) {
     isl(N / 2, N * 0.62, 50, T.grass);
     g.fillStyle = '#d9c49c'; g.fillRect(N / 2 - 6, N * 0.62 - 64, 12, 62); // the Lantern's column
     const lamp = g.createRadialGradient(N / 2, N * 0.62 - 70, 0, N / 2, N * 0.62 - 70, 30);
-    lamp.addColorStop(0, 'rgba(255,240,170,1)'); lamp.addColorStop(0.3, 'rgba(255,210,63,0.7)'); lamp.addColorStop(1, 'rgba(255,210,63,0)');
+    lamp.addColorStop(0, 'rgba(255,240,170,0.9)'); lamp.addColorStop(0.3, 'rgba(255,210,63,0.45)'); lamp.addColorStop(1, 'rgba(255,210,63,0)');
     g.fillStyle = lamp; g.fillRect(N / 2 - 30, N * 0.62 - 100, 60, 60);
     for (let k = 0; k < 6; k++) { const x = N / 2 + (k - 2.5) * 13; g.fillStyle = hex(T.leaves[k % T.leaves.length]); g.beginPath(); g.arc(x, N * 0.62 - 6 - (k % 2) * 3, 7, 0, Math.PI * 2); g.fill(); }
   } else {

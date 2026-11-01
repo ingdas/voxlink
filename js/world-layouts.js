@@ -1481,15 +1481,22 @@ function keeper(W) {
       if (isl(x, z) < -0.3) put(W, GEO.box(), stone(), x, 0.015, z, { sx: 0.55 + rng() * 0.3, sy: 0.04, sz: 0.5 + rng() * 0.3, ry: rng(), kind: 'fx' });
     }
   }
-  // the Lantern's stone base (its crystal and the worlds' orbs are added by nexus.js)
-  put(W, GEO.cyl(8), 0xb9ad98, 0, 0.15, 0, { sx: 2.3, sy: 0.3, sz: 2.3, ry: Math.PI / 8 });
-  put(W, GEO.cyl(8), 0xe6dccb, 0, 0.45, 0, { sx: 1.75, sy: 0.3, sz: 1.75, ry: Math.PI / 8 });
-  put(W, GEO.cyl(8), 0xd6cab4, 0, 2.1, 0, { sx: 0.5, sy: 3.0, sz: 0.5, ry: Math.PI / 8 });
-  put(W, GEO.cyl(8), 0xb9ad98, 0, 3.7, 0, { sx: 0.8, sy: 0.25, sz: 0.8, ry: Math.PI / 8 });
-  W.box(-2.1, 0, -2.1, 2.1, 0.3, 2.1, { sound: 'stone' });
-  W.box(-1.6, 0, -1.6, 1.6, 0.6, 1.6, { sound: 'stone' });
-  W.box(-0.6, 0, -0.6, 0.6, 3.9, 0.6, { sound: 'stone' });
-  W.obstacles.push({ x: 0, z: 0, r: 2.6 });
+  // in the middle, under the Keeper's Lantern (its crystal and the worlds' orbs are added by nexus.js): the flowery
+  // hedge arch into Kubo's Garden on a round flower bed, facing the south where you first arrive (its portal: nexus.js)
+  put(W, GEO.cyl(8), 0xb9ad98, 0, 0.04, 0, { sx: 2.6, sy: 0.08, sz: 2.6, ry: Math.PI / 8, kind: 'ground' });
+  put(W, GEO.cyl(8), 0x7ccf6a, 0, 0.07, 0, { sx: 2.3, sy: 0.06, sz: 2.3, ry: Math.PI / 8, kind: 'ground' });
+  portalRing(W, 0, 0, 0, [0x4f9e52, 0x63b862], 0xff8fc7);
+  for (let k = 1; k < 14; k += 2) {
+    const a = (k / 14) * Math.PI * 2, r = 1.55;
+    for (const f of [-1, 1]) put(W, GEO.blob(), T.flowers[k % T.flowers.length], Math.cos(a) * r, 1.85 + Math.sin(a) * r + 0.2, f * 0.3, { sx: 0.14, sy: 0.14, sz: 0.14 });
+  }
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    if (Math.abs(Math.sin(a)) < 0.45) continue; // the way in and out stays clear
+    put(W, GEO.blob(), T.flowers[i % T.flowers.length], Math.sin(a) * 2.05, 0.18, Math.cos(a) * 2.05, { sx: 0.2, sy: 0.16, sz: 0.2 });
+  }
+  for (const s of [-1, 1]) W.box(s * 1.55 - 0.35, 0, -0.3, s * 1.55 + 0.35, 3.4, 0.3, { sound: 'stone' });
+  W.obstacles.push({ x: 0, z: 0, r: 2.8 });
   // a sign beside each bridge head, facing the plaza
   W.out.signs = spokes.map(u => {
     const a = R - 2.2, s = 2.1, x = u.x * a + u.z * s, z = u.z * a - u.x * s;

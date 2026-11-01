@@ -26,7 +26,8 @@ await suite('keeper\'s isle', async t => {
       open: N.isle.islets.map(k => k.open), seen: !!ctx.save.seen.nexus, ms: Math.round(N.buildMs) };
   });
   t.check('the title\'s Worlds button walks you onto the Keeper\'s Isle', a.app === 'nexus' && a.name === "Keeper's Isle" && a.seen, a);
-  t.check('two worlds open, the other eight behind gates, the Garden open', a.open.filter(Boolean).length === 3 && a.open[0] && a.open[1] && a.open[10], a.open);
+  t.check('two worlds open, the other eight behind gates', a.open.length === 10 && a.open.filter(Boolean).length === 2 && a.open[0] && a.open[1], a.open);
+  t.check('the Garden arch stands in the middle, under the Lantern, open', await p.evaluate(() => { const N = window.__voxlink.ctx.nexus.session; return N.isle.portalAt(0, 0) === 10 && N.isle.portalPos(10).length() < 2; }));
   t.check(`the isle builds quickly (${a.ms} ms)`, a.ms < 1500);
 
   // the card for the world you walk up to
@@ -143,4 +144,21 @@ await suite('keeper\'s isle', async t => {
   await wv.waitForTimeout(7000);
   t.check('…and goes on to his next line by himself', /hay trampolines/.test(await wv.evaluate(() => document.querySelector('#kubo-speech.show .ks-text')?.innerText || '')));
   await wv.close();
+
+  // the Garden's way out: a portal on its south path, behind where you arrive; walking through it takes you back
+  // out of the arch in the middle of the Isle
+  const gx = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true, garden: true } }) });
+  await gx.evaluate(() => window.__voxlink.openNexus());
+  await t.app(gx, 'nexus');
+  await gx.evaluate(() => window.__voxlink.ctx.nexus.session.travel(10));
+  await t.app(gx, 'museum', 20000);
+  await gx.waitForFunction(() => window.__voxlink.ctx.museum.session?.ready, null, { timeout: 15000 });
+  t.check('the Garden has a portal out, a few steps behind where you arrive', await gx.evaluate(() => { const G = window.__voxlink.ctx.museum.session; return !!G.exitHeart && G.player.pos.z < 11.5 && 11.5 - G.player.pos.z < 4; }));
+  await gx.evaluate(() => { const G = window.__voxlink.ctx.museum.session; G.player.yaw = Math.PI; });
+  await gx.keyboard.down('KeyW');
+  const out = await t.app(gx, 'nexus', 15000).then(() => true, () => false);
+  await gx.keyboard.up('KeyW');
+  const back = await gx.evaluate(() => { const q = window.__voxlink.ctx.nexus.session?.player.pos; return q ? Math.hypot(q.x, q.z - 2.6) : 99; });
+  t.check('…walking through it brings you back out of the Garden\'s arch on the Isle', out && back < 0.5, back);
+  await gx.close();
 });

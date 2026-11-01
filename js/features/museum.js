@@ -5,6 +5,7 @@ import { Player } from '../player.js';
 import { S, INK, voxelMaterial, mulberry32, mergeFigure } from '../voxels.js';
 import { toon, LAYER_OVERLAY } from '../render.js';
 import { t } from '../i18n.js';
+import { makePortal, paintView } from '../portal.js';
 
 const gardenName = () => t('museum.name');
 export const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
@@ -19,6 +20,7 @@ const PATH = 4.5; // open path between two chapter galleries
 const RINGS = [[0, 1, 2, 3], [4, 5, 6, 7, 8, 9]];
 const INNER_R = 16, RING_STEP = 11;
 const NEAR = 2.4; // how close (beyond the pedestal edge) before the info card shows
+const EXIT_Z = 11.5; // the portal out (to the Keeper's Isle), on the south path just behind where you arrive
 
 let ctx, THREE, $;
 let G = null; // live garden session
@@ -122,6 +124,7 @@ function enter(origin = 'title') {
       t('museum.talk.welcome', { name: gardenName() }),
       n ? t(plural('museum.talk.some', n), { n, total }) : t('museum.talk.empty'),
       t('museum.talk.near'),
+      t('museum.talk.exit'),
     ], () => {
       if (!G) return;
       G.talkDone = true;
@@ -134,6 +137,13 @@ function enter(origin = 'title') {
         : t(plural('museum.greet.some', n), { n, total });
     if (!ctx.mobile) input.requestLock(); // still inside the click that brought us here
   }
+}
+
+// walked through the Garden's portal: out to the Keeper's Isle, whichever way you came in
+function leaveGarden() {
+  from = 'nexus';
+  ctx.input.enabled = false;
+  exit();
 }
 
 function exit() {
@@ -292,6 +302,7 @@ class Garden {
     });
 
     this.addKubo(mat);
+    this.addExit(mat);
     this.group.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.allColliders = this.world.colliders.concat(this.colliders);
 
@@ -342,6 +353,52 @@ class Garden {
     this.colliders.push(new THREE.Box3(new THREE.Vector3(x - 0.75, 0, z - 0.75), new THREE.Vector3(x + 0.75, 1.5, z + 0.75)));
   }
 
+  // the way out: a portal on the south path behind where you arrive, in the Keeper's Isle's warm stone, showing the
+  // Isle through it, with a sign over it; walking in takes you there (out of the Garden's arch)
+  addExit(mat) {
+    const g = new THREE.Group();
+    g.position.set(0, 0, EXIT_Z);
+    const box = new THREE.BoxGeometry(1, 1, 1), octa = new THREE.OctahedronGeometry(1, 0);
+    this.disposables.push(box, octa);
+    const stones = [mat(0xd9c49c), mat(0xf0e2c4)], gem = new THREE.MeshBasicMaterial({ color: 0xffd23f });
+    this.disposables.push(gem);
+    for (let k = 0; k < 14; k++) {
+      const a = (k / 14) * Math.PI * 2, m = new THREE.Mesh(box, stones[k % 2]);
+      m.scale.set(0.62, 0.62, 0.5);
+      m.position.set(Math.cos(a) * 1.55, 1.85 + Math.sin(a) * 1.55, 0);
+      m.rotation.z = a;
+      g.add(m);
+    }
+    const key = new THREE.Mesh(box, stones[1]);
+    key.scale.set(0.82, 0.7, 0.62); key.position.set(0, 3.47, 0);
+    const slab = new THREE.Mesh(box, stones[0]);
+    slab.scale.set(3.6, 0.24, 1.3); slab.position.y = 0.12;
+    g.add(key, slab);
+    for (const f of [-1, 1]) { const m = new THREE.Mesh(octa, gem); m.scale.set(0.2, 0.3, 0.1); m.position.set(0, 3.47, f * 0.33); g.add(m); }
+    // the sign over it: where it goes
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = 128;
+    const c2 = cv.getContext('2d');
+    c2.fillStyle = '#fff6e6'; c2.fillRect(0, 0, 512, 128);
+    c2.fillStyle = '#2a1f3d'; c2.textAlign = 'center'; c2.textBaseline = 'middle';
+    fitText(c2, t('nexus.name'), 256, 66, 64, 470);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const boardGeo = new THREE.BoxGeometry(2.4, 0.66, 0.1), faceGeo = new THREE.PlaneGeometry(2.28, 0.57);
+    const faceMat = new THREE.MeshBasicMaterial({ map: tex });
+    this.disposables.push(tex, boardGeo, faceGeo, faceMat);
+    const board = new THREE.Mesh(boardGeo, mat(0x9a6b4f));
+    board.position.y = 4.25;
+    g.add(board);
+    for (const f of [-1, 1]) { const face = new THREE.Mesh(faceGeo, faceMat); face.position.set(0, 4.25, f * 0.056); if (f < 0) face.rotation.y = Math.PI; g.add(face); }
+    this.exitHeart = makePortal({ view: paintView(null, { isle: true, seed: 5 }), color: 0xffd23f });
+    this.exitHeart.group.position.y = 1.85;
+    g.add(this.exitHeart.group);
+    this.disposables.push(this.exitHeart);
+    this.group.add(g);
+    for (const sx of [-1, 1]) this.colliders.push(new THREE.Box3(new THREE.Vector3(sx * 1.55 - 0.35, 0, EXIT_Z - 0.3), new THREE.Vector3(sx * 1.55 + 0.35, 3.4, EXIT_Z + 0.3)));
+  }
+
   addKubo(mat) {
     const k = new THREE.Group();
     const s = 1.35;
@@ -379,6 +436,7 @@ class Garden {
     const cam = ctx.camera;
     this.world.update(dt, this.t, cam.position);
     for (const sp of this.sprites) sp.position.y = sp.userData.y + Math.sin(this.t * 2 + sp.userData.ph) * 0.12;
+    this.exitHeart.update(this.t, document.body.classList.contains('reduce-motion'));
     // Kubo turns to watch you and bobs a little
     const p = this.player.pos;
     const want = Math.atan2(p.x, p.z);
@@ -412,6 +470,8 @@ class Garden {
           else if (a.type === 'interact') this.interact();
         }
         this.player.update(dt, input, look, this.allColliders, this.world);
+        // through the portal out
+        if (Math.abs(this.player.pos.x) < 1.05 && Math.abs(this.player.pos.z - EXIT_Z) < 0.55) { leaveGarden(); return; }
         if (Math.hypot(this.player.pos.x, this.player.pos.z - 8.5) > 3 || this.t > 16) $('garden-keys').classList.add('fade');
       }
       this.player.applyCamera(camera);

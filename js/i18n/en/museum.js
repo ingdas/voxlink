@@ -17,6 +17,7 @@ export default {
   'museum.talk.some.other': '<b>{n} of {total}</b> are back already. The dark ones are still waiting for you out on the islands.',
   'museum.talk.empty': "It's a little empty right now… but every pedestal is waiting for its figure!",
   'museum.talk.near': 'Walk up to a figure to see your best time and stars.',
+  'museum.talk.exit': 'Want to go back? Walk through the portal behind you.',
   'museum.greet.all': 'Every single figure is home. This is the finest garden in the Archipelago!',
   'museum.greet.none': 'Welcome back! Rebuild figures out on the islands and they will stand right here.',
   'museum.greet.some.one': '{n} of {total} figures restored. They look so happy here!',

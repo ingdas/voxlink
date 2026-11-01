@@ -1,5 +1,5 @@
-// The Keeper's Isle: the world of worlds. A floating plaza with the Keeper's Lantern in the middle and a bridge
-// out to one islet per world (and one to Kubo's Garden). Each islet has its world's ground, trees and lamps, its
+// The Keeper's Isle: the world of worlds. A floating plaza with the Keeper's Lantern in the middle over the flowery
+// arch into Kubo's Garden, and a bridge out to one islet per world. Each islet has its world's ground, trees and lamps, its
 // portal on the far side (facing the plaza), the world's rebuilt figures in miniature on four little pedestals and
 // its finale on top of the portal. A closed world's bridge has a gate. `api` answers the player's queries (floor,
 // edges, footsteps) across the plaza, the islets and the bridges; js/features/nexus.js does the rest.
@@ -17,17 +17,20 @@ const BOOST = 2.4; // walking speed on the bridges (as in the worlds)
 const GATE_A = PLAZA_R + 0.4; // a closed bridge ends here
 const PORTAL_Y = 1.85;
 
-// slots: one per islet, in order round the plaza (the Garden's, if any, last):
+// slots: one per world's islet, in order round the plaza, and the Garden's (garden: true) last (its arch is in the
+// middle, its index the one after the worlds'):
 //   { theme, garden, open, minis: [{ cells, height, gold } | null] × 4, finale: { cells, height } | null, done, crowned }
 // sign(k): a CanvasTexture for the sign at slot k's bridge head; figureMat: the material of rebuilt figures
 export function buildNexus({ quality, slots, figureMat, sign }) {
   const root = new THREE.Group();
   const own = []; // geometries, materials and textures this file made (the worlds dispose their own)
   const keep = x => { own.push(x); return x; };
-  const n = slots.length;
-  // the Garden faces the south (where you first arrive); the worlds go round clockwise from it
+  const gardenSlot = slots.find(s => s.garden);
+  slots = slots.filter(s => !s.garden);
+  const n = slots.length, GARDEN = n;
+  // the worlds go round clockwise from the south (where you first arrive, facing the Garden's arch)
   const dirs = slots.map((s, i) => {
-    const phi = s.garden ? Math.PI : Math.PI + ((i + 1) * 2 * Math.PI) / n;
+    const phi = Math.PI + ((i + 0.5) * 2 * Math.PI) / n;
     return { x: Math.sin(phi), z: -Math.cos(phi) };
   });
 
@@ -171,6 +174,12 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
     k.portal = { g, heart, sleep, pos: g.position.clone(), wake: k.open ? 1 : 0, waking: false };
     setWake(k, k.portal.wake);
   }
+  // the Garden's portal, in its arch under the Lantern (facing the south; you walk through from either side)
+  const gardenHeart = makePortal({ view: paintView(THEMES.meadow, { garden: true, seed: 77 }), color: 0xff8fc7 });
+  gardenHeart.group.position.set(0, PORTAL_Y, 0);
+  root.add(gardenHeart.group);
+  hearts.push(gardenHeart);
+  const gardenPos = new THREE.Vector3(0, PORTAL_Y, 0);
   function setWake(k, w) {
     const P = k.portal;
     P.wake = w;
@@ -243,7 +252,7 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
   // ---- the Keeper's Lantern: a crystal over the plaza, and an orb per world that lights up once it's rebuilt
   // (gold with every star) ----
   const lantern = new THREE.Group();
-  lantern.position.y = 4.9;
+  lantern.position.y = 5.6; // over the Garden's arch
   const crystal = new THREE.Mesh(keep(new THREE.OctahedronGeometry(0.62, 0)), keep(new THREE.MeshBasicMaterial({ color: 0xfff1b8 })));
   crystal.scale.y = 1.45;
   const halo = new THREE.Sprite(keep(new THREE.SpriteMaterial({ map: keep(glowTexture()), color: 0xffe2a0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })));
@@ -289,6 +298,7 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
         const P = k.portal;
         if (P.heart.group.visible) P.heart.update(t + k.i * 1.7, calm);
       }
+      gardenHeart.update(t, calm);
       crystal.rotation.y = t * 0.6;
       crystal.position.y = calm ? 0 : Math.sin(t * 1.3) * 0.12;
       orbs.rotation.y = calm ? 0 : -t * 0.25;
@@ -324,8 +334,9 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
       beacon.userData.top = islets[i].slot.finale ? 7 : 5.4;
       beacon.userData.mark.position.y = beacon.userData.top;
     },
-    // the open portal you're stepping into, if any (its slot index)
+    // the open portal you're stepping into, if any (its slot index; the Garden's arch: the index after the worlds')
     portalAt(x, z) {
+      if (Math.abs(x) < 1.05 && Math.abs(z) < 0.55) return GARDEN;
       for (const k of islets) {
         if (!k.open || k.portal.wake < 1) continue;
         const { pos } = k.portal, dx = x - pos.x, dz = z - pos.z;
@@ -345,18 +356,21 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
         if (along(k, x, z) > PLAZA_R - 2.6 && bridgeSdOf({ ...k, open: true }, x, z) < 0.6) return k.i;
       }
       const s = plaza.out.signs.findIndex(sp => Math.hypot(x - sp.x, z - sp.z) < 2.2);
+      if (s < 0 && Math.hypot(x, z) < 4.2) return GARDEN; // by the Garden's arch
       return s;
     },
     // where you stand stepping out of slot i's portal (facing the plaza), and on the plaza facing slot i
     arrival(i) {
+      if (i === GARDEN) return { x: 0, z: 2.6, yaw: Math.PI }; // out of the arch, facing the south
       const k = islets[i], { pos } = k.portal;
       return { x: pos.x - k.u.x * 2.6, z: pos.z - k.u.z * 2.6, yaw: Math.atan2(k.u.x, k.u.z) };
     },
     plazaSpot(i) {
+      if (i === GARDEN) return { x: 0, z: 5.5, yaw: 0 };
       const u = islets[i].u;
       return { x: u.x * 3.6, z: u.z * 3.6, yaw: Math.atan2(-u.x, -u.z) };
     },
-    portalPos(i) { return islets[i].portal.pos.clone(); },
+    portalPos(i) { return i === GARDEN ? gardenPos.clone() : islets[i].portal.pos.clone(); },
     dispose() {
       for (const k of pieces) k.world.dispose();
       for (const g of figGeos) g.dispose();

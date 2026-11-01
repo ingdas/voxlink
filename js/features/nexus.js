@@ -34,7 +34,7 @@ export function init(c) {
 const isDone = l => !!ctx.save.stars[l.id]?.done;
 const starsOf = l => { const s = ctx.save.stars[l.id] || {}; return !!s.done + !!s.fast + !!s.clean; };
 const totalStars = () => ctx.LEVELS.reduce((n, l) => n + starsOf(l), 0);
-const GARDEN = () => ctx.CHAPTERS.length; // the Garden's islet comes after the worlds'
+const GARDEN = () => ctx.CHAPTERS.length; // the Garden's arch (in the middle, under the Lantern) comes after the worlds'
 
 // ---------- DOM ----------
 function buildDom() {
@@ -318,12 +318,13 @@ class Isle {
   updateCard() {
     const p = this.player.pos;
     const k = this.ready && !this.leaving ? this.isle.slotAt(p.x, p.z) : -1;
-    const key = k >= 0 ? `${k}:${this.isle.islets[k].open && this.isle.islets[k].portal.wake >= 1}` : '';
+    const isl = this.isle.islets[k], open = k === GARDEN() || !!isl?.open; // (the Garden's arch is always open)
+    const key = k >= 0 ? `${k}:${open && (!isl || isl.portal.wake >= 1)}` : '';
     if (key === this.cardKey) return;
     this.cardKey = key;
     const card = $('nexus-card');
     if (k < 0) { card.classList.remove('show'); return; }
-    card.innerHTML = cardHtml(k, this.isle.islets[k].open);
+    card.innerHTML = cardHtml(k, open);
     card.classList.remove('show');
     void card.offsetWidth;
     card.classList.add('show');
