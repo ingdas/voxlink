@@ -51,6 +51,11 @@ export function init(c) {
     hush() { barkLeft = 0; hold = false; },
     // a fresh start (a figure was just finished): drop whatever was waiting
     reset() { barkLeft = 0; hold = false; queue.length = 0; },
+    // several lines in a row (a world's welcome): each gets its full read, none goes stale while it waits
+    sayAll(lines) {
+      for (const msg of lines) queue.push({ msg, at: performance.now(), keep: true });
+      if (barkLeft <= 0) speak(queue.shift().msg);
+    },
     say(msg, urgent = false) {
       if (!urgent && barkLeft > 0 && barkAge < Math.min(4, readTime(bark) * 0.8)) {
         if (queue.length < 3 && !queue.some(q => q.msg === msg) && msg !== bark) queue.push({ msg, at: performance.now() });
@@ -126,8 +131,8 @@ function update(g, dt) {
 
   barkLeft -= dt; barkAge += dt;
   // another island's lines don't carry over; waiting lines also go stale after a while (you've walked on)
-  if (g.level !== lastLevel) { lastLevel = g.level; queue.length = 0; leadAt = null; route = []; }
-  while (queue.length && performance.now() - queue[0].at > 9000) queue.shift();
+  if (g.level !== lastLevel) { lastLevel = g.level; queue.splice(0, queue.length, ...queue.filter(q => q.keep)); leadAt = null; route = []; }
+  while (queue.length && !queue[0].keep && performance.now() - queue[0].at > 9000) queue.shift();
   if (queue.length && (barkLeft <= 0 || (!hold && barkAge >= Math.min(4, readTime(bark) * 0.8)))) speak(queue.shift().msg);
   const pl = g.player;
   const talking = !!coachHtml || barkLeft > 0;

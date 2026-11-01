@@ -234,7 +234,11 @@ const game = new Game({
     kubo: (msg, urgent) => kuboSays(msg, urgent),
     vibrate: p => { if (mobile && navigator.vibrate) navigator.vibrate(p); },
     complete: stats => onComplete(stats),
-    introDone: () => { app = 'playing'; input.enabled = true; document.body.classList.add('playing'); greetBack(); },
+    introDone: () => {
+      app = 'playing'; input.enabled = true; document.body.classList.add('playing');
+      if (worldIntro) { welcomeBack = false; ctx.companion?.sayAll(worldIntro); worldIntro = null; }
+      greetBack();
+    },
     pause: () => pause(),
     magnet: (n, gained) => renderMagnet(n, gained),
     express: (n, gained) => renderTool('btn-express', 'express-n', n, gained),
@@ -951,11 +955,13 @@ const firstOpenIn = c => {
   const ls = CHAPTERS[c].levels.filter(l => l.index < save.unlocked);
   return (ls.find(l => !isDone(l.id)) || ls[0] || CHAPTERS[c].levels[0]).index;
 };
-// arriving in a world by portal: on the hub, with the figure you're up to ready on its island
+// arriving in a world by portal: on the hub, with the figure you're up to ready on its island. The first visit:
+// Kubo tells you about the world once you're there and can see it (not over a blank screen before you go)
+let worldIntro = null;
 function enterWorld(c) {
   const ch = CHAPTERS[c];
   if (c === 0 && !save.seen.prologue) return playPrologue();
-  if (!save.seen[ch.id]) { save.seen[ch.id] = true; persist(); return talk(ch.intro, () => enterWorld(c)); }
+  if (!save.seen[ch.id]) { save.seen[ch.id] = true; persist(); worldIntro = ch.intro; }
   // the very first figure starts on its own island (its door keeps you there until it's rebuilt)
   const i = firstOpenIn(c);
   startLevel(i, true, i === 0 && !isDone(LEVELS[0].id) ? 'island' : 'hub');

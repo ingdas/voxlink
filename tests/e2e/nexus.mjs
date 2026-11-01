@@ -127,4 +127,20 @@ await suite('keeper\'s isle', async t => {
   t.check('first visit: nothing under the Skip button while Kubo talks', !sk.barShown || !sk.overlap, sk);
   t.check('the Keeper\'s Isle top bar has no level goals in it', sk.goals === 'none', sk);
   await f.close();
+
+  // a world's first visit: straight through its portal (no talk screen over the portal's picture), and Kubo tells
+  // you about the world once you're there and can see it
+  const wv = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true } }) });
+  await wv.evaluate(() => window.__voxlink.openNexus());
+  await t.app(wv, 'nexus');
+  await wv.evaluate(() => { window.__talked = false; new MutationObserver(() => { if (document.getElementById('screen-talk').classList.contains('show')) window.__talked = true; }).observe(document.getElementById('screen-talk'), { attributes: true }); });
+  await wv.evaluate(() => window.__voxlink.ctx.nexus.session.travel(1));
+  await t.app(wv, 'playing', 20000);
+  await wv.waitForTimeout(800);
+  const wf = await wv.evaluate(() => ({ talked: window.__talked, level: window.__voxlink.game.level.chapter, said: document.querySelector('#kubo-speech.show .ks-text')?.innerText || '' }));
+  t.check('a world\'s first visit: no talk screen on the way in', !wf.talked && wf.level === 1, wf);
+  t.check('…Kubo welcomes you to it once you\'re there', /Windmill Farm/.test(wf.said), wf.said);
+  await wv.waitForTimeout(7000);
+  t.check('…and goes on to his next line by himself', /hay trampolines/.test(await wv.evaluate(() => document.querySelector('#kubo-speech.show .ks-text')?.innerText || '')));
+  await wv.close();
 });

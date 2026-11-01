@@ -310,16 +310,8 @@ class Isle {
       return;
     }
     const ch = CHAPTERS[k], T = THEMES[ch.theme];
-    const go = () => warp(hex(T.skyHorizon), () => { exit(); ctx.enterWorld(k); }, true); // through a portal: an interstitial's turn
-    // the first visit: Kubo tells you about the world before you go through
-    if (!save.seen[ch.id]) {
-      save.seen[ch.id] = true;
-      ctx.persist();
-      ctx.input.enabled = false;
-      ctx.input.reset();
-      ctx.input.exitLock();
-      ctx.talk(ch.intro, () => { if (!ctx.mobile) ctx.input.requestLock(); go(); });
-    } else go();
+    // through a portal: an interstitial's turn (a first visit's welcome comes once you're there: main.js)
+    warp(hex(T.skyHorizon), () => { exit(); ctx.enterWorld(k); }, true);
   }
 
   // the card for the world you're at (on its islet or bridge, or by its sign)
