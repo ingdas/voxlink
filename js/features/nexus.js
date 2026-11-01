@@ -20,7 +20,7 @@ export function init(c) {
   ctx = c; $ = c.$;
   buildDom();
   ctx.modes.nexus = dt => N?.update(dt);
-  ctx.nexus = { enter, leave: exit, get active() { return !!N; }, get session() { return N; } };
+  ctx.nexus = { enter, leave: exit, get active() { return !!N; }, get session() { return N; }, get warping() { return warping; } };
   ctx.warp = warp;
   document.addEventListener('pointerlockchange', () => {
     if (!document.pointerLockElement && N && ctx.app === 'nexus' && ctx.input.enabled && !ctx.mobile) pauseIsle();

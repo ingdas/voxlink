@@ -109,4 +109,22 @@ await suite('keeper\'s isle', async t => {
   });
   t.check('phone: the card fits on screen', ph.inside, ph);
   t.check('phone: only the stroll HUD shows', !ph.shown.includes('done-card') && !ph.shown.some(s => /pack|needs/.test(s)), ph.shown);
+
+  // the first visit, through a portal mid-play: the welcome frees the pointer behind the flash, so no pause menu
+  // in between; while Kubo talks the top bar steps aside for Skip (no level goals left in it either)
+  const f = await t.page({ save: saveWith(['sprout']), viewport: { width: 900, height: 600 } });
+  await f.evaluate(() => window.__voxlink.startLevel(1, false, 'island'));
+  await t.app(f, 'playing');
+  await f.evaluate(() => { window.__screens = []; new MutationObserver(() => { const s = [...document.querySelectorAll('.screen.show')].map(e => e.id).join(','); if (window.__screens.at(-1) !== s) window.__screens.push(s); }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] }); });
+  await f.evaluate(() => window.__voxlink.ctx.nexus.enter({ from: 0, ad: true }));
+  await f.waitForFunction(() => document.getElementById('screen-talk').classList.contains('show'));
+  await f.waitForTimeout(500);
+  t.check('first visit: no pause menu on the way in', !(await f.evaluate(() => window.__screens.some(s => s.includes('screen-pause')))), await f.evaluate(() => window.__screens));
+  const sk = await f.evaluate(() => {
+    const a = document.getElementById('talk-skip').getBoundingClientRect(), top = document.querySelector('#hud .hud-top'), b = top.getBoundingClientRect();
+    return { barShown: getComputedStyle(top).visibility !== 'hidden', overlap: a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top, goals: getComputedStyle(document.getElementById('goals')).display };
+  });
+  t.check('first visit: nothing under the Skip button while Kubo talks', !sk.barShown || !sk.overlap, sk);
+  t.check('the Keeper\'s Isle top bar has no level goals in it', sk.goals === 'none', sk);
+  await f.close();
 });

@@ -740,7 +740,8 @@ function resume() {
   lastTime = performance.now();
 }
 
-input.onLockChange = locked => { if (!locked && (app === 'playing' || app === 'intro') && !cg.adShowing()) pause(); };
+// (not on the way to the Keeper's Isle: its first visit frees the pointer for Kubo's welcome behind the flash)
+input.onLockChange = locked => { if (!locked && (app === 'playing' || app === 'intro') && !cg.adShowing() && !ctx.nexus?.warping) pause(); };
 document.addEventListener('pointerlockerror', () => { if (app === 'playing') pause(); });
 document.addEventListener('visibilitychange', () => {
   // the ambient bed keeps playing in a background tab on menus too; the pause screen stays silent
