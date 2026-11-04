@@ -19,6 +19,7 @@ export class Player {
     this._box = new THREE.Box3();
     this.surface = null; // what the player stands on: { friction, slow, sound, splash } from world.surfaceAt
     this.launchT = 0; // flying off a jump pad: no air steering until landing
+    this.breeze = 0; this.breezeK = 1; // a breeze lane's speed-up: how far it has built up (0..1), and its full factor
     this.hoverT = 0; this.floating = false; // Keeper's updraft: hover time left after letting go of jump
     this.rescue = null; // gliding back to safety after falling into the void
     this.lastSafe = new THREE.Vector3();
@@ -34,6 +35,7 @@ export class Player {
     this.launchT = 0; this.rescue = null;
     this.hoverT = 0; this.floating = false;
     this.land = 0; this.bobAmt = 0; this.surface = null;
+    this.breeze = 0; this.breezeK = 1;
     this.lastSafe.copy(this.pos);
   }
 
@@ -64,7 +66,13 @@ export class Player {
     const surf = this.onGround && world.surfaceAt ? world.surfaceAt(this.pos.x, this.pos.z, this.pos.y) : null;
     if (this.onGround) this.surface = surf;
     const { x: mx, y: my, sprint } = input.move;
-    const speed = (sprint ? RUN : WALK) * (surf?.slow ?? 1);
+    // a breeze lane (ground that speeds you up: the bridges) builds up over a second or so once you walk on it and
+    // dies away over half a second or so after (in the air it holds); ground that slows you does so at once
+    const slow = surf?.slow ?? 1;
+    if (slow > 1) this.breezeK = slow;
+    if (this.onGround) this.breeze = THREE.MathUtils.clamp(this.breeze + (slow > 1 && (mx || my) ? dt / 1.3 : -dt / 0.6), 0, 1);
+    const b = this.breeze * this.breeze * (3 - 2 * this.breeze);
+    const speed = (sprint ? RUN : WALK) * Math.min(1, slow) * (1 + (this.breezeK - 1) * b);
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     // forward is -z rotated by yaw
     const wx = mx * cos + my * sin;

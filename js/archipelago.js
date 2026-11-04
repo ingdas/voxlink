@@ -1,23 +1,27 @@
 // A world's archipelago: a small hub island in the middle and one island per figure, joined by bridges in the world's style.
-// Islands stand north of the hub in two staggered rows (odd figures in front, even ones behind the gaps); a
-// causeway runs north from the hub to a boardwalk, and a spur leads from the boardwalk into each island's south
-// side (where every island keeps a clear path to its pedestal) — the back row's spurs pass between the front
-// islands. Bridges are breeze lanes: you cross them fast. Rails line every open edge. Only one figure island is active (its puzzle loaded): the archipelago is shifted so that island sits
+// The islands lie scattered round the north of the hub as if they had grown there (seeded, so a world always looks
+// the same; GROWTH gives each world its character). Every island is entered from the south, where its path in is kept
+// clear: its bridge runs straight out of its south shore for a few metres, then curves away to join the others, at
+// the hub (whose one bridge leaves north) or at a round landing where bridges meet. Bridges are breeze lanes: you
+// cross them fast. Rails line every open edge. Only one figure island is active (its puzzle loaded): the archipelago is shifted so that island sits
 // at the origin, which is what the game expects, and `api` answers the player's queries across all islands and
 // bridges in those shifted coordinates. Moving to another island just changes the shift.
 import * as THREE from 'three';
 import { PEDESTAL_TOP } from './world.js';
-import { Batch, GEO, projectInside, sdBox } from './world-kit.js';
+import { Batch, GEO, projectInside } from './world-kit.js';
 import { toon, LAYER_OVERLAY } from './render.js';
-import { mergeFigure } from './voxels.js';
+import { mergeFigure, mulberry32 } from './voxels.js';
 import { expandLevel } from './levels.js';
 
 const DECK = 0.22; // bridge deck height
-const GAP = 5.4; // between front-row islands (a back-row bridge passes through)
 const BOOST = 2.4; // walking speed on the bridges
-const SPUR = 4.5; // boardwalk to island
-const CAUSE = 6; // hub to boardwalk
 const HW = 1.2; // half width of a bridge
+const LEAD = 3; // how far a bridge runs straight out of an island's south shore (or the hub's north shore) before it turns
+const LANDING = 2.4; // radius of the round landings where bridges meet
+const CLEAR = 1.4; // open water kept between a bridge's edge and any shore or other bridge
+const LANE = 1.3; // half width of the way in across an island, from its pedestal (or the hub's portal) out to its bridge,
+// which is a breeze lane like the bridges
+const LEG = 45; // the longest walk along the bridges from one figure's island to the next's, if there's a choice
 
 // each world's bridges: deck under-beam, plank (or slab) colours, rails, posts and the lamps on the posts at a
 // crossing (`top`); `rails` are [height, thickness, width] (one thick rail makes a low wall), `railTop` a strip
@@ -77,13 +81,373 @@ export function lockTexture() {
   return tex;
 }
 
-// furthest extent of an island's ground in one direction (scan along z at a few x positions)
-function reach(world, dirZ) {
-  let best = 0;
-  for (let x = -world.R; x <= world.R; x += 1) {
-    for (let d = 0; d <= world.R + 2; d += 0.5) if (world.walkSd(x, d * dirZ) < 0) best = Math.max(best, d);
+// How each world's archipelago grows from its hub: gap: open water between neighbouring islands [min, max] (metres);
+// heading: the way it drifts (radians, 0 = north, positive = east); spread: how widely it fans out round that; trail:
+// how much each island keeps near the one before (1: a winding string of islands, 0: a cluster round the hub)
+const GROWTH = {
+  meadow: { gap: [4, 7], heading: 0.3, spread: 2.2, trail: 0.7 },
+  farm: { gap: [5, 9], heading: -0.6, spread: 2.4, trail: 0.3 },
+  frost: { gap: [4, 6], heading: 0.2, spread: 3.0, trail: 0.25 },
+  frostwood: { gap: [4, 7], heading: -0.5, spread: 1.6, trail: 0.9 },
+  reef: { gap: [5, 9], heading: 1.0, spread: 1.6, trail: 0.45 },
+  cove: { gap: [4, 8], heading: -0.9, spread: 1.4, trail: 0.6 },
+  starfall: { gap: [5, 8], heading: 0, spread: 1.4, trail: 1 },
+  moon: { gap: [5, 9], heading: 0.6, spread: 2.6, trail: 0.3 },
+  cliffs: { gap: [4, 8], heading: 0.7, spread: 1.8, trail: 0.8 },
+  storm: { gap: [4, 7], heading: 0, spread: 3.0, trail: 0.2 },
+};
+
+// ---- polylines: [[x, z], ...] ----
+const unit = (x, z) => { const l = Math.hypot(x, z) || 1; return [x / l, z / l]; };
+const arcLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return s; };
+// direction of travel at point i
+const tangent = (pts, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; return unit(b[0] - a[0], b[1] - a[1]); };
+// how far (x, z) is from a box [x0, z0, x1, z1] round a polyline (a quick lower bound for the distance to it)
+const boxGap = (b, x, z) => Math.hypot(Math.max(b[0] - x, 0, x - b[2]), Math.max(b[1] - z, 0, z - b[3]));
+function polyDist(pts, x, z) {
+  let d = Infinity;
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, az] = pts[i - 1], dx = pts[i][0] - ax, dz = pts[i][1] - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1)));
+    d = Math.min(d, Math.hypot(x - ax - dx * t, z - az - dz * t));
   }
-  return best;
+  return d;
+}
+// the same line with a point every `step` metres (both ends kept)
+function resample(pts, step = 0.5) {
+  const out = [pts[0]];
+  let carry = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, az] = pts[i - 1], [bx, bz] = pts[i], L = Math.hypot(bx - ax, bz - az);
+    let s = step - carry;
+    for (; s <= L; s += step) out.push([ax + ((bx - ax) * s) / L, az + ((bz - az) * s) / L]);
+    carry = L - (s - step);
+  }
+  const a = out[out.length - 1], b = pts[pts.length - 1];
+  if (Math.hypot(b[0] - a[0], b[1] - a[1]) > 0.05) out.push(b);
+  return out;
+}
+// a line's points every 0.5 m, as resample() would give them, without building them all: n of them, at(j) the j-th
+function evenly(pts) {
+  const cum = new Float64Array(pts.length);
+  for (let i = 1; i < pts.length; i++) cum[i] = cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  const L = cum[pts.length - 1], whole = Math.floor(L / 0.5);
+  return {
+    n: whole + 1 + (L - whole * 0.5 > 0.05 ? 1 : 0),
+    at(j) {
+      const s = Math.min(j * 0.5, L);
+      let lo = 1, hi = pts.length - 1;
+      while (lo < hi) { const m = (lo + hi) >> 1; if (cum[m] < s) lo = m + 1; else hi = m; }
+      const a = pts[lo - 1], b = pts[lo], d = cum[lo] - cum[lo - 1], t = d ? (s - cum[lo - 1]) / d : 0;
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+    },
+  };
+}
+// the part of a line between two distances along it
+function along(pts, s0, s1) {
+  const out = [];
+  let s = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const at = d => (L ? [a[0] + ((b[0] - a[0]) * d) / L, a[1] + ((b[1] - a[1]) * d) / L] : a);
+    if (!out.length && s + L >= s0) out.push(at(s0 - s));
+    if (out.length) {
+      if (s + L >= s1) { out.push(at(s1 - s)); return out; }
+      out.push(b);
+    }
+    s += L;
+  }
+  if (!out.length) out.push(pts[pts.length - 1]); // (s0 at, or a hair past, the end)
+  return out;
+}
+// fewer points, none of the dropped ones further than tol off the line (Douglas-Peucker)
+function simplify(pts, tol) {
+  if (pts.length < 3) return pts.slice();
+  const keep = new Uint8Array(pts.length);
+  keep[0] = keep[pts.length - 1] = 1;
+  const todo = [[0, pts.length - 1]];
+  while (todo.length) {
+    const [i, j] = todo.pop();
+    let far = -1, fd = tol;
+    for (let k = i + 1; k < j; k++) { const d = polyDist([pts[i], pts[j]], pts[k][0], pts[k][1]); if (d > fd) { fd = d; far = k; } }
+    if (far >= 0) { keep[far] = 1; todo.push([i, far], [far, j]); }
+  }
+  return pts.filter((p, k) => keep[k]);
+}
+// a smooth curve from a (leaving along the unit direction ta) to b (arriving along tb); k: how far it carries on
+// along each before bending
+// the curve's sharpest bend (1 / its tightest radius, looked at in 32 places)
+function sharpest(a, ta, b, tb, k) {
+  const p1x = a[0] + ta[0] * k, p1z = a[1] + ta[1] * k, p2x = b[0] - tb[0] * k, p2z = b[1] - tb[1] * k;
+  let worst = 0;
+  for (let i = 0; i <= 32; i++) {
+    const t = i / 32, u = 1 - t;
+    const dx = 3 * (u * u * (p1x - a[0]) + 2 * u * t * (p2x - p1x) + t * t * (b[0] - p2x)), dz = 3 * (u * u * (p1z - a[1]) + 2 * u * t * (p2z - p1z) + t * t * (b[1] - p2z));
+    const ddx = 6 * (u * (p2x - 2 * p1x + a[0]) + t * (b[0] - 2 * p2x + p1x)), ddz = 6 * (u * (p2z - 2 * p1z + a[1]) + t * (b[1] - 2 * p2z + p1z));
+    const v = Math.hypot(dx, dz);
+    if (v > 1e-6) worst = Math.max(worst, Math.abs(dx * ddz - dz * ddx) / (v * v * v));
+  }
+  return worst;
+}
+function curve(a, ta, b, tb, k) {
+  const p1 = [a[0] + ta[0] * k, a[1] + ta[1] * k], p2 = [b[0] - tb[0] * k, b[1] - tb[1] * k], out = [];
+  for (let i = 0; i <= 120; i++) {
+    const t = i / 120, u = 1 - t, w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+    out.push([w[0] * a[0] + w[1] * p1[0] + w[2] * p2[0] + w[3] * b[0], w[0] * a[1] + w[1] * p1[1] + w[2] * p2[1] + w[3] * b[1]]);
+  }
+  return out;
+}
+
+// Scatter the islands round the hub (setting each pt.p) and join them up. Returns the bridges { nodes, edges }, or
+// null if this try didn't work out (the caller tries again; relax 1 accepts tighter bends and less open water, 2
+// anything that joins up). nodes: the hub's end of its bridge (first), round landings and each island's end of its
+// bridge (pt.node); edges: a bridge between two nodes, `pts` every 0.5 m from the end nearer the hub (`a`) to the other
+// (`b`), `island` the island it leads to (if any).
+function grow(parts, hubWorld, hubN, G, rng, relax) {
+  const clear = relax ? CLEAR / 2 : CLEAR, bend = relax ? 3.5 : 5;
+  const reach = w => (w.reach ??= extent(w));
+  const pieces = [{ world: hubWorld, x: 0, z: 0, R: reach(hubWorld) }];
+  const lanes = [[0, -hubN, -1]]; // where a bridge runs straight out of a shore: [x, z of the shore, which way along z]
+  const hubNode = { x: 0, z: -hubN + 0.8, hub: true, dh: 0, edges: [] };
+  const nodes = [hubNode], edges = [];
+  // open water at (x, z): how far to the nearest shore (but skip's)
+  const water = (x, z, skip = null) => {
+    let d = Infinity;
+    for (const k of pieces) {
+      if (k === skip) continue;
+      const c = Math.hypot(x - k.x, z - k.z) - k.R - 1.5;
+      d = Math.min(d, c > 3 ? c : k.world.walkSd(x - k.x, z - k.z));
+    }
+    return d;
+  };
+  // the bridges' segments by grid cell (each in every cell within NEAR of it), for "is a bridge this close?"
+  const CELL = 4, NEAR = 2 * HW + CLEAR, cells = new Map();
+  const cellKey = (i, j) => i * 4096 + j;
+  const index = () => {
+    cells.clear();
+    for (const e of edges) for (let i = 1; i < e.sd.length; i++) {
+      const [ax, az] = e.sd[i - 1], [bx, bz] = e.sd[i];
+      for (let ci = Math.floor((Math.min(ax, bx) - NEAR) / CELL); ci <= Math.floor((Math.max(ax, bx) + NEAR) / CELL); ci++) {
+        for (let cj = Math.floor((Math.min(az, bz) - NEAR) / CELL); cj <= Math.floor((Math.max(az, bz) + NEAR) / CELL); cj++) {
+          const k = cellKey(ci, cj);
+          if (!cells.has(k)) cells.set(k, []);
+          cells.get(k).push(ax, az, bx, bz);
+        }
+      }
+    }
+  };
+  // is any bridge closer than r (at most NEAR) to (x, z)?
+  const bridgeNear = (x, z, r) => {
+    const segs = cells.get(cellKey(Math.floor(x / CELL), Math.floor(z / CELL)));
+    if (!segs) return false;
+    for (let i = 0; i < segs.length; i += 4) {
+      const ax = segs[i], az = segs[i + 1], dx = segs[i + 2] - ax, dz = segs[i + 3] - az;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1)));
+      const ex = x - ax - dx * t, ez = z - az - dz * t;
+      if (ex * ex + ez * ez < r * r) return true;
+    }
+    return false;
+  };
+  const link = (a, b, pts, island = null) => {
+    const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+    const e = { a, b, pts, island, len: arcLen(pts), box: [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)] };
+    e.sd = pts.filter((p, i) => i % 2 === 0 || i === pts.length - 1); // (a point a metre is plenty for distances)
+    a.edges.push(e); b.edges.push(e); edges.push(e);
+    index();
+    return e;
+  };
+  const unlink = e => { edges.splice(edges.indexOf(e), 1); e.a.edges.splice(e.a.edges.indexOf(e), 1); e.b.edges.splice(e.b.edges.indexOf(e), 1); index(); };
+
+  // is there room for an island of radius r at (x, z): clear of the other islands, of the straight runs out of every
+  // shore (its own included), and of the bridges and landings so far
+  const roomy = (pt, r, x, z) => {
+    if (Math.abs(Math.atan2(x, -z)) > 1.75) return false; // (ahead of you as you come out of the portal)
+    if (relax < 2 && z + pt.coast + LEAD > -hubN - LEAD - 3) return false; // (its bridge leaves south: north of the hub's)
+    for (const k of pieces) if (Math.hypot(x - k.x, z - k.z) < r + k.R + 0.5 + G.gap[0]) return false;
+    for (let t = 0; t <= LEAD + 4; t++) {
+      for (const [lx, lz, dir] of lanes) if (Math.hypot(lx - x, lz + dir * t - z) < r + HW + clear) return false;
+      for (const k of pieces) if (Math.hypot(x - k.x, z + pt.coast + t - k.z) < k.R + 0.5 + HW + clear) return false;
+    }
+    for (const e of edges) if (boxGap(e.box, x, z) < r + 2 * HW + clear && polyDist(e.sd, x, z) < r + HW + clear) return false;
+    for (const m of nodes) if (m.landing && Math.hypot(x - m.x, z - m.z) < r + LANDING + clear) return false;
+    return true;
+  };
+  // does a bridge (pts, from its island to where it joins) fit: gentle bends, clear of every shore and of the other
+  // bridges and landings, and meeting the one it joins at a good angle?
+  const fits = (c, line) => {
+    const { n, at } = line, B = c.B, near = LANDING + HW + clear + 1.5;
+    // is point j clear of every shore (but its own island's along its straight run out, and the hub's along the
+    // hub's), and of the other bridges and landings (but near where it joins)?
+    const clearAt = j => {
+      const [x, z] = at(j);
+      const skip = j / 2 < LEAD + 1.3 ? pieces[pieces.length - 1] : c.tail && (n - 1 - j) / 2 < LEAD + 1.3 ? pieces[0] : null;
+      if (water(x, z, skip) < HW + clear) return false;
+      if (Math.hypot(x - B[0], z - B[1]) < near) return true;
+      if (bridgeNear(x, z, 2 * HW + clear)) return false;
+      for (const m of nodes) if (m.landing && Math.hypot(x - m.x, z - m.z) < LANDING + HW + clear) return false;
+      return true;
+    };
+    // (every 4 m first: most that don't fit are caught there, cheaply)
+    for (let j = 0; j < n; j += 8) if (!clearAt(j)) return false;
+    const cos = Math.cos(2 / bend);
+    for (let j = 4; j < n - 4; j++) {
+      const p = at(j), q = at(j - 4), r = at(j + 4), ux = p[0] - q[0], uz = p[1] - q[1], vx = r[0] - p[0], vz = r[1] - p[1];
+      if (ux * vx + uz * vz < cos * Math.sqrt((ux * ux + uz * uz) * (vx * vx + vz * vz))) return false;
+    }
+    // then every metre (the gaps it keeps are wider than that)
+    for (let j = 2; j < n; j += 2) if (j % 8 && !clearAt(j)) return false;
+    if (c.node?.hub) return true;
+    const w = at(n - 5), d = unit(B[0] - w[0], B[1] - w[1]); // the way it arrives
+    if (c.edge) {
+      const t = tangent(c.edge.pts, c.j);
+      if (Math.abs(d[0] * t[0] + d[1] * t[1]) > 0.8 || water(B[0], B[1]) < LANDING + clear) return false;
+      for (const m of nodes) if (m.landing && Math.hypot(B[0] - m.x, B[1] - m.z) < 2 * LANDING + 3) return false;
+      for (const e of edges) if (e !== c.edge && polyDist(e.sd, B[0], B[1]) < LANDING + HW + clear) return false;
+    } else {
+      for (const e of c.node.edges) {
+        const q = e.a === c.node ? e.pts[4] : e.pts[e.pts.length - 5], o = unit(q[0] - B[0], q[1] - B[1]);
+        if (-d[0] * o[0] - d[1] * o[1] > 0.64) return false;
+      }
+    }
+    return true;
+  };
+  // how far along the bridges every node is from one of them
+  const walk = from => {
+    const dist = new Map([[from, 0]]), open = [from];
+    while (open.length) {
+      open.sort((a, b) => dist.get(a) - dist.get(b));
+      const n = open.shift();
+      for (const e of n.edges) {
+        const m = e.a === n ? e.b : e.a, d = dist.get(n) + e.len;
+        if (d < (dist.get(m) ?? Infinity)) { dist.set(m, d); open.push(m); }
+      }
+    }
+    return dist;
+  };
+  // the best bridge for an island whose south shore is at (x, zs), leaving it within a quarter turn or so of south:
+  // to the hub (if its bridge isn't taken yet), a landing, or anywhere along a bridge (a new landing there); the
+  // cheapest that fits, counting its length and the walks on from there to the hub and to the island before (null if
+  // none fits)
+  const bridgeFor = (x, zs, prev) => {
+    const A = [x, zs + LEAD], cands = [];
+    const dp = prev ? walk(prev) : null, wp = prev ? 0.45 + 0.35 * G.trail : 0, wh = 0.3 - 0.15 * G.trail;
+    const toPrev = (n, s = 0) => (dp ? dp.get(n) + s : 0);
+    if (!hubNode.edges.length) cands.push({ node: hubNode, B: [0, -hubN - LEAD], tB: [0, 1], tail: [[0, -hubN + 0.8]], dh: 0, dp: 0 });
+    for (const n of nodes) if (n.landing && n.edges.length < 4) cands.push({ node: n, B: [n.x, n.z], dh: n.dh, dp: toPrev(n) });
+    for (const e of edges) {
+      const m0 = e.a.landing ? 2 * LANDING + 2 : LEAD + LANDING + 2, m1 = e.b.landing ? 2 * LANDING + 2 : LEAD + LANDING + 2;
+      for (let j = Math.ceil(m0 * 2); j < e.pts.length - m1 * 2; j += 5) {
+        cands.push({ edge: e, j, B: e.pts[j], dh: e.a.dh + j / 2, dp: dp ? Math.min(toPrev(e.a, j / 2), toPrev(e.b, e.len - j / 2)) : 0 });
+      }
+    }
+    for (const c of cands) c.extra = wh * c.dh + wp * c.dp + (c.edge ? 3 : 0);
+    for (const c of cands) c.lb = Math.hypot(c.B[0] - A[0], c.B[1] - A[1]) + c.extra;
+    cands.sort((p, q) => p.lb - q.lb);
+    let pick = null;
+    for (const c of cands.slice(0, 40)) { // (the likeliest; far-fetched joins never win anyway)
+      if (pick && c.lb >= pick.cost) break;
+      if (Math.hypot(c.B[0] - A[0], c.B[1] - A[1]) < 5) continue;
+      // (a few ways out of the island, and shapes of curve: rounder or more direct)
+      for (const la of [0, -0.45, 0.45]) for (const f of [0.4, 0.6, 0.25]) {
+        const ld = [Math.sin(la), Math.cos(la)], from = [x - ld[0] * 0.8, zs - ld[1] * 0.8], a = [x + ld[0] * LEAD, zs + ld[1] * LEAD];
+        const k = Math.min(20, Math.max(2, Math.hypot(c.B[0] - a[0], c.B[1] - a[1]) * f));
+        const tB = c.tB || unit(c.B[0] - a[0] - ld[0] * k, c.B[1] - a[1] - ld[1] * k);
+        if (relax < 2 && sharpest(a, ld, c.B, tB, k) > 1.15 / bend) continue; // (clearly too tight)
+        const raw = curve(a, ld, c.B, tB, k);
+        raw.unshift(from);
+        if (c.tail) raw.push(...c.tail);
+        const cost = arcLen(raw) + c.extra + Math.abs(la) * 2; // (priced before it's worth sampling evenly)
+        if (pick && cost >= pick.cost) continue;
+        if (relax < 2 && !fits(c, evenly(raw))) continue;
+        pick = { ...c, raw, cost, ld };
+      }
+    }
+    if (pick) pick.pts = resample(pick.raw);
+    return pick;
+  };
+
+  // the islands one by one in play order: of the spots where there's room, the best-placed one that a bridge can reach
+  for (const [i, pt] of parts.entries()) {
+    const r = reach(pt.world), prev = pieces[pieces.length - 1], spots = [];
+    for (let k = 0; k < 90; k++) {
+      const from = i && rng() < G.trail ? prev : pieces[Math.floor(rng() * pieces.length)];
+      const a = G.heading + (rng() - 0.5) * G.spread * (from === pieces[0] ? 1 : 1.7);
+      // (round the hub there's a ring of water to leave room for the bridges out of it)
+      const d = from.R + 0.5 + r + G.gap[0] + rng() * (G.gap[1] - G.gap[0]) + (from === pieces[0] ? 3 + rng() * 8 : 0);
+      const x = from.x + Math.sin(a) * d, z = from.z - Math.cos(a) * d;
+      if (!roomy(pt, r, x, z)) continue;
+      // (islands side by side at the same latitude look laid out in rows)
+      const rows = pieces.slice(1).filter(q => Math.abs(z - q.z) < (r + q.R) * 0.45 && Math.abs(x - q.x) < (r + q.R) * 2.2).length;
+      spots.push({ x, z, score: Math.hypot(x, z) * 0.6 * (1 - G.trail * 0.7) + (i ? Math.hypot(x - prev.x, z - prev.z) * (0.45 + 0.55 * G.trail) : 0) + rows * 25 + rng() * 18 });
+    }
+    spots.sort((a, b) => a.score - b.score);
+    // (and not too long a walk from the figure before: the first spot within LEG, else the nearest)
+    let pick = null, best = null;
+    for (const s of spots.slice(0, 24)) {
+      pieces.push({ world: pt.world, x: s.x, z: s.z, R: r });
+      const b = bridgeFor(s.x, s.z + pt.coast, i ? parts[i - 1].node : null);
+      pieces.pop();
+      if (!b) continue;
+      b.spot = s; b.leg = i ? b.dp + arcLen(b.pts) : 0;
+      if (!best || b.leg < best.leg) best = b;
+      if (b.leg <= LEG) break;
+    }
+    pick = best;
+    if (!pick) return null;
+    pt.p.set(pick.spot.x, 0, pick.spot.z);
+    pieces.push({ world: pt.world, x: pick.spot.x, z: pick.spot.z, R: r });
+    pt.leadDir = pick.ld;
+    lanes.push([pt.p.x, pt.p.z + pt.coast, 1]);
+    let at = pick.node;
+    if (pick.edge) {
+      const e = pick.edge;
+      at = { x: pick.B[0], z: pick.B[1], landing: true, dh: pick.dh, edges: [] };
+      nodes.push(at);
+      unlink(e);
+      link(e.a, at, e.pts.slice(0, pick.j + 1));
+      link(at, e.b, e.pts.slice(pick.j), e.island);
+    }
+    pt.node = { x: pt.p.x, z: pt.p.z + pt.coast - 0.8, island: pt, edges: [] };
+    nodes.push(pt.node);
+    link(at, pt.node, pick.pts.slice().reverse(), pt);
+  }
+  return { nodes, edges };
+}
+
+// Each world's grown layout, kept for the session: islands come out the same every time, so going back to a world
+// needn't grow it again. Kept as plain data (island positions, nodes and bridges by index), put back onto the new
+// build's parts.
+const grown = new Map();
+function keep(key, net, parts, tries) {
+  const ni = new Map(net.nodes.map((n, i) => [n, i])), pi = new Map(parts.map((pt, i) => [pt, i]));
+  grown.set(key, {
+    tries,
+    parts: parts.map(pt => ({ x: pt.p.x, z: pt.p.z, leadDir: pt.leadDir, node: ni.get(pt.node) })),
+    nodes: net.nodes.map(n => ({ x: n.x, z: n.z, hub: n.hub, landing: n.landing, dh: n.dh, island: n.island ? pi.get(n.island) : -1 })),
+    edges: net.edges.map(e => ({ a: ni.get(e.a), b: ni.get(e.b), pts: e.pts, sd: e.sd, len: e.len, box: e.box, island: e.island ? pi.get(e.island) : -1 })),
+  });
+}
+function recall(key, parts) {
+  const g = grown.get(key);
+  if (!g) return null;
+  const nodes = g.nodes.map(({ island, ...n }) => ({ ...n, ...(island >= 0 ? { island: parts[island] } : {}), edges: [] }));
+  const edges = g.edges.map(({ a, b, island, ...e }) => {
+    const edge = { ...e, a: nodes[a], b: nodes[b], island: island >= 0 ? parts[island] : null };
+    nodes[a].edges.push(edge); nodes[b].edges.push(edge);
+    return edge;
+  });
+  g.parts.forEach((q, i) => { parts[i].p.set(q.x, 0, q.z); parts[i].leadDir = q.leadDir; parts[i].node = nodes[q.node]; });
+  return { net: { nodes, edges }, tries: g.tries };
+}
+
+// how far an island's ground reaches from its middle, in any direction (its nominal radius is an upper bound)
+function extent(world) {
+  let best = 0;
+  for (let k = 0; k < 32; k++) {
+    const a = (k / 32) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    for (let d = world.R + 2; d > best; d -= 0.5) if (world.walkSd(c * d, s * d) < 0) { best = d; break; }
+  }
+  return best + 0.5;
 }
 // where the ground ends going along +z (or -z) from the centre line
 function coast(world, dirZ) {
@@ -92,7 +456,7 @@ function coast(world, dirZ) {
   return d;
 }
 
-// chapter: index; levels: its figures; makePart(level) -> { world, footR }; makeHub(seaY) -> world
+// chapter: index; levels: its figures; makePart(level) -> { world, footR: the figure's footprint }; makeHub(seaY) -> world
 // isOpen(level) / isDone(level); figureMaterial: material for finished figures standing on inactive islands
 // doorShut(level): a door at the island end of its bridge stays shut (the very first figure, until it's rebuilt)
 // isHalf(level): a saved run in progress (a half-filled marker floats over its pedestal)
@@ -103,46 +467,67 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   const hub = { world: hubWorld, p: new THREE.Vector3() };
   const floating = hubWorld.voidY !== undefined;
 
-  // ---- layout: two staggered rows north of the hub ----
-  const zJ = -(reach(hubWorld, -1) + CAUSE); // the boardwalk
-  const front = parts.filter((pt, i) => i % 2 === 0 || i === parts.length - 1); // an even count ends the front row
-  const back = parts.filter(pt => !front.includes(pt));
-  for (const pt of parts) { pt.coast = coast(pt.world, 1); pt.south = reach(pt.world, 1); pt.north = reach(pt.world, -1); }
-  let x = 0;
-  front.forEach((pt, k) => { if (k) x += front[k - 1].world.R + pt.world.R + GAP; pt.p.set(x, 0, zJ - SPUR - pt.south); });
-  const mid = (front[0].p.x + front[front.length - 1].p.x) / 2;
-  for (const pt of front) pt.p.x -= mid;
-  // a back-row island stands behind the gap between its two front-row neighbours, clear of their north shores
-  // (and of the back-row island before it)
-  back.forEach((pt, k) => {
-    const L = front[k], Rt = front[k + 1] || front[k];
-    const gx = Rt === L ? L.p.x + L.world.R + GAP / 2 : (L.p.x + L.world.R + Rt.p.x - Rt.world.R) / 2;
-    let z = Math.min(L.p.z - L.north, Rt.p.z - Rt.north) - 3 - pt.south;
-    const prev = back[k - 1];
-    if (prev && Math.abs(gx - prev.p.x) < prev.world.R + pt.world.R + 2) z = Math.min(z, prev.p.z - prev.north - 3 - pt.south);
-    pt.p.set(gx, 0, z);
-  });
-  for (const pt of parts) pt.entry = new THREE.Vector3(pt.p.x, 0, pt.p.z + pt.coast); // where its spur reaches the island
+  // ---- layout: the islands grown round the hub, and the bridges between them ----
+  for (const pt of parts) pt.coast = coast(pt.world, 1);
   const hubN = coast(hubWorld, -1);
-  const xMin = Math.min(...parts.map(pt => pt.p.x)), xMax = Math.max(...parts.map(pt => pt.p.x));
-  // bridges as rectangles [x0, z0, x1, z1] (archipelago coordinates: the hub at the origin)
-  const causeway = [-HW, zJ - HW, HW, -hubN + 0.8];
-  const boardwalk = [xMin - HW, zJ - HW, xMax + HW, zJ + HW];
-  parts.forEach(pt => { pt.spur = [pt.p.x - HW + 0.1, pt.entry.z - 0.8, pt.p.x + HW - 0.1, zJ]; });
-  const rectSd = ([x0, z0, x1, z1]) => sdBox((x0 + x1) / 2, (z0 + z1) / 2, (x1 - x0) / 2, (z1 - z0) / 2);
-  const fixedSd = [rectSd(causeway), rectSd(boardwalk)];
-  parts.forEach(pt => { pt.spurSd = rectSd(pt.spur); });
-  // a locked island's spur is closed off by a gate where it leaves the boardwalk
-  for (const pt of parts) pt.doorZ = pt.entry.z + 1.3;
+  const G = GROWTH[hubWorld.themeId] || GROWTH.meadow, rng = mulberry32(9100 + chapter * 977);
+  const key = [chapter, hubWorld.themeId, hubN, ...parts.map(pt => `${pt.level.id}:${pt.world.R}:${pt.coast}`)].join('|');
+  let { net, tries } = recall(key, parts) || { net: null, tries: 0 };
+  if (!net) {
+    for (; tries < 40 && !net; tries++) net = grow(parts, hubWorld, hubN, G, rng, tries < 30 ? 0 : tries < 39 ? 1 : 2);
+    if (!net) throw new Error(`no room for ${parts.length} islands round the hub`);
+    keep(key, net, parts, tries);
+  }
+  const { nodes, edges } = net, hubNode = nodes[0], landings = nodes.filter(n => n.landing);
+  // the ways in: from just outside the figure's footprint (the hub: its north shore) to the shore (the portal)
+  for (const pt of parts) pt.lane = [Math.max(3.6, (pt.footR ?? 3.2) + 1) + 0.4, pt.coast + 0.3];
+  hub.lane = [-hubN - 0.3, (hubWorld.portal?.z ?? 4) - 1.4];
+  for (const pt of parts) {
+    pt.entry = new THREE.Vector3(pt.p.x, 0, pt.p.z + pt.coast); // where its bridge reaches the island
+    pt.doorPos = new THREE.Vector3(pt.p.x + pt.leadDir[0] * 1.3, 0, pt.entry.z + pt.leadDir[1] * 1.3); // (on its straight run out)
+    // a locked island's bridge is closed off by a gate just past where it leaves the hub or a landing
+    const e = pt.node.edges[0], j = Math.round((e.a.landing ? LANDING + 1 : 2.6) * 2);
+    pt.gatePos = new THREE.Vector3(e.pts[j][0], 0, e.pts[j][1]);
+    pt.gateDir = tangent(e.pts, j); // (towards the island)
+    pt.gateWay = e.pts.slice(0, j + 1);
+  }
+  const way = (e, pts, x, z) => { const o = boxGap(e.box, x, z); return o > 3 ? o : polyDist(pts, x, z); };
   const bridgeSd = (x, z) => {
-    let d = Math.min(fixedSd[0](x, z), fixedSd[1](x, z));
-    for (const pt of parts) {
-      let e = pt.spurSd(x, z);
-      if (!pt.open) e = Math.max(e, (zJ - HW - 0.6) - z);
-      if (pt.shut) e = Math.max(e, 0.35 - Math.abs(z - pt.doorZ));
-      d = Math.min(d, e);
+    let d = Infinity;
+    for (const n of landings) d = Math.min(d, Math.hypot(x - n.x, z - n.z) - LANDING);
+    for (const e of edges) {
+      const pt = e.island;
+      let s = pt && !pt.open
+        ? Math.max(way(e, pt.gateWay, x, z) - HW, (x - pt.gatePos.x) * pt.gateDir[0] + (z - pt.gatePos.z) * pt.gateDir[1])
+        : way(e, e.sd, x, z) - HW;
+      if (pt?.shut) {
+        const [u, v] = pt.leadDir, dx = x - pt.doorPos.x, dz = z - pt.doorPos.z;
+        s = Math.max(s, Math.min(0.35 - Math.abs(dx * u + dz * v), HW + 0.6 - Math.abs(dx * v - dz * u)));
+      }
+      d = Math.min(d, s);
     }
     return d;
+  };
+  // the shortest way along the bridges between two nodes, as points every 0.5 m
+  const wayBetween = (from, to) => {
+    const dist = new Map([[from, 0]]), prev = new Map(), open = [from];
+    while (open.length) {
+      open.sort((a, b) => dist.get(a) - dist.get(b));
+      const n = open.shift();
+      if (n === to) break;
+      for (const e of n.edges) {
+        const m = e.a === n ? e.b : e.a, d = dist.get(n) + e.len;
+        if (d < (dist.get(m) ?? Infinity)) { dist.set(m, d); prev.set(m, e); open.push(m); }
+      }
+    }
+    if (!prev.has(to)) return [];
+    const legs = [];
+    for (let n = to; n !== from;) {
+      const e = prev.get(n);
+      legs.unshift(e.b === n ? e.pts : e.pts.slice().reverse());
+      n = e.b === n ? e.a : e.b;
+    }
+    return legs.flatMap((l, i) => (i ? l.slice(1) : l));
   };
 
   // ---- place the islands ----
@@ -150,74 +535,94 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   root.add(hubWorld.group);
   for (const pt of parts) { pt.world.group.position.copy(pt.p); root.add(pt.world.group); }
 
+  // ground that's just ground there (not ice, water, a drift or anything else with its own feel)
+  const plainGround = (k, x, z, y) => { const s = k.world.surfaceAt(x, z, y); return s.slow === 1 && s.friction === 1 && !s.splash; };
+
   // ---- bridge looks ----
-  // Where the causeway or a spur joins the boardwalk, the boardwalk's deck runs on through the crossing and the
-  // rails stop exactly at the corners of the opening, each corner marked by a taller post with the world's lamp.
+  // Planks across the way, round landings where bridges meet; rails along every open edge, stopping where a bridge
+  // meets land or a landing, each opening onto a landing marked by a taller post with the world's lamp.
   const S = STYLES[hubWorld.themeId] || STYLES.meadow;
   const B = new Batch();
-  const rects = [causeway, boardwalk, ...parts.map(pt => pt.spur)];
   const pieceList = [hub, ...parts];
   const onLand = (ax, az) => pieceList.some(k => k.world.walkSd(ax - k.p.x, az - k.p.z) < -0.05);
+  const inLanding = (x, z, m = 0) => landings.some(n => Math.hypot(x - n.x, z - n.z) < LANDING + m);
   const piers = S.piers && !floating;
   const postH = piers ? 1.15 : floating ? 1.6 : DECK - hubWorld.seaY + 0.9;
   const rails = S.rails || [[0.42, 0.08, 0.09], [0.86, 0.08, 0.09]];
   const posts = [];
-  const deck = r => {
-    const [x0, z0, x1, z1] = r === boardwalk ? r
-      : [r[0], r[1] < boardwalk[1] ? r[1] : Math.max(r[1], boardwalk[3]), r[2], r[3] > boardwalk[3] ? r[3] : Math.min(r[3], boardwalk[1])];
-    const alongX = x1 - x0 > z1 - z0, L = alongX ? x1 - x0 : z1 - z0, w = alongX ? z1 - z0 : x1 - x0;
-    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-    B.put(GEO.box(), S.base, cx, DECK - 0.12, cz, { sx: alongX ? L : w, sy: 0.16, sz: alongX ? w : L });
-    for (let t = 0.25; t < L; t += 0.5) {
-      const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
-      B.put(GEO.box(), S.planks[Math.round(t * 2) % 2], px, DECK - 0.02, pz, { sx: alongX ? 0.44 : w + 0.1, sy: 0.06, sz: alongX ? w + 0.1 : 0.44, kind: 'ground' });
-    }
-    if (piers) {
-      const y0 = hubWorld.seaY - 1, y1 = DECK - 0.2;
-      for (let t = 1.8; t < L - 0.6; t += 3.6) {
-        const px = alongX ? x0 + t : cx, pz = alongX ? cz : z0 + t;
-        if (!onLand(px, pz)) B.put(GEO.box(), S.post, px, (y0 + y1) / 2, pz, { sx: alongX ? 0.8 : w - 0.2, sy: y1 - y0, sz: alongX ? w - 0.2 : 0.8 });
-      }
-    }
+  // a box from a to b (its length along the way), sw wide, sy tall, centred at height y
+  const beam = (a, b, y, sy, sw, color, kind = 'solid') => {
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    B.put(GEO.box(), color, (a[0] + b[0]) / 2, y, (a[1] + b[1]) / 2, { sx: sw, sy, sz: Math.hypot(dx, dz) + 0.02, ry: Math.atan2(dx, dz), kind });
   };
-  // one stretch of railing along a side, from a to b
-  const span = (alongX, c, { a, b, an, bn }) => {
-    if (b - a < 0.3) return;
-    const at = t => (alongX ? [t, c] : [c, t]);
-    const [mx, mz] = at((a + b) / 2), L = b - a;
-    const bar = (y, sy, sw, color, kind = 'solid') => B.put(GEO.box(), color, mx, DECK + y, mz, { sx: alongX ? L : sw, sy, sz: alongX ? sw : L, kind });
-    for (const [y, sy, sw] of rails) bar(y, sy, sw, S.rail, S.railKind);
-    if (S.railTop) { const [y, sy, sw] = rails[rails.length - 1]; bar(y + sy / 2 + 0.02, 0.05, sw + 0.04, S.railTop); }
-    if (S.edge) bar(0.02, 0.06, 0.16, S.edge, S.edgeKind || 'ground');
+  const pierH = DECK - 0.2 - (hubWorld.seaY - 1), pierY = DECK - 0.2 - pierH / 2;
+  // one stretch of railing along a line of points (straight pieces), with newels at the ends that open onto a landing
+  const railing = (run, na, nb) => {
+    const L = arcLen(run);
+    if (L < 0.3) return;
+    const line = simplify(run, 0.03);
+    for (let i = 1; i < line.length; i++) {
+      const a = line[i - 1], b = line[i];
+      for (const [y, sy, sw] of rails) beam(a, b, DECK + y, sy, sw, S.rail, S.railKind);
+      if (S.railTop) { const [y, sy, sw] = rails[rails.length - 1]; beam(a, b, DECK + y + sy / 2 + 0.02, 0.05, sw + 0.04, S.railTop); }
+      if (S.edge) beam(a, b, DECK + 0.02, 0.06, 0.16, S.edge, S.edgeKind || 'ground');
+    }
     const k = Math.max(1, Math.round(L / 1.8));
-    for (let i = 0; i <= k; i++) posts.push({ p: at(a + L * i / k), newel: (i === 0 && an) || (i === k && bn) });
+    for (let i = 0; i <= k; i++) posts.push({ p: along(run, (L * i) / k, (L * i) / k)[0], newel: (i === 0 && na) || (i === k && nb) });
   };
-  const railing = r => {
-    const [x0, z0, x1, z1] = r;
-    for (const [alongX, c, a, b] of [[true, z0 - 0.05, x0, x1], [true, z1 + 0.05, x0, x1], [false, x0 - 0.05, z0, z1], [false, x1 + 0.05, z0, z1]]) {
-      // cut out where another bridge joins (its exact edges, so the corners line up) ...
-      let segs = [[a, b, false, false]];
-      for (const q of rects) {
-        const [lo, hi, c0, c1] = alongX ? [q[0], q[2], q[1], q[3]] : [q[1], q[3], q[0], q[2]];
-        if (q === r || c <= c0 || c >= c1) continue;
-        segs = segs.flatMap(([s, e, sn, en]) => (hi <= s || lo >= e ? [[s, e, sn, en]]
-          : [...(lo > s ? [[s, lo, sn, true]] : []), ...(hi < e ? [[hi, e, true, en]] : [])]));
-      }
-      // ... and stop where the side runs over land
-      for (const [s, e, sn, en] of segs) {
-        const n = Math.max(1, Math.ceil((e - s) / 0.1));
-        let run = null;
-        for (let i = 0; i <= n; i++) {
-          const t = s + ((e - s) * i) / n;
-          if (onLand(...(alongX ? [t, c] : [c, t]))) { if (run) span(alongX, c, run); run = null; }
-          else if (run) { run.b = t; run.bn = i === n && en; } else run = { a: t, b: t, an: i === 0 && sn, bn: false };
-        }
-        if (run) span(alongX, c, run);
-      }
+  // the stretches of a side line over open water (open(x, z): where it opens onto a landing or another bridge)
+  const sides = (line, open) => {
+    let run = null, why = 'end';
+    for (let i = 0; i <= line.length; i++) {
+      const p = line[i], stop = i === line.length ? 'end' : onLand(p[0], p[1]) ? 'land' : open(p[0], p[1]) ? 'open' : null;
+      if (stop) { if (run) railing(run.pts, run.from === 'open', stop === 'open'); run = null; why = stop; }
+      else if (run) run.pts.push(p);
+      else run = { pts: [p], from: why };
     }
   };
-  for (const r of rects) { deck(r); railing(r); }
-  // posts (one where two railings meet), the crossing's corners taller and lit
+  for (const e of edges) {
+    const P = e.pts;
+    P.forEach(([x, z], i) => {
+      if (inLanding(x, z, -0.2)) return;
+      const t = tangent(P, i);
+      B.put(GEO.box(), S.planks[i % 2], x, DECK - 0.02, z, { sx: 2 * HW + 0.1, sy: 0.06, sz: 0.46, ry: Math.atan2(t[0], t[1]), kind: 'ground' });
+    });
+    const line = simplify(P, 0.05);
+    for (let i = 1; i < line.length; i++) beam(line[i - 1], line[i], DECK - 0.12, 0.16, 2 * HW, S.base);
+    if (piers) for (let s = 1.8; s < e.len - 0.6; s += 3.6) {
+      const [[x, z]] = along(P, s, s), t = tangent(P, Math.round(s * 2));
+      if (!onLand(x, z) && !inLanding(x, z, 0.4)) B.put(GEO.box(), S.post, x, pierY, z, { sx: 2 * HW - 0.2, sy: pierH, sz: 0.8, ry: Math.atan2(t[0], t[1]) });
+    }
+    const others = (x, z) => inLanding(x, z, 0.1) || edges.some(f => f !== e && boxGap(f.box, x, z) < 3 && polyDist(f.sd, x, z) < HW + 0.02);
+    for (const side of [-1, 1]) sides(P.map((p, i) => { const t = tangent(P, i), o = side * (HW + 0.05); return [p[0] - t[1] * o, p[1] + t[0] * o]; }), others);
+  }
+  // the ways in across the islands: short planks set into the ground, the bridge's own, so you can see where it
+  // carries on (not over ice or water, where the speed-up doesn't either)
+  for (const k of [hub, ...parts]) {
+    const r = mulberry32(31 + Math.round(k.p.x * 7 + k.p.z * 13));
+    for (let z = k.lane[0] + 0.3, i = 0; z < k.lane[1] - 0.2; z += 0.62, i++) {
+      const y = k.world.floorAt(0, z);
+      if (y === null || !plainGround(k, 0, z, y)) continue;
+      B.put(GEO.box(), S.planks[i % 2], k.p.x + (r() - 0.5) * 0.25, y + 0.02, k.p.z + z, { sx: 2 * LANE - 0.2 + (r() - 0.5) * 0.4, sy: 0.05, sz: 0.4, ry: (r() - 0.5) * 0.12, kind: 'fx' });
+    }
+  }
+  for (const n of landings) {
+    // planks across the first bridge that comes in
+    const e0 = n.edges[0], q = e0.a === n ? e0.pts[3] : e0.pts[e0.pts.length - 4], u = unit(q[0] - n.x, q[1] - n.z), ry = Math.atan2(u[0], u[1]);
+    B.put(GEO.cyl(16), S.base, n.x, DECK - 0.12, n.z, { sx: LANDING, sy: 0.16, sz: LANDING });
+    for (let t = -LANDING + 0.25, i = 0; t < LANDING; t += 0.5, i++) {
+      const w = 2 * Math.sqrt(Math.max(0, LANDING * LANDING - t * t));
+      if (w > 0.3) B.put(GEO.box(), S.planks[i % 2], n.x + u[0] * t, DECK - 0.02, n.z + u[1] * t, { sx: w, sy: 0.06, sz: 0.46, ry, kind: 'ground' });
+    }
+    if (piers) B.put(GEO.cyl(10), S.post, n.x, pierY, n.z, { sx: LANDING * 0.55, sy: pierH, sz: LANDING * 0.55 });
+    // the rail round its rim, open where each bridge comes in (starting at an opening, so a run doesn't wrap round)
+    const rim = [];
+    for (let k = 0; k <= 48; k++) { const a = (k / 48) * Math.PI * 2; rim.push([n.x + Math.sin(a) * (LANDING + 0.05), n.z + Math.cos(a) * (LANDING + 0.05)]); }
+    const gap = (x, z) => n.edges.some(e => polyDist(e.sd, x, z) < HW + 0.02);
+    const k0 = Math.max(0, rim.findIndex(p => gap(p[0], p[1])));
+    sides([...rim.slice(k0, 48), ...rim.slice(0, k0 + 1)], gap);
+  }
+  // posts (one where two railings meet), the openings onto a landing taller and lit
   const kept = [];
   for (const q of posts) {
     const o = kept.find(k => Math.hypot(k.p[0] - q.p[0], k.p[1] - q.p[1]) < 0.35);
@@ -261,23 +666,23 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   const bridgeBlockers = [];
   B.build(root, bridgeBlockers);
 
-  // gates on the spurs of locked islands, and finished figures on the islands you're not on
+  // gates on the bridges of locked islands, and finished figures on the islands you're not on
   const gateGeo = new THREE.BoxGeometry(1, 1, 1);
   const wood = toon(S.base), dark = toon(S.post);
   let lockTex = null;
   const lockBadge = () => lockTex || (lockTex = lockTexture());
   for (const pt of parts) {
     const g = new THREE.Group();
-    const z = zJ - HW - 0.55; // clear of the crossing's corner posts
-    for (const s of [-1, 1]) { const m = new THREE.Mesh(gateGeo, wood); m.scale.set(0.24, 1.5, 0.24); m.position.set(pt.p.x + s * (HW - 0.05), DECK + 0.75, z); g.add(m); }
-    for (const y of [0.55, 1.1]) { const m = new THREE.Mesh(gateGeo, dark); m.scale.set(HW * 2, 0.14, 0.1); m.position.set(pt.p.x, DECK + y, z); g.add(m); }
+    for (const s of [-1, 1]) { const m = new THREE.Mesh(gateGeo, wood); m.scale.set(0.24, 1.5, 0.24); m.position.set(s * (HW - 0.05), DECK + 0.75, 0); g.add(m); }
+    for (const y of [0.55, 1.1]) { const m = new THREE.Mesh(gateGeo, dark); m.scale.set(HW * 2, 0.14, 0.1); m.position.set(0, DECK + y, 0); g.add(m); }
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: lockBadge(), depthWrite: false, transparent: true }));
-    sp.scale.setScalar(0.7); sp.position.set(pt.p.x, DECK + 1.95, z); sp.layers.set(LAYER_OVERLAY); sp.renderOrder = 5;
+    sp.scale.setScalar(0.7); sp.position.set(0, DECK + 1.95, 0); sp.layers.set(LAYER_OVERLAY); sp.renderOrder = 5;
     g.add(sp);
+    g.position.copy(pt.gatePos);
+    g.rotation.y = Math.atan2(pt.gateDir[0], pt.gateDir[1]);
     g.traverse(o => { o.castShadow = true; });
     root.add(g);
     pt.gate = g;
-    pt.gatePos = new THREE.Vector3(pt.p.x, 0, z);
     // a door at the island end, for the figure that has to be rebuilt before you may leave
     const d = new THREE.Group();
     for (const s of [-1, 1]) { const m = new THREE.Mesh(gateGeo, wood); m.scale.set(0.28, 2.5, 0.28); m.position.set(s * (HW - 0.02), DECK + 1.25, 0); d.add(m); }
@@ -290,7 +695,8 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       d.add(hinge);
       return hinge;
     });
-    d.position.set(pt.p.x, 0, pt.doorZ);
+    d.position.copy(pt.doorPos);
+    d.rotation.y = Math.atan2(pt.leadDir[0], pt.leadDir[1]);
     d.traverse(o => { o.castShadow = true; });
     root.add(d);
     pt.door = d;
@@ -334,8 +740,12 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       const ax = x + A.x, az = z + A.z;
       const k = pieceAt(ax, az, -0.3);
       // (gentler with reduced motion)
-      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: api.calmMotion?.() ? 1.4 : BOOST, sound: S.sound };
-      return (k || active).world.surfaceAt(ax - (k || active).p.x, az - (k || active).p.z, y);
+      const boost = api.calmMotion?.() ? 1.4 : BOOST;
+      if (!k && bridgeSd(ax, az) < 0.05) return { friction: 1, slow: boost, sound: S.sound };
+      const w = k || active, lx = ax - w.p.x, lz = az - w.p.z, s = w.world.surfaceAt(lx, lz, y);
+      // the way in across an island (or the hub) is a breeze lane too, on the ground (not up on something)
+      if (Math.abs(lx) < LANE && lz > w.lane[0] && lz < w.lane[1] && Math.abs(y - (w.world.floorAt(lx, lz) ?? 0)) < 0.1 && s.slow === 1 && s.friction === 1 && !s.splash) return { ...s, slow: boost };
+      return s;
     },
     padAt(x, z, y) {
       const ax = x + A.x, az = z + A.z;
@@ -424,7 +834,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       pt.open = isOpen(pt.level);
       pt.gate.visible = !pt.open;
       pt.shut = doorShut(pt.level);
-      pt.door.visible = pt.shut || pt.hadDoor;
+      pt.door.visible = !!(pt.shut || pt.hadDoor);
       if (pt.shut) pt.hadDoor = true;
       // swung open: it swings while you watch (the figure just finished), and stands open from the start otherwise
       for (const h of pt.leaves) { h.userData.to = pt.shut ? 0 : h.userData.s * 1.75; if (!pt.dressed) h.rotation.y = h.userData.to; }
@@ -453,7 +863,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   }
 
   const arch = {
-    chapter, api, group: root, parts,
+    chapter, api, group: root, parts, tries, // (how many goes the layout took: 31 or more means it had to make do)
     // make `level`'s island the active one; returns how far the scene moved (add it to anything you keep, like the player)
     setActive(level) {
       const pt = parts.find(p => p.level === level);
@@ -478,30 +888,34 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       const ax = x + A.x, az = z + A.z;
       return parts.find(p => p.open && p.world.walkSd(ax - p.p.x, az - p.p.z) < -0.8) || null;
     },
-    boardwalkZ() { return zJ - A.z; },
+    // the round landings where bridges meet (scene positions)
+    landings() { return landings.map(n => new THREE.Vector3(n.x - A.x, 0, n.z - A.z)); },
+    // the end of the straight run out of a figure's island, where its bridge may start to turn (scene position)
+    leadOf(level) { const pt = parts.find(p => p.level === level); return pt ? new THREE.Vector3(pt.p.x + pt.leadDir[0] * LEAD - A.x, 0, pt.entry.z + pt.leadDir[1] * LEAD - A.z) : null; },
     // is (x, z) on the active figure's island (bridges excluded)?
     onActive(x, z) { return active.world.walkSd(x, z) < 0.2 && bridgeSd(x + A.x, z + A.z) > 0.05; },
     offsetOf(level) { const pt = parts.find(p => p.level === level); return pt ? new THREE.Vector3(pt.p.x - A.x, 0, pt.p.z - A.z) : null; },
     // scene positions: where you arrive by portal, an island's bridge entry, the portal itself
     arrival() { const pz = hubWorld.portal?.z ?? 4; return { x: hub.p.x - A.x, z: hub.p.z + pz - 2.6 - A.z, yaw: 0 }; },
-    entryOf(level) { const pt = parts.find(p => p.level === level); return pt ? new THREE.Vector3(pt.entry.x - A.x, DECK + 1, pt.entry.z + 1.5 - A.z) : null; },
+    entryOf(level) { const pt = parts.find(p => p.level === level); return pt ? new THREE.Vector3(pt.entry.x + pt.leadDir[0] * 1.5 - A.x, DECK + 1, pt.entry.z + pt.leadDir[1] * 1.5 - A.z) : null; },
     // the way along the bridges from a figure's island (a level) or the portal's middle island ('portal') to another
-    // figure's island or the portal: onto its spur or the causeway, where it meets the boardwalk (a step into the
-    // turn, so you see which way it goes), along the boardwalk and up the other spur or the causeway (scene
-    // positions on the ground)
+    // figure's island or the portal: from 1.5 m out from its shore to 1.5 m short of the other's, as points along
+    // the way (closer together round the bends; scene positions on the ground)
     routeFrom(level, to) {
-      const at = l => (l === 'portal' ? hub : parts.find(p => p.level === l));
+      const at = l => (l === 'portal' ? hubNode : parts.find(p => p.level === l)?.node);
       const a = at(level), b = at(to);
       if (!a || !b || a === b) return [];
-      const turn = Math.sign(b.p.x - a.p.x) * Math.min(1.5, Math.abs(b.p.x - a.p.x) / 2);
-      const pts = [[a.p.x, a === hub ? -hubN + 1.5 : a.entry.z + 1.5], [a.p.x + turn, zJ], [b.p.x, zJ]];
-      if (b === hub) pts.push([hub.p.x, -hubN + 1.5]);
-      else pts.push([b.p.x, b.entry.z + 1.5]);
-      return pts.map(([x, z]) => new THREE.Vector3(x - A.x, 0, z - A.z));
+      let pts = wayBetween(a, b);
+      if (!pts.length) return [];
+      const L = arcLen(pts);
+      pts = along(pts, a.island ? 2.3 : 0, b.island ? L - 2.3 : L);
+      if (a.hub) pts.unshift([0, -hubN + 1.5]);
+      if (b.hub) pts.push([0, -hubN + 1.5]);
+      return simplify(pts, 0.4).map(([x, z]) => new THREE.Vector3(x - A.x, 0, z - A.z));
     },
     portalPos() { const pz = hubWorld.portal?.z ?? 4; return new THREE.Vector3(hub.p.x - A.x, 1.8, hub.p.z + pz - A.z); },
     atPortal(x, z) { const p = arch.portalPos(); return Math.hypot(x - p.x, z - p.z) < 1.3; },
-    // a locked spur's gate you're pressing against
+    // a locked bridge's gate you're pressing against
     // light the beacon over a figure's island (a level), the portal ('portal') or nothing (null)
     setBeacon(target) {
       if (target === beaconFor) return;
@@ -520,7 +934,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       beacon.userData.mark.position.y = beacon.userData.top;
     },
     shutDoorAt(x, z) {
-      for (const pt of parts) if (pt.shut && Math.hypot(x + A.x - pt.p.x, z + A.z - pt.doorZ) < 2) return pt;
+      for (const pt of parts) if (pt.shut && Math.hypot(x + A.x - pt.doorPos.x, z + A.z - pt.doorPos.z) < 2) return pt;
       return null;
     },
     lockedGateAt(x, z) {

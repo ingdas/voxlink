@@ -1,23 +1,28 @@
 // Getting onto the bridges: from the middle of every figure's island in Frostwood (big islands of dense pines, rocks
-// and drifts) you can walk straight to its bridge and onto the boardwalk (the path in stays clear all the way to the
-// shore); on Moon Isle (low gravity, no sea) you can't walk or jump off a bridge's side into the void.
+// and drifts) you can walk straight to its bridge and out along it (the path in stays clear all the way to the shore);
+// on Moon Isle (low gravity, no sea) you can't walk or jump off a bridge's side into the void. Every world grows its
+// own archipelago (without having to make do), no two alike; in every one Kubo's way along the bridges (from the portal
+// to each island, and from each island to the next) stays on them and the walk from one figure to the next is short.
+// A bridge's speed-up builds up over a moment rather than at once; the way in across an island, from its pedestal
+// to its bridge, speeds you up too (the rest of the island doesn't).
 import { suite } from './lib.mjs';
 
 const ALL = ['meadow', 'farm', 'frost', 'frostwood', 'reef', 'cove', 'starfall', 'moon', 'cliffs', 'storm'];
-const save = { campaign: 2, unlocked: 50, seen: Object.fromEntries([...ALL, 'prologue', 'nexus', 'tutorial'].map(k => [k, true])), stars: {} };
+const save = { campaign: 2, unlocked: 50, seen: Object.fromEntries([...ALL, 'prologue', 'nexus', 'tutorial'].map(k => [k, true])), stars: { sprout: { done: true } } };
 
 await suite('bridges', async t => {
   const p = await t.page({ save });
-  // walk (holding forward, steering) to the spur's island end or the boardwalk; true if you got there
+  // walk (holding forward, steering) to the shore end of an island's bridge or the end of its straight run out; true
+  // if you got there
   const walkTo = async (kind, id) => {
     await p.keyboard.down('KeyW');
     let last = null, stuck = 0, ok = false;
     for (let i = 0; i < 90 && !ok; i++) {
       const r = await p.evaluate(([kind, id]) => {
         const g = window.__voxlink.game, A = g.arch, pt = A.parts.find(q => q.level.id === id), o = A.offsetOf(pt.level);
-        const x = o.x, z = kind === 'entry' ? A.entryOf(pt.level).z - 1.5 : A.boardwalkZ(), q = g.player.pos;
-        g.player.yaw = Math.atan2(q.x - x, q.z - z);
-        return { d: Math.hypot(q.x - x, q.z - z), x: q.x, z: q.z };
+        const e = A.entryOf(pt.level), to = kind === 'entry' ? { x: o.x, z: e.z - 1.5 } : A.leadOf(pt.level), q = g.player.pos;
+        g.player.yaw = Math.atan2(q.x - to.x, q.z - to.z);
+        return { d: Math.hypot(q.x - to.x, q.z - to.z), x: q.x, z: q.z };
       }, [kind, id]);
       ok = r.d < 1.2;
       if (last && Math.hypot(r.x - last.x, r.z - last.z) < 0.05) { if (++stuck > 6) break; } else stuck = 0;
@@ -35,25 +40,105 @@ await suite('bridges', async t => {
   for (const id of ids) {
     await p.evaluate(id => { const g = window.__voxlink.game, A = g.arch, pt = A.parts.find(q => q.level.id === id), o = A.offsetOf(pt.level), e = A.entryOf(pt.level); g.player.pos.set(o.x, 1, o.z + (e.z - o.z) * 0.4); }, id);
     await p.waitForTimeout(1200);
-    if (!(await walkTo('entry', id)) || !(await walkTo('junction', id))) blocked.push(id);
+    if (!(await walkTo('entry', id)) || !(await walkTo('lead', id))) blocked.push(id);
   }
-  t.check('Frostwood: from every island you can walk to its bridge and onto the boardwalk', blocked.length === 0, blocked);
+  t.check('Frostwood: from every island you can walk to its bridge and out along it', blocked.length === 0, blocked);
 
+  // on the way from the first island to the second, half way along its straightest stretch, facing along it
+  const onBridge = () => p.evaluate(() => {
+    const g = window.__voxlink.game, A = g.arch, rt = A.routeFrom(A.parts[0].level, A.parts[1].level);
+    let k = 1;
+    for (let i = 2; i < rt.length; i++) if (rt[i].distanceTo(rt[i - 1]) > rt[k].distanceTo(rt[k - 1])) k = i;
+    const a = rt[k - 1], b = rt[k], d = a.distanceTo(b), u = [(b.x - a.x) / d, (b.z - a.z) / d], x = (a.x + b.x) / 2, z = (a.z + b.z) / 2;
+    g.player.pos.set(x, 0.3, z); g.player.vel.set(0, 0, 0); g.player.yaw = Math.atan2(-u[0], -u[1]);
+    window.__line = { x, z, u };
+  });
   await p.evaluate(() => window.__voxlink.ctx.enterWorld(7));
   await t.app(p, 'playing');
   for (const [key, jump] of [['KeyD', false], ['KeyA', true]]) {
-    await p.evaluate(() => { const g = window.__voxlink.game, A = g.arch, a = A.offsetOf(A.parts[0].level), c = A.offsetOf(A.parts[1].level); g.player.pos.set((a.x + c.x) / 2, 0.3, A.boardwalkZ()); g.player.yaw = -Math.PI / 2; });
+    await onBridge();
     await p.waitForTimeout(800);
     await p.keyboard.down(key);
     if (jump) await p.keyboard.down('Space');
     let off = 0, low = 9;
     for (let i = 0; i < 20; i++) {
       await p.waitForTimeout(120);
-      const s = await p.evaluate(() => { const g = window.__voxlink.game; return { off: Math.abs(g.player.pos.z - g.arch.boardwalkZ()), y: g.player.pos.y }; });
+      const s = await p.evaluate(() => { const q = window.__voxlink.game.player.pos, L = window.__line; return { off: Math.abs((q.x - L.x) * L.u[1] - (q.z - L.z) * L.u[0]), y: q.y }; });
       off = Math.max(off, s.off); low = Math.min(low, s.y);
     }
     await p.keyboard.up(key);
     if (jump) await p.keyboard.up('Space');
-    t.check(`Moon Isle: ${jump ? 'jumping' : 'walking'} sideways keeps you on the boardwalk`, off < 1.2 && low > 0.1, { off, low });
+    t.check(`Moon Isle: ${jump ? 'jumping' : 'walking'} sideways keeps you on the bridge`, off < 1.2 && low > 0.1, { off, low });
   }
+
+  // walking along the bridges from the first island towards the second (steering round the bends): slow at first,
+  // near full speed (2.4 x 5 m/s) later
+  await onBridge();
+  await p.waitForTimeout(800);
+  await p.evaluate(() => {
+    const g = window.__voxlink.game, A = g.arch, rt = A.routeFrom(A.parts[0].level, A.parts[1].level);
+    window.__steer = setInterval(() => {
+      const q = g.player.pos;
+      let k = 0;
+      for (let i = 1; i < rt.length; i++) if (rt[i].distanceTo(q) < rt[k].distanceTo(q)) k = i;
+      const to = rt[Math.min(rt.length - 1, k + 1)];
+      g.player.yaw = Math.atan2(q.x - to.x, q.z - to.z);
+    }, 30);
+  });
+  await p.keyboard.down('KeyW');
+  const speed = () => p.evaluate(() => { const v = window.__voxlink.game.player.vel; return Math.hypot(v.x, v.z); });
+  await p.waitForTimeout(250);
+  const early = await speed();
+  await p.waitForTimeout(1600);
+  const late = await speed();
+  await p.keyboard.up('KeyW');
+  await p.evaluate(() => clearInterval(window.__steer));
+  t.check('a bridge speeds you up over a moment, not at once', early < 8 && late > 10.5, { early, late });
+
+  // walking from beside the second island's pedestal out along its way in (south), and across it (east)
+  const across = async yaw => {
+    await p.evaluate(yaw => { const g = window.__voxlink.game, A = g.arch, o = A.offsetOf(A.parts[1].level); g.player.pos.set(o.x, 0.3, o.z + 6); g.player.vel.set(0, 0, 0); g.player.yaw = yaw; }, yaw);
+    await p.waitForTimeout(600);
+    await p.keyboard.down('KeyW');
+    await p.waitForTimeout(1800);
+    const v = await speed();
+    await p.keyboard.up('KeyW');
+    return v;
+  };
+  const lane = await across(Math.PI), aside = await across(-Math.PI / 2);
+  t.check("the way in across an island is a breeze lane, the rest of it isn't", lane > 10 && aside < 6, { lane, aside });
+
+  // every world's archipelago, and Kubo's way along its bridges
+  const shapes = new Set(), off = [], long = [], tries = {};
+  for (let w = 0; w < ALL.length; w++) {
+    await p.evaluate(w => window.__voxlink.ctx.enterWorld(w), w);
+    await t.app(p, 'playing');
+    const r = await p.evaluate(() => {
+      const g = window.__voxlink.game, A = g.arch, ids = A.parts.map(pt => pt.level), bad = [], legs = [];
+      const hub = A.portalPos(), shape = ids.map(l => { const o = A.offsetOf(l); return `${Math.round((o.x - hub.x) / 10)},${Math.round((o.z - hub.z) / 10)}`; }).join(' ');
+      const pairs = ids.map(l => ['portal', l]).concat(ids.slice(1).map((l, i) => [ids[i], l]));
+      for (const [a, b] of pairs) {
+        const rt = A.routeFrom(a, b);
+        if (rt.length < 2) { bad.push(`${a.id || a}->${b.id}: no way`); continue; }
+        let len = 0;
+        for (let i = 1; i < rt.length; i++) {
+          len += rt[i].distanceTo(rt[i - 1]);
+          for (let s = 0; s <= 1; s += 0.05) {
+            const x = rt[i - 1].x + (rt[i].x - rt[i - 1].x) * s, z = rt[i - 1].z + (rt[i].z - rt[i - 1].z) * s;
+            if (g.world.walkSd(x, z) > -0.2) { bad.push(`${a.id || a}->${b.id}`); i = Infinity; break; }
+          }
+        }
+        if (a !== 'portal') legs.push(Math.round(len));
+      }
+      return { shape, bad, legs, tries: A.tries };
+    });
+    shapes.add(r.shape);
+    tries[ALL[w]] = r.tries;
+    off.push(...r.bad.map(b => `${ALL[w]}: ${b}`));
+    if (Math.max(...r.legs) > 110) long.push(`${ALL[w]}: ${r.legs.join(', ')}`);
+  }
+  t.check('every world grows its archipelago without having to make do', Object.values(tries).every(n => n <= 30), tries);
+  t.check('no two worlds lay out their islands alike', shapes.size === ALL.length, [...shapes]);
+  t.check("Kubo's way along the bridges stays on them in every world", off.length === 0, off.slice(0, 5));
+  t.check('the walk from one figure to the next is never long', long.length === 0, long);
 });

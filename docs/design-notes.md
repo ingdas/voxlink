@@ -325,3 +325,39 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   wording in every locale).
 - Holding forward towards Kubo when he leads can run you into a tree or a low fence between you and him; people steer
   round them, so this only stalls players who walk in a straight line.
+
+## 2026-11-02 · Archipelagos that look grown, not laid out; bridges ease you up to speed
+
+- **Layouts.** Every world had the same grid: a causeway, a straight east-west boardwalk and islands in two rows
+  off it. A first pass gave worlds different grids (rows, an avenue, a switchback, a slalom), which still read as
+  mechanical. Now each world's islands are **grown** from the hub (`grow` in `js/archipelago.js`, seeded per world so
+  a world always looks the same): one by one in play order, each is placed in open water near the hub and the
+  figure before, never side by side in a row with another, and joined to the rest by a **curving bridge**: out of
+  its south shore (where its path in is kept clear, so islands still never rotate; up to ~25° either side of
+  south), then a smooth bend to the hub's one bridge north or a **round landing** where bridges branch (a new
+  landing can split any bridge). A join has to bend gently (radius ≥ 5 m), keep 1.4 m of open water to every shore
+  and other bridge, and meet the bridge it joins at a good angle; of those that fit, the cheapest wins, counting
+  its length, the walk on to the hub and, more so, the walk back to the figure before. `GROWTH` gives each world its character (gaps, the way it drifts, how
+  widely it fans out, and *trail*: a winding string of islands vs. a cluster). Islands are spaced by
+  how far their ground really reaches (not their nominal radius), with 4–9 m of water between them. Walks from one
+  figure to the next are 40–85 m (a spot is preferred if it's within 45 m of the figure before); from the portal to
+  the furthest island 130–250 m. With every island entered from the south a hop can't be much shorter than the
+  distance between the two islands' middles. Growing a
+  world adds 5–80 ms to entering it the first time on a desktop (Shipwreck Cove the most: its first try doesn't
+  fit), nothing after that: each world's layout is kept for the session. (Kept down by a grid of the bridges'
+  segments, a quick look at a curve's tightest bend before it's built, a coarse pass every 4 m before the fine one,
+  and pricing a candidate before sampling it evenly: Cove went from 260 ms to 70.)
+- Bridges are polylines (a point every 0.5 m): planks across the way, a beam under it, stone piers in the stone
+  worlds; rails follow the curves and open onto landings between lamp posts. Locked islands' gates sit just off
+  the landing or hub their bridge leaves; Kubo's way is the shortest path along the bridges.
+- **The ways in are breeze lanes too.** Most of a hop's time was on the islands (pedestal to shore and shore to
+  pedestal at walking pace), not on the bridges. Each island's way in (2.6 m wide, from just outside the figure's
+  footprint to its shore, inside the strip that's kept clear) and the hub's from the portal to its bridge now speed
+  you up like a bridge, on plain ground only (not ice, water or drifts), and are marked by short planks set into
+  the ground in the bridge's colours. A walk from beside one pedestal to beside the next went from 8–10 s to
+  6.6–8 s (Meadow, Windmill Farm, Sunset Reef, Moon Isle).
+- **The bridges' speed-up** (2.4×) used to kick in the moment you stepped on. It now builds up over about 1.3 s
+  of walking (smoothstep) and dies away over about 0.6 s once you're off; ground that slows you (drifts, water)
+  still does so at once.
+- Fixed in passing: every island's bridge had an (open) door at its island end, not just the Sprout's: a door's
+  visibility was `undefined` rather than `false` for the others.

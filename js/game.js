@@ -197,7 +197,7 @@ export class Game {
         this.figureMat = voxelMaterial(this.renderer.gl);
         this.arch = buildArchipelago({
           chapter: level.chapter, levels: chapter.levels, figureMaterial: this.figureMat,
-          makePart: l => ({ world: buildIsland(l, themeId, quality, true) }),
+          makePart: l => ({ world: buildIsland(l, themeId, quality, true), footR: islandOf(l).footR }),
           makeHub: seaY => buildWorld({ rng: mulberry32(4242 + level.chapter * 31), radius: 11, seed: 7 + level.chapter, quality, theme: themeId, layout: 'hub', seaY, pedestal: false }),
           isOpen: l => this.events.isOpen?.(l) ?? true, isDone: l => !!this.events.isDone?.(l), isHalf: l => !!this.events.isHalf?.(l),
           doorShut: l => l === LEVELS[0] && !this.events.isDone?.(l),
