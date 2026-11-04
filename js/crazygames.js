@@ -18,6 +18,7 @@ const SCRIPT_WAIT_MS = 4000; // the script itself
 const INIT_WAIT_MS = 5000; // init(): boot waits this long at most; a later answer is still taken (onLateReady)
 const AD_SILENCE_MS = 8000; // a request nobody answers is given up on
 const AD_MAX_MS = 180000; // an ad that started and never said it finished (never cut an ad in progress short)
+let adGraceMs = 180000; // no interstitial in a session's first 3 minutes of play (a newcomer's first figure ends ~1 min in)
 
 export function onCrazyGames() {
   let hosts = '';
@@ -71,6 +72,8 @@ const call = fn => { ready().then(s => { if (s) safe(() => fn(s)); }); };
 
 // ---------- lifecycle ----------
 let loadingDone = false, wantPlay = false, playing = false;
+let playedMs = 0, playingSince = 0; // active play this session (for the ads' grace period)
+const playedNow = () => playedMs + (playing ? performance.now() - playingSince : 0);
 export function loadingStart() { call(s => s.game.loadingStart()); }
 export function loadingStop() { if (loadingDone) return; loadingDone = true; call(s => s.game.loadingStop()); syncPlay(); }
 // The game says every frame whether the player is in active play; only real transitions go to the SDK.
@@ -78,6 +81,7 @@ export function gameplay(on) { wantPlay = !!on; syncPlay(); }
 function syncPlay() {
   const on = loadingDone && wantPlay && adsInFlight === 0;
   if (on === playing) return;
+  if (on) playingSince = performance.now(); else playedMs += performance.now() - playingSince;
   playing = on;
   call(s => (on ? s.game.gameplayStart() : s.game.gameplayStop()));
 }
@@ -96,8 +100,11 @@ const tell = (set, v) => { for (const f of [...set]) safe(() => f(v)); };
 
 // An interstitial at a natural break (a figure finished, a walk through a portal). Resolves when it is over, failed,
 // or there is no SDK; never rejects, always settles. The platform caps how often one really shows, so asking at
-// every break is fine. Resolves at once off the portal.
+// every break is fine. Resolves at once off the portal, and during the session's first minutes of play (adGraceMs:
+// the first figures are where a newcomer decides to stay).
+export const setAdGrace = ms => { adGraceMs = ms; }; // (the browser tests)
 export function midgame() {
+  if (playedNow() < adGraceMs) return Promise.resolve();
   return new Promise(resolve => {
     ready().then(sdk => {
       if (!sdk) { resolve(); return; }

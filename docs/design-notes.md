@@ -282,3 +282,46 @@ From the same playtest's frames:
   comes in when it's first needed: backpack at the first grab, progress / bubble list / jump at the first link, the
   hint once the tutorial is over or Kubo brings it up.
 
+
+## 2026-11-02 · The first five minutes on CrazyGames: ten players, ten devices
+
+**Method.** Bots played the first five minutes as ten players, inside the frame CrazyGames embeds the game in: a
+crazygames.com page with a header and a long page below, the game served from a game-files host, and a stand-in
+SDK served from the real SDK URL (lifecycle calls logged, interstitials that play for 15 s behind a frequency cap).
+Each player had their own device, input and pace: a child on a school Chromebook (trackpad, portal mute, presses
+Space before clicking the game), a speedrunner on a gaming PC (skips everything, sprints), an iPhone held upright
+first, a budget Android on slow 4G, an iPad (desktop-class user agent), a 68-year-old on a 150 %-scaled laptop
+(arrow keys, slow reader, tries the bubble before the block), a MacBook trackpad user who clicks outside the frame
+mid-figure, a Japanese gamepad player, a German teenager on an iPhone SE who switches apps and gets an early ad,
+and an Arabic returning player whose save is in SDK.data.
+
+| | control | first link | Sprout | on the Tulip's island | Tulip |
+|---|---|---|---|---|---|
+| watched the opening (7 players) | 21–28 s | 27–34 s | 57–79 s | 77–100 s | 3:00–4:40 |
+| skipped it (3 players) | 7–9 s | 11–13 s | 30–51 s | 49–70 s | 2:10–3:10 |
+
+Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font subsets).
+
+**Found and fixed.**
+- **The keyboard stayed with the portal's page.** Until the player clicked into the frame, Space scrolled the
+  CrazyGames page by 670 px, pushing the game out of view (the browser then stops drawing it, so the opening froze
+  off-screen), and the opening's Esc did nothing. The game now takes focus as it loads.
+- **Arrow keys, Space and Page/Home/End scrolled the portal's page** even with the game focused: an iframe that
+  can't scroll hands the scroll to its parent. They never scroll anything now (fields, sliders and Space on a
+  focused button keep their keys).
+- **An interstitial a minute in.** The first break that asks for an ad is the end of the tutorial figure, about a
+  minute in (30–80 s); with a short frequency cap or no preroll, a newcomer got an ad right there. There is no
+  midgame request in a session's first three minutes of play now; the first one comes after the Tulip.
+- **A returning player out of the portal had no lead.** Continue takes you through the world's portal onto the
+  middle island, 60 m from the figure you're up to, with only the light column far off and a bridge straight ahead
+  that may be gated. Kubo now leads the way there along the causeway and boardwalk, as he does after a figure.
+- **A gamepad couldn't skip the opening**: Start and B did nothing, and A only moved focus to Skip. Skip is now the
+  opening's primary button (A or Start), and its Esc keycap hides in gamepad mode.
+
+**Seen, not changed.**
+- On short phones (320–360 px tall) the backpack covers blocks lying right at your feet; looking down or stepping
+  back shows them. Players held phones the right way round after the turn-your-device screen.
+- In gamepad mode Kubo says "press X", but the focus label and backpack line still say "Click to link" (needs pad
+  wording in every locale).
+- Holding forward towards Kubo when he leads can run you into a tree or a low fence between you and him; people steer
+  round them, so this only stalls players who walk in a straight line.

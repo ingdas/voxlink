@@ -485,14 +485,16 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     // scene positions: where you arrive by portal, an island's bridge entry, the portal itself
     arrival() { const pz = hubWorld.portal?.z ?? 4; return { x: hub.p.x - A.x, z: hub.p.z + pz - 2.6 - A.z, yaw: 0 }; },
     entryOf(level) { const pt = parts.find(p => p.level === level); return pt ? new THREE.Vector3(pt.entry.x - A.x, DECK + 1, pt.entry.z + 1.5 - A.z) : null; },
-    // the way along the bridges from a figure's island to another figure's island (a level) or the portal: onto
-    // its spur, where it meets the boardwalk (a step into the turn, so you see which way it goes), along the
-    // boardwalk and up the other spur or the causeway (scene positions on the ground)
+    // the way along the bridges from a figure's island (a level) or the portal's middle island ('portal') to another
+    // figure's island or the portal: onto its spur or the causeway, where it meets the boardwalk (a step into the
+    // turn, so you see which way it goes), along the boardwalk and up the other spur or the causeway (scene
+    // positions on the ground)
     routeFrom(level, to) {
-      const a = parts.find(p => p.level === level), b = to === 'portal' ? hub : parts.find(p => p.level === to);
+      const at = l => (l === 'portal' ? hub : parts.find(p => p.level === l));
+      const a = at(level), b = at(to);
       if (!a || !b || a === b) return [];
       const turn = Math.sign(b.p.x - a.p.x) * Math.min(1.5, Math.abs(b.p.x - a.p.x) / 2);
-      const pts = [[a.p.x, a.entry.z + 1.5], [a.p.x + turn, zJ], [b.p.x, zJ]];
+      const pts = [[a.p.x, a === hub ? -hubN + 1.5 : a.entry.z + 1.5], [a.p.x + turn, zJ], [b.p.x, zJ]];
       if (b === hub) pts.push([hub.p.x, -hubN + 1.5]);
       else pts.push([b.p.x, b.entry.z + 1.5]);
       return pts.map(([x, z]) => new THREE.Vector3(x - A.x, 0, z - A.z));

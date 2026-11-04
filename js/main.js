@@ -238,6 +238,11 @@ const game = new Game({
       app = 'playing'; input.enabled = true; document.body.classList.add('playing');
       if (worldIntro) { welcomeBack = false; ctx.companion?.sayAll(worldIntro); worldIntro = null; }
       greetBack();
+      // out of the portal onto the middle island: Kubo leads the way to the figure you're up to (a returning player
+      // otherwise had only the light far off, and a bridge right ahead that may be closed)
+      const stop = byPortal && game.arch && game.nextStop();
+      byPortal = false;
+      if (stop && stop !== 'portal') ctx.companion?.lead(game.arch.routeFrom('portal', stop), { near: 2.5 });
     },
     pause: () => pause(),
     magnet: (n, gained) => renderMagnet(n, gained),
@@ -663,7 +668,9 @@ function talk(lines, done) {
 const levelOf = x => (typeof x === 'object' ? x : LEVELS[x]);
 // index: campaign index or level object (custom figures). resume: true to continue the figure's saved run.
 // arrive: 'island' (on the figure's island), 'hub' (by portal), 'keep' (walked onto its island: no camera move)
+let byPortal = false; // this figure's world was entered by its portal (Kubo leads the way from there)
 function startLevel(index, resume = false, arrive = 'island') {
+  byPortal = arrive === 'hub';
   audio.unlock();
   audio.suspend(false);
   const lvl = levelOf(index);
@@ -1261,6 +1268,20 @@ jump.addEventListener('pointerleave', jumpUp);
 $('btn-drop').addEventListener('pointerdown', e => { e.preventDefault(); input.actions.push({ type: 'drop' }); });
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault());
+// In a portal's iframe (CrazyGames) the page itself can't scroll, so Space, the arrows and Page/Home/End scroll the
+// portal's page instead and slide the game out of view: they only scroll the game's own lists (Settings), a focused
+// field or slider keeps its keys and a focused button still presses with Space.
+const SCROLL_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End']);
+const inScroller = el => {
+  for (; el && el !== document.body; el = el.parentElement) if (el.scrollHeight > el.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(el).overflowY)) return true;
+  return false;
+};
+addEventListener('keydown', e => {
+  if (!SCROLL_KEYS.has(e.code) || e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+  if (e.code === 'Space' && e.target.closest?.('button, a, [role="button"]')) return;
+  if (inScroller(e.target)) return;
+  e.preventDefault();
+});
 addEventListener('keydown', e => {
   if (overlays.includes('screen-talk')) return;
   if (e.code === 'Escape') {
@@ -1324,6 +1345,9 @@ const ctx = {
 
 // ---------- boot ----------
 async function boot() {
+  // in a portal's iframe the keyboard stays with the portal's page until the player clicks into the game: take it,
+  // so the opening's Esc, Kubo's Space and WASD work straight away (and Space doesn't scroll the portal's page)
+  try { window.focus(); } catch { /* not allowed */ }
   const fill = $('load-fill');
   fill.style.width = '15%';
   try {

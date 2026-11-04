@@ -41,10 +41,25 @@ function fakeSdk(o) {
 const calls = p => p.evaluate(() => window.__cg.calls.slice());
 const since = (all, n) => all.slice(n);
 
+// the first minutes of a session have no interstitials; most checks below skip that grace
+const noGrace = p => p.evaluate(async () => (await import('./js/crazygames.js')).setAdGrace(0));
+
 await suite('crazygames', async t => {
-  // ---- lifecycle, the interstitial after a figure, freezing for it ----
-  let p = await t.page({ save: saveWith(MEADOW.slice(0, 3), { seen: { nexus: true } }), query: '?debug', init: [fakeSdk, {}] });
+  // ---- the first minutes of play: a finished figure brings no interstitial ----
+  let p = await t.page({ save: saveWith([], { seen: { nexus: true } }), query: '?debug', init: [fakeSdk, {}] });
   await t.hideDebug(p);
+  await p.evaluate(() => window.__voxlink.startLevel(0, false, 'island'));
+  await t.app(p, 'playing');
+  await p.waitForTimeout(300);
+  await t.win(p);
+  await p.waitForFunction(() => window.__voxlink.ctx.app === 'playing', null, { timeout: 10000 });
+  t.check('the first minutes of a session: no interstitial after a figure', !(await calls(p)).some(x => x.startsWith('ad:')), await calls(p));
+  await p.close();
+
+  // ---- lifecycle, the interstitial after a figure, freezing for it ----
+  p = await t.page({ save: saveWith(MEADOW.slice(0, 3), { seen: { nexus: true } }), query: '?debug', init: [fakeSdk, {}] });
+  await t.hideDebug(p);
+  await noGrace(p);
   await p.waitForTimeout(300);
   let c = await calls(p);
   t.check('loading starts and stops, and the title is no gameplay', c.join() === 'loadingStart,loadingStop', c);
@@ -106,6 +121,7 @@ await suite('crazygames', async t => {
   // ---- happytime for a rebuilt world ----
   p = await t.page({ save: saveWith(MEADOW.slice(0, 4)), query: '?debug', init: [fakeSdk, {}] });
   await t.hideDebug(p);
+  await noGrace(p);
   await p.evaluate(() => window.__voxlink.startLevel(4, false, 'island'));
   await t.app(p, 'playing');
   await t.win(p);

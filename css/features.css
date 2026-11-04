@@ -467,7 +467,7 @@ body:is(.museum, .nexus) #btn-magnet { display: none !important; }
 }
 .cine-skip svg { width: 20px; height: 20px; }
 .cine-skip kbd { margin: 0; font-size: 11px; opacity: .75; }
-body.mobile .cine-skip kbd { display: none; }
+body.mobile .cine-skip kbd, body.pad-nav .cine-skip kbd { display: none; }
 .cinema.over .cine-skip, .screen.cinema:not(.show) .cine-skip { opacity: 0; pointer-events: none; visibility: hidden; }
 .cine-motion {
   position: absolute; top: calc(max(10px, 5.5vh - 26px) + var(--sat)); left: calc(14px + var(--sal)); z-index: 4; display: none;

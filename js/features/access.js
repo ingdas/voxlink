@@ -33,7 +33,7 @@ const PAD_LEGEND = () => [
   [t('access.pad.start'), actLabel('pause'), ''], [t('access.pad.dpad'), actLabel('menuFocus'), ''],
   ['◀', t('aria.magnet'), ''], ['▶', t('aria.express'), ''],
 ];
-const PRIMARY = '#btn-play, #btn-brief-go, #btn-next, #btn-resume, #btn-nexus-resume, #btn-ending-map';
+const PRIMARY = '#btn-play, #btn-brief-go, #btn-next, #btn-resume, #btn-nexus-resume, #btn-ending-map, #cine-skip';
 const FOCUSABLE = '.btn, .toggle, input[type=range], .kbtn, select, .ws-theme, .ws-new';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
