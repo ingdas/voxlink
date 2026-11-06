@@ -201,6 +201,8 @@ export class Game {
           makeHub: seaY => buildWorld({ rng: mulberry32(4242 + level.chapter * 31), radius: 11, seed: 7 + level.chapter, quality, theme: themeId, layout: 'hub', seaY, pedestal: false }),
           isOpen: l => this.events.isOpen?.(l) ?? true, isDone: l => !!this.events.isDone?.(l), isHalf: l => !!this.events.isHalf?.(l),
           doorShut: l => l === LEVELS[0] && !this.events.isDone?.(l),
+          // (the very first figure's island isn't turned: the first minute is laid out on it)
+          upright: l => l === LEVELS[0],
         });
         this.scene.add(this.arch.group);
         this.world = this.arch.api;
@@ -288,6 +290,7 @@ export class Game {
     this.shiftSeq = (this.shiftSeq || 0) + 1;
     if (arrive === 'keep' && shift && this.player.pos) { this.player.pos.add(shift); this.player.lastSafe.add(shift); }
     else if (arrive === 'hub' && this.arch) { const a = this.arch.arrival(); this.player.spawn(a.x, a.z, a.yaw); }
+    else if (this.arch) { const s = this.arch.spawnOf(level, Math.min(R - 3, 9)); this.player.spawn(s.x, s.z, s.yaw); }
     else this.player.spawn(0, Math.min(R - 3, 9), 0);
     this.onIsland = false; this.islandT = 0; this.arrived = false;
     this.switching = false; this.inPortal = this.arch ? this.arch.atPortal(this.player.pos.x, this.player.pos.z) : false;
@@ -568,8 +571,8 @@ export class Game {
     }
   }
 
-  // Direction (angle around the pedestal) of district d; district 0 faces the spawn point.
-  districtAngle(d) { return Math.PI / 2 + d * ((Math.PI * 2) / this.stageCount); }
+  // Direction (angle around the pedestal) of district d; district 0 faces the spawn point (on a turned island too).
+  districtAngle(d) { return Math.PI / 2 - (this.world.spin || 0) + d * ((Math.PI * 2) / this.stageCount); }
 
   // A flag with the part number in the middle of each district.
   buildDistrictFlags() {

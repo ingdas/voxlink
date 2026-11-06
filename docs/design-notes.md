@@ -361,3 +361,38 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   still does so at once.
 - Fixed in passing: every island's bridge had an (open) door at its island end, not just the Sprout's: a door's
   visibility was `undefined` rather than `false` for the others.
+
+## 2026-11-06 · Archipelagos round a hub in the middle; islands turn to face their bridges
+
+- **Why.** The grown layouts had long walks: the longest walk along the bridges between any two of the portal
+  and a world's islands was 129–248 m (mean 198), almost always from the portal to the last island. Two rules made
+  that so. Every island was entered from the south (its way in, the path kept clear from the pedestal to the shore,
+  runs south), so islands could only sit north of where their bridge joined; and the hub had one bridge, off its north
+  shore, with every island required to lie ahead of you as you come out of the portal. The network was a tree whose
+  root, the portal, sat at the far end. Making it compact (scoring each island by the longest walk it makes) cut that
+  to ~130 m but made the walk from figure to figure in play order longer (254 → ~320 m): with those two rules a
+  layout is either a chain (short hops) or a clump (short longest walk), not both.
+- **Islands turn.** Each island is still built with its way in running south (so every layout generator, and the
+  things they put "behind" an island, like Frost's satellite islets or the Cove's wreck, stay as they are) and is
+  then turned by a quarter turn (`pt.spin`) so that way faces its bridge. Quarter turns keep every collider a box.
+  The active island stays turned in the scene: the archipelago turns ground queries, colliders, block tops and
+  bounce pads into the island's own coordinates (`api.spin`), the spawn on an island (`arch.spawnOf`) and district 0
+  face its way in, and finished figures on the other islands face south like the one you're building (a figure is
+  never turned, so you may walk up to one from its side or back). The Sprout isn't turned: the first minute is laid
+  out on it.
+- **The hub sits in the middle.** Its bridges leave from its west, north and east shores (the portal stands on the
+  south side; its trees and rocks keep clear of those ways), and the walks across it (from the portal to its middle
+  and on to each bridge in use) are edges of the bridge network too (`land`, never drawn), so Kubo's way and every
+  walk can cross the hub. Islands may sit anywhere round it.
+- **Shapes.** `GROWTH` gives each world a shape round the hub: petals all round (Meadow), fields fanned out behind
+  the farmyard (Windmill Farm), floes packed off to the north-east (Frost Isles), a wood wrapped round the west
+  (Frostwood), an atoll with the hub on its rim (Sunset Reef, which may close a loop), a horseshoe bay off to the east
+  (Shipwreck Cove), a tower of rocks reaching north (Starfall Peak), craters strewn all round (Moon Isle), a ridge
+  running through the hub (Gale Cliffs), a spiral round the eye (Eye of the Storm). On a ring the islands go round
+  it in play order, so the next figure is a neighbour. Each island is placed where there's room near its place on the
+  shape, turned so its way in faces the likeliest join, and of the spots a bridge reaches the one that keeps the
+  longest walk short wins (then the shape, then the walk from the figure before); a world takes the best of four
+  goes, scored on the longest walk and the walk through the figures in order.
+- **Result** (bridge walks, measured from where you stand out of the portal): the longest walk in a world is now
+  64–116 m (mean 88, was 198); the walk portal → 1 → 2 → … → 5 is 156–345 m (mean 214, was 254). Growing a world
+  takes 12–36 ms on a desktop, the first time it's entered in a session.

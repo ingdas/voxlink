@@ -1403,7 +1403,7 @@ function cliffs(W) {
 }
 
 // ---------- hub: the small middle island of a world's archipelago, with the portal to other worlds ----------
-// Bridges (built by archipelago.js) leave from its north side; the portal stands on its south side.
+// Bridges (built by archipelago.js) leave from its west, north and east sides; the portal stands on its south side.
 function hub(W) {
   const { R, T, seed, rng } = W;
   const isl = sdBlob(0, 0, R, seed, 0.5);
@@ -1447,8 +1447,8 @@ function hub(W) {
     W.box(x - 0.15, 0, z - 0.15, x + 0.15, 2.4, z + 0.15);
   }
   const trees = { meadow: 'round', farm: 'round', frost: 'pine', frostwood: 'pine', reef: 'palm', cove: 'palm', starfall: 'crystal', moon: 'crystal', cliffs: 'bent', storm: 'bent' }[lay] || 'round';
-  scatterProps(W, Math.round(R * 0.6), (x, z) => isl(x, z) < -1.2 && isl(x, z) > -3.5 && Math.abs(x) > 2.6 && !W.crowded(x, z, 2) && !W.blocked(x, z, 0.9, 0, 3), (x, z) => tree(W, trees, x, z, 0.7 + rng() * 0.4, 0), 12);
-  scatterProps(W, Math.round(R * 0.4), (x, z) => isl(x, z) < -0.8 && Math.hypot(x, z) > 5.5 && Math.abs(x) > 2.2 && !W.crowded(x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4, 0));
+  scatterProps(W, Math.round(R * 0.6), (x, z) => isl(x, z) < -1.2 && isl(x, z) > -3.5 && Math.abs(x) > 2.6 && Math.abs(z) > 2.6 && !W.crowded(x, z, 2) && !W.blocked(x, z, 0.9, 0, 3), (x, z) => tree(W, trees, x, z, 0.7 + rng() * 0.4, 0), 12);
+  scatterProps(W, Math.round(R * 0.4), (x, z) => isl(x, z) < -0.8 && Math.hypot(x, z) > 5.5 && Math.abs(x) > 2.2 && Math.abs(z) > 2.2 && !W.crowded(x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4, 0));
   W.clouds = floating ? 0 : 16; W.cloudR = 100; W.cloudY = 18;
 }
 
