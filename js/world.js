@@ -356,7 +356,12 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     cloudRing.add(cm);
     group.add(cloudRing);
     const spin = (W.cloudSpin ?? 0.006) * (rng() < 0.5 ? 1 : -1);
-    updaters.push(dt => { cloudRing.rotation.y += spin * dt; });
+    // cloudFollow: how much of the way the ring's middle follows you across the ground (the archipelago's hub)
+    const follow = W.cloudFollow ?? 0;
+    updaters.push((dt, t, cam) => {
+      cloudRing.rotation.y += spin * dt;
+      if (follow && cam) cloudRing.position.set(cam.x * follow, 0, cam.z * follow);
+    });
   }
 
   // --- Ambient particles that follow the camera ---

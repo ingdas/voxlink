@@ -11,6 +11,21 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
 const Q = new THREE.Quaternion(), V = new THREE.Vector3(), M = new THREE.Matrix4(), E = new THREE.Euler();
 
+// each world's clouds: how many, the ring's inner radius, their height, size and how fast the ring turns (see
+// buildWorld); the hub of a world's archipelago uses them for the whole archipelago
+const SKIES = {
+  meadow: { clouds: 18, cloudScale: 1.35, cloudY: 18 },
+  farm: { clouds: 16, cloudScale: 1.3, cloudY: 17 },
+  frost: { clouds: 9, cloudY: 22 },
+  frostwood: { clouds: 10, cloudY: 20, cloudScale: 1.2 },
+  reef: { clouds: 12, cloudY: 8, cloudScale: 1.2, cloudR: 90 },
+  cove: { clouds: 14, cloudY: 18 },
+  starfall: { clouds: 0 },
+  moon: { clouds: 0 },
+  cliffs: { clouds: 22, cloudY: 16, cloudSpin: 0.03, cloudScale: 1.2 },
+  storm: { clouds: 26, cloudR: 45, cloudY: 24, cloudSpin: 0.045, cloudScale: 1.3 },
+};
+
 // ---------- shared props ----------
 function put(W, geo, color, x, y, z, o = {}) { W.B.put(geo, color, x, y, z, o); }
 function putQ(W, geo, color, pos, q, scale, kind = 'solid') { M.compose(pos, q, scale); W.B.add(geo, color, M, kind); }
@@ -334,7 +349,7 @@ function meadow(W) {
     W.obstacles.push({ x, z, r: s + 0.4 });
   });
   scatterProps(W, W.more('rocks', Math.round(R * 0.2)), (x, z) => okTree(W, x, z, 1.0), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4));
-  W.clouds = 18; W.cloudScale = 1.35; W.cloudY = 18;
+  Object.assign(W, SKIES.meadow);
   W.extras = [() => butterflies(W)];
 }
 
@@ -468,7 +483,7 @@ function frost(W) {
     const s = 0.6 + rng() * 1.6;
     put(W, GEO.cyl(6), 0xf3f9ff, x, W.seaY + 0.06, z, { sx: s, sy: 0.12, sz: s * (0.6 + rng() * 0.5), ry: rng() * 3, kind: 'fx' });
   }, 4);
-  W.clouds = 9; W.cloudY = 22;
+  Object.assign(W, SKIES.frost);
 }
 
 // ---------- reef: a sandy crescent around a shallow lagoon, piers and sea stacks ----------
@@ -600,7 +615,7 @@ function reef(W) {
     put(W, GEO.box(), 0x9edb6a, x, y + 0.12, z, { sx: s * 1.1, sy: 0.25, sz: s, ry: rng() });
     if (rng() < 0.5) { tree(W, 'palm', x, z, 0.6, y + 0.2); W.colliders.pop(); W.obstacles.pop(); }
   }, 6);
-  W.clouds = 12; W.cloudY = 8; W.cloudScale = 1.2; W.cloudR = 90;
+  Object.assign(W, SKIES.reef);
 }
 
 // ---------- starfall: floating islets over a sea of clouds, low gravity and jump pads ----------
@@ -725,7 +740,7 @@ function starfall(W) {
     put(W, GEO.cone(7), T.dirt, x, y - 0.2 - r * 0.75, z, { sx: r * 0.9, sy: r * 1.5, sz: r * 0.9, rx: Math.PI });
     if (rng() < 0.5) put(W, GEO.octa(), T.leaves[i % 3], x, y + 0.8, z, { sx: 0.35, sy: 1.2, sz: 0.35, kind: 'glow' });
   }
-  W.clouds = 0;
+  Object.assign(W, SKIES.starfall);
 }
 
 // ---------- storm: a windswept cliff-top plateau with ruins, under a swirling vortex ----------
@@ -825,7 +840,7 @@ function storm(W) {
   // wind gusts: every so often a gentle push, with leaves and rain blowing sideways
   W.tuftScale = 1.3; W.sway = 1.8;
   gusts(W, { first: 5 + rng() * 3, len: 3.0, peak: 1.1 });
-  W.clouds = 26; W.cloudR = 45; W.cloudY = 24; W.cloudSpin = 0.045; W.cloudScale = 1.3;
+  Object.assign(W, SKIES.storm);
   W.extras = [() => leaves(W)];
 }
 
@@ -1057,7 +1072,7 @@ function farm(W) {
     put(W, GEO.blob(), T.leaves[Math.floor(rng() * T.leaves.length)], x, s * 0.55, z, { sx: s * 1.2, sy: s, sz: s, ry: rng() * 3 });
     W.obstacles.push({ x, z, r: s + 0.4 });
   });
-  W.clouds = 16; W.cloudScale = 1.3; W.cloudY = 17;
+  Object.assign(W, SKIES.farm);
 }
 
 // ---------- frostwood: a snowy pine forest, a log cabin and a frozen stream; deep snowdrifts slow you ----------
@@ -1138,7 +1153,7 @@ function frostwood(W) {
     rock(W, x, z, s, 0);
     put(W, GEO.dome(), 0xffffff, x, s * 0.55, z, { sx: s * 0.85, sy: s * 0.35, sz: s * 0.8, ry: rng() * 3 });
   });
-  W.clouds = 10; W.cloudY = 20; W.cloudScale = 1.2;
+  Object.assign(W, SKIES.frostwood);
 }
 
 // ---------- cove: a rocky crescent around a deep bay with an old shipwreck; giant clams bounce you up the rocks ----------
@@ -1210,7 +1225,7 @@ function cove(W) {
     const h = 3 + rng() * 5, s = 1.4 + rng() * 1.6;
     put(W, GEO.cone(6), T.cliff, x, W.seaY + h / 2, z, { sx: s, sy: h, sz: s, ry: rng() * 3 });
   }, 6);
-  W.clouds = 14; W.cloudY = 18;
+  Object.assign(W, SKIES.cove);
 }
 
 // ---------- moon: a grey cratered moon over the void, with a little moon base; very low gravity ----------
@@ -1305,7 +1320,7 @@ function moon(W) {
     const a = rng() * Math.PI * 2, d = W.bound + 14 + rng() * 45, r = 1 + rng() * 3;
     put(W, GEO.rock(), T.cliff, Math.cos(a) * d, -10 + rng() * 26, Math.sin(a) * d, { sx: r, sy: r * 0.8, sz: r, rx: rng() * 3, ry: rng() * 3 });
   }
-  W.clouds = 0;
+  Object.assign(W, SKIES.moon);
 }
 
 // ---------- cliffs: chalk sea cliffs with terraced hills, dry stone walls and cottages, kites in the sky; wind gusts ----------
@@ -1398,7 +1413,7 @@ function cliffs(W) {
   });
   W.tuftScale = 1.2; W.sway = 1.6;
   gusts(W, { first: 6 + rng() * 3, len: 2.6, peak: 0.9, calm: [9, 7] });
-  W.clouds = 22; W.cloudY = 16; W.cloudSpin = 0.03; W.cloudScale = 1.2;
+  Object.assign(W, SKIES.cliffs);
   W.extras.push(() => leaves(W));
 }
 
@@ -1449,7 +1464,9 @@ function hub(W) {
   const trees = { meadow: 'round', farm: 'round', frost: 'pine', frostwood: 'pine', reef: 'palm', cove: 'palm', starfall: 'crystal', moon: 'crystal', cliffs: 'bent', storm: 'bent' }[lay] || 'round';
   scatterProps(W, Math.round(R * 0.6), (x, z) => isl(x, z) < -1.2 && isl(x, z) > -3.5 && Math.abs(x) > 2.6 && Math.abs(z) > 2.6 && !W.crowded(x, z, 2) && !W.blocked(x, z, 0.9, 0, 3), (x, z) => tree(W, trees, x, z, 0.7 + rng() * 0.4, 0), 12);
   scatterProps(W, Math.round(R * 0.4), (x, z) => isl(x, z) < -0.8 && Math.hypot(x, z) > 5.5 && Math.abs(x) > 2.2 && Math.abs(z) > 2.2 && !W.crowded(x, z, 1), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4, 0));
-  W.clouds = floating ? 0 : 16; W.cloudR = 100; W.cloudY = 18;
+  // the world's own clouds (the hub holds the whole archipelago's sky), their ring following you most of the way
+  // round it so every island has them about as near as a lone island would
+  Object.assign(W, SKIES[lay] || {}, { cloudFollow: 0.75 });
 }
 
 // ---------- the Keeper's Isle (js/nexus.js): a floating plaza with a bridge out to every world's portal ----------
