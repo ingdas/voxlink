@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { LAYER_FX, LAYER_OVERLAY, toon } from './render.js';
 import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnion } from './world-kit.js';
 import { GRAVITY } from './player.js';
+import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -705,6 +706,7 @@ function starfall(W) {
     const mat = new THREE.MeshBasicMaterial({ color: 0xffb3f0, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
     const im = new THREE.InstancedMesh(ringGeo, mat, padRings.length * 2);
     im.layers.set(LAYER_OVERLAY);
+    glows(im);
     im.frustumCulled = false;
     W.group.add(im);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();

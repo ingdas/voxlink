@@ -4,6 +4,8 @@ import { Batch, GEO, contours, topGeometry, wallGeometry, projectInside, sharedD
 import { buildSky } from './world-sky.js';
 import { LAYOUTS } from './world-layouts.js';
 import { placeLandmark } from './world-moods.js';
+import { glows } from './looks.js';
+import { makeSea } from './sea.js';
 
 export { dotTexture } from './world-kit.js';
 
@@ -224,10 +226,9 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   let water = null;
   if (W.hasSea && T.water != null) {
     if (!part) {
-      water = new THREE.Mesh(new THREE.CircleGeometry(900, 64), toon(T.water));
-      water.rotation.x = -Math.PI / 2;
-      water.position.y = W.seaY;
-      water.receiveShadow = true;
+      water = makeSea(T, W.seaY);
+      const e = W.bound + 26;
+      water.userData.bake(coastSd, [-e, -e, e, e]); // (an archipelago bakes all its islands' shores again)
       group.add(water);
     }
     const Bn = W.bound + 4;
@@ -368,7 +369,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   const particles = T.particles && !part ? addParticles(T, rng, group, updaters, W) : null;
   W.extras?.forEach(f => f());
 
-  B.build(group, blockers);
+  B.build(group, blockers, { wear: pedestal });
 
   // --- Lights (the hub island lights the whole archipelago) ---
   let hemi = null, sun = null;
@@ -447,7 +448,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     // handles for cutscenes that restyle the weather (calm: true stops the storm's own lightning)
     atmos: { sky: skyU, hemi, sun, particles, vortex, unflash }, calm: false,
     radiusAt: W.radiusAt || (() => W.bound),
-    floorAt, walkSd, gravityScale: W.gravityScale, wind: W.wind, voidY: W.voidY, pads: W.pads,
+    floorAt, walkSd, coastSd, sea: water, gravityScale: W.gravityScale, wind: W.wind, voidY: W.voidY, pads: W.pads,
     surfaceAt(x, z, y) {
       const f = floorAt(x, z);
       if (f !== null && y > f + 0.05) {
@@ -515,6 +516,7 @@ function addParticles(T, rng, group, updaters, W) {
   });
   const pts = new THREE.Points(g, pm);
   pts.layers.set(LAYER_OVERLAY);
+  if (kind === 'fireflies' || kind === 'pollen') glows(pts);
   pts.frustumCulled = false;
   group.add(pts);
   updaters.push((dt, t, cam) => {

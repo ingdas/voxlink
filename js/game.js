@@ -3,9 +3,10 @@ import { LEVELS, CHAPTERS, expandLevel, partsFor, coreSize } from './levels.js';
 import { buildWorld, PEDESTAL_TOP, dotTexture } from './world.js';
 import { islandMood } from './world-moods.js';
 import { buildArchipelago } from './archipelago.js';
-import { S, DIRS, INK, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, shuffle, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS, mergeFigure } from './voxels.js';
+import { S, DIRS, INK, buildVoxelGeometry, shadeVoxel, voxelMaterial, generatePuzzle, mulberry32, shuffle, cubeRotations, getPuzzleAtlas, sumFor, ATLAS_CELLS, mergeFigure } from './voxels.js';
 import { Player } from './player.js';
 import { LAYER_OVERLAY, toon } from './render.js';
+import { setLookTheme, LK } from './looks.js';
 import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
@@ -220,6 +221,7 @@ export class Game {
     this.audio.setWorld?.(themeId);
     this.scene.fog.color.setHex(this.world.theme.skyHorizon);
     this.scene.fog.density = this.world.theme.fogDensity;
+    setLookTheme(themeId);
     this.scene.add(this.ghost);
     this.figureHeight = height * S;
     // tall figures get the Keeper's updraft around the pedestal (hold jump to float up)
@@ -249,6 +251,16 @@ export class Game {
       };
     });
     this.structureColliders = [];
+    // (placed blocks shade each other's corners)
+    const cellKey = (x, y, z) => `${x},${y},${z}`;
+    const cellIndex = new Map(cells.map((c, i) => [cellKey(c.ix, c.iy, c.iz), i]));
+    this.placedAt = (x, y, z) => this.voxels[cellIndex.get(cellKey(x, y, z))]?.state === 'placed';
+    this.shadeAround = c => {
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        const w = this.voxels[cellIndex.get(cellKey(c.ix + dx, c.iy + dy, c.iz + dz))];
+        if (w?.state === 'placed') shadeVoxel(w.mesh.geometry, this.placedAt, w.cell);
+      }
+    };
     this.sockets = new Map(); // child index -> socket
     this.placedCount = 0;
     this.pack = [];
@@ -836,6 +848,7 @@ export class Game {
     v.mesh.scale.setScalar(1);
     v.mesh.castShadow = true;
     v.mat.emissive.setScalar(0);
+    this.shadeAround(v.cell);
     this.placedCount++;
     const sock = this.sockets.get(i);
     if (sock) this.removeSocket(sock);
@@ -1150,6 +1163,7 @@ export class Game {
     this.camFrom = { pos: this.camera.position.clone(), quat: this.camera.quaternion.clone() };
     this.orbitAngle = Math.atan2(this.camera.position.x, this.camera.position.z);
     this.splits.push(Math.round(this.elapsed * 10) / 10);
+    this.arch?.bloom(this.level);
     this.events.complete?.({ time: this.elapsed, hints: this.hintsUsed, splits: this.splits.slice() });
   }
 
@@ -1160,6 +1174,8 @@ export class Game {
     this.lastDt = dt;
     if (!this.world) return;
     this.world.update(dt, this.t, this.camera.position);
+    // (world → archipelago coordinates: the sea and the ground's patterns stay put when the active island changes)
+    LK.b.z = this.arch ? -this.arch.group.position.x : 0; LK.b.w = this.arch ? -this.arch.group.position.z : 0;
 
     if (this.mode === 'play') this.updatePlay(dt);
     else if (this.mode === 'showcase') this.updateOrbit(dt, 0.08, 1);

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LAYER_OVERLAY } from './render.js';
+import { glows } from './looks.js';
 
 const beamView = new THREE.Frustum(), beamM = new THREE.Matrix4(), beamBox = new THREE.Box3();
 
@@ -80,6 +81,7 @@ export class FX {
     // flat shockwave ring
     const ring = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
     ring.layers.set(LAYER_OVERLAY);
+    glows(ring);
     ring.position.copy(pos);
     ring.userData.t = 0;
     this.scene.add(ring);

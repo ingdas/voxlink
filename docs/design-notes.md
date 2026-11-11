@@ -396,3 +396,41 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
 - **Result** (bridge walks, measured from where you stand out of the portal): the longest walk in a world is now
   64–116 m (mean 88, was 198); the walk portal → 1 → 2 → … → 5 is 156–345 m (mean 214, was 254). Growing a world
   takes 12–36 ms on a desktop, the first time it's entered in a session.
+
+## 2026-11-11 · Finishing looks: shading, a living sea, haze, a grade per world, islands that bloom
+
+- **How it was chosen.** Ten looks were built as separate switches and compared before/after on the same cameras,
+  seeds and moments (stills and frame-stepped clips, rendered in SwiftShader). Eight were kept, the glow was kept at
+  a quarter of its first strength (it read as far too intense at full), and cloud shadows were dropped.
+- **Corner shading.** Each block face's corners darken with the neighbours that crowd them (two sides, or two sides
+  and the corner between; the pedestal counts as solid under the bottom layer), as an `aoc` vertex attribute that the
+  voxel material multiplies into its light. Finished figures (`mergeFigure`) bake it and split each quad along the
+  diagonal that keeps the shading even; in play, placing a block re-shades it and its 26 neighbours. No cost per frame,
+  and it shows in low-graphics mode too.
+- **The outline pass** now also does contact shadows (scalable ambient obscurance from the depth and normal images it
+  already has: 12 samples on a fixed spiral, 6 on phones, no per-pixel rotation since there's no blur pass to hide its
+  grain, faded out by 60 m), draws each outline in a deep shade of what it outlines (the ink colour still leads), adds
+  the glow, and applies the world's colour grade (lift, gain, saturation, contrast, in gamma space). It then writes
+  the frame sRGB-encoded to a target that an FXAA pass smooths onto the screen; FXAA passes the scene depth on for the
+  overlays (badges, particles), which are drawn after it, so their text isn't softened. Phones had no anti-aliasing
+  at all before. Thumbnails skip FXAA and the glow.
+- **The sea** (`sea.js`) is a toon material whose colour runs from light shallows to the deep by the distance to the
+  nearest shore, baked once per world into a small texture from every island's own coastline function (14–30 ms when
+  a world loads). Foam lines roll in to the shores, a fringe laps at them, slow wave streaks cross it, sun glints
+  sparkle, and far out it melts into the sky's horizon colour.
+- **The toon shader** (every ground, prop and block) is patched once in `ShaderLib`: ground tops get large lighter and
+  warmer / darker and richer patches and, on a figure's island, a worn ring round the pedestal (`LK_GROUND`,
+  `LK_WEAR` defines on the ground material); the fog becomes aerial haze (far things fade into the sky beyond 25 m,
+  and a low mist hangs over the sea between islands); and each island's materials carry a colour-wash uniform.
+  Shared values reach every material live because their uniform values are plain objects, which three.js keeps by
+  reference when it copies a material's uniforms. Patterns use archipelago coordinates, so they don't jump when the
+  active island changes.
+- **Islands bloom.** Finished islands run a little richer and warmer, the one you're on is as it always was,
+  unfinished open ones are muted and locked ones more so. Finishing a figure washes colour out from its pedestal to
+  its shore at 9 m/s with a bright leading edge.
+- **Glow** (desktop only): crystals, portals, lanterns, the Keeper's crystal, lit orbs, pulse pads, link rings and
+  fireflies are drawn again, alone, over a black silhouette of the scene (so walls still hide them) at quarter size,
+  blurred in six small passes and added in the outline pass; night worlds glow a little more. The beacon and hint
+  beams are left out: at any strength that reads they burn out to white.
+- **Dropped:** cloud shadows (drifting noise darkening the sun's light). They were hard to read as clouds on
+  islands this size and only showed up clearly on the sea.

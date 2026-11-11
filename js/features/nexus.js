@@ -4,6 +4,7 @@
 // you arrive. A flowery arch leads to Kubo's Garden. Going between places runs through a short flash of light.
 import { buildNexus } from '../nexus.js';
 import { THEMES } from '../world.js';
+import { setLookTheme, LK } from '../looks.js';
 import { Player } from '../player.js';
 import { voxelMaterial } from '../voxels.js';
 import { t } from '../i18n.js';
@@ -208,6 +209,7 @@ class Isle {
     const T = THEMES.nexus;
     scene.fog.color.setHex(T.skyHorizon);
     scene.fog.density = T.fogDensity;
+    setLookTheme('nexus'); LK.b.z = LK.b.w = 0;
     ctx.audio.setWorld?.('nexus');
 
     this.player = new Player();

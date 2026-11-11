@@ -5,6 +5,7 @@
 // still, the light only breathes.
 import * as THREE from 'three';
 import { LAYER_FX } from './render.js';
+import { glows } from './looks.js';
 
 const vert = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
 const frag = `uniform sampler2D view; uniform vec3 col; uniform float time; uniform float spin; varying vec2 vUv;
@@ -80,6 +81,7 @@ export function makePortal({ view, color, radius = 1.25, motes = 16 }) {
   pts.layers.set(LAYER_FX);
   pts.frustumCulled = false;
   group.add(pts);
+  glows(ring); glows(halo); glows(pts);
   let last = 0, drift = 0;
   return {
     group,

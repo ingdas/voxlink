@@ -10,6 +10,8 @@
 // shifted coordinates. Moving to another island just changes the shift.
 import * as THREE from 'three';
 import { PEDESTAL_TOP } from './world.js';
+import { thrive } from './looks.js';
+import { coastOf } from './sea.js';
 import { Batch, GEO, projectInside } from './world-kit.js';
 import { toon, LAYER_OVERLAY } from './render.js';
 import { mergeFigure, mulberry32 } from './voxels.js';
@@ -645,6 +647,8 @@ function shore(world, dx, dz) {
 export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, isDone, isHalf = () => false, doorShut = () => false, upright = () => false, figureMaterial }) {
   const root = new THREE.Group();
   const parts = levels.map(level => ({ level, ...makePart(level), p: new THREE.Vector3() }));
+  // each island's colour wash (from, to, radius of the wash, shine)
+  for (const pt of parts) { pt.wash = { x: 0, y: 0, z: -1, w: 0 }; thrive(pt.world.group, pt.wash); }
   const hubWorld = makeHub(parts[0].world.seaY);
   const hub = { world: hubWorld, p: new THREE.Vector3(), spin: 0 };
   const floating = hubWorld.voidY !== undefined;
@@ -919,6 +923,12 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     return c;
   };
   const pieces = [hub, ...parts];
+  // the sea's shallows follow every shore of the archipelago
+  if (hubWorld.sea?.userData.bake) {
+    const ks = pieces.map(k => ({ sd: k.world.coastSd, toLocal: (x, z) => toLocal(k, x, z), x: px(k), z: pz(k), R: k.world.R + 2 }));
+    const xs = ks.map(k => [k.x - k.R, k.x + k.R]).flat(), zs = ks.map(k => [k.z - k.R, k.z + k.R]).flat();
+    hubWorld.sea.userData.bake(coastOf(ks), [Math.min(...xs) - 26, Math.min(...zs) - 26, Math.max(...xs) + 26, Math.max(...zs) + 26]);
+  }
   const api = {
     group: root, theme: hubWorld.theme, themeId: hubWorld.themeId, atmos: hubWorld.atmos, archipelago: true,
     get onFlash() { return hubWorld.onFlash; }, set onFlash(f) { hubWorld.onFlash = f; },
@@ -1007,6 +1017,12 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
         h.rotation.y = Math.abs(d) < 0.002 ? h.userData.to : h.rotation.y + d * Math.min(1, dt * 2.6);
       }
       for (const k of pieces) k.world.update(dt, t, c ? (([lx, lz]) => new THREE.Vector3(lx, c.y, lz))(toLocal(k, c.x, c.z)) : null);
+      // a finished island's colour washes out from its figure to its shores
+      for (const pt of parts) if (pt.washT !== undefined) {
+        pt.washT += dt;
+        pt.wash.z = pt.washT * 9;
+        if (pt.wash.z > pt.world.R + 5) { pt.wash.x = pt.wash.y = 1; pt.wash.z = -1; pt.wash.w = 0; pt.washT = undefined; }
+      }
       // the sun's shadow follows you round the archipelago
       const sun = hubWorld.atmos.sun;
       if (sun && c) {
@@ -1062,6 +1078,8 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       // swung open: it swings while you watch (the figure just finished), and stands open from the start otherwise
       for (const h of pt.leaves) { h.userData.to = pt.shut ? 0 : h.userData.s * 1.75; if (!pt.dressed) h.rotation.y = h.userData.to; }
       pt.dressed = true;
+      // finished islands run rich, the one you're on stays as it is, the rest wait muted
+      if (pt.washT === undefined) pt.wash.x = pt.wash.y = isDone(pt.level) ? 1 : pt === active ? 0 : pt.open ? -0.7 : -1;
       const show = pt !== active && isDone(pt.level);
       if (show && !displays.has(pt)) {
         const m = new THREE.Mesh(mergeFigure(expandLevel(pt.level).cells), figureMaterial);
@@ -1107,6 +1125,12 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
       return old.sub(A);
     },
     refresh: dress,
+    // the figure on `level`'s island is finished: wash its island with colour
+    bloom(level) {
+      const pt = parts.find(p => p.level === level);
+      if (!pt) return;
+      pt.wash.x = pt.wash.y; pt.wash.y = 1; pt.wash.z = 0; pt.wash.w = 1; pt.washT = 0;
+    },
     // the open figure island under the player (well inside its shore), if any
     partAt(x, z) {
       const ax = x + A.x, az = z + A.z;

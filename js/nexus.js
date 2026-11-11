@@ -8,6 +8,7 @@ import { buildWorld, THEMES } from './world.js';
 import { STYLES, makeBeacon, lockTexture } from './archipelago.js';
 import { Batch, GEO, projectInside } from './world-kit.js';
 import { toon, LAYER_FX, LAYER_OVERLAY } from './render.js';
+import { glows } from './looks.js';
 import { mulberry32, mergeFigure, S } from './voxels.js';
 import { makePortal, paintView } from './portal.js';
 
@@ -259,6 +260,7 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
   halo.scale.setScalar(3.4);
   halo.layers.set(LAYER_FX);
   lantern.add(crystal, halo);
+  glows(crystal); glows(halo);
   const orbs = new THREE.Group();
   const orbGeo = keep(new THREE.IcosahedronGeometry(1, 1));
   const worlds = islets.filter(k => !k.slot.garden);
@@ -269,6 +271,7 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
     const a = (j / worlds.length) * Math.PI * 2;
     o.position.set(Math.cos(a) * 1.45, Math.sin(a * 2) * 0.12, Math.sin(a) * 1.45);
     o.scale.setScalar(lit ? 0.2 : 0.13);
+    if (lit) glows(o);
     orbs.add(o);
   });
   lantern.add(orbs);

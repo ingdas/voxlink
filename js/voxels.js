@@ -127,7 +127,7 @@ export function roundRect(g, x, y, w, h, r) {
 
 // faces: array of 6 { type: 'color'|'num'|'blank', num, color, pattern }
 export function buildVoxelGeometry(faces, size = S) {
-  const pos = [], nor = [], uv = [], col = [], pat = [], idx = [];
+  const pos = [], nor = [], uv = [], col = [], pat = [], idx = [], ao = [];
   const c = new THREE.Color();
   const h = size / 2;
   const pad = 2 / (CELL * GRID);
@@ -145,6 +145,7 @@ export function buildVoxelGeometry(faces, size = S) {
       uv.push(tu, tv);
       col.push(c.r, c.g, c.b);
       pat.push(f.type === 'color' ? f.pattern || 0 : 0);
+      ao.push(1);
     }
     idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
   });
@@ -154,15 +155,37 @@ export function buildVoxelGeometry(faces, size = S) {
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setAttribute('pattern', new THREE.Float32BufferAttribute(pat, 1));
+  geo.setAttribute('aoc', new THREE.Float32BufferAttribute(ao, 1));
   geo.setIndex(idx);
   return geo;
+}
+
+// Corner shading: a face's corner darkens with each neighbour that crowds it (the classic voxel rule:
+// two sides, or two sides and the corner between them). The pedestal counts as solid under the bottom layer.
+const AO_LEVEL = [0.52, 0.7, 0.86, 1];
+const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+export function cornerShade(has, ix, iy, iz, d, a, b) {
+  const { n, u, v } = DIRS[d];
+  const at = (p, q) => {
+    const x = ix + n[0] + u[0] * p + v[0] * q, y = iy + n[1] + u[1] * p + v[1] * q, z = iz + n[2] + u[2] * p + v[2] * q;
+    return y < 0 || has(x, y, z) ? 1 : 0;
+  };
+  const s1 = at(a, 0), s2 = at(0, b);
+  return AO_LEVEL[s1 && s2 ? 0 : 3 - (s1 + s2 + at(a, b))];
+}
+// shade one block's geometry (made by buildVoxelGeometry) from its cell and what's around it
+export function shadeVoxel(geo, has, c) {
+  const arr = geo.attributes.aoc.array;
+  for (let d = 0; d < 6; d++) for (let k = 0; k < 4; k++) arr[d * 4 + k] = has ? cornerShade(has, c.ix, c.iy, c.iz, d, ...CORNERS[k]) : 1;
+  geo.attributes.aoc.needsUpdate = true;
 }
 
 // A whole figure (expanded cells) as one plain-coloured mesh: only the outside faces, one draw call.
 export function mergeFigure(cells) {
   const key = (x, y, z) => `${x},${y},${z}`;
   const has = new Set(cells.map(c => key(c.ix, c.iy, c.iz)));
-  const pos = [], nor = [], uv = [], col = [], pat = [], idx = [];
+  const pos = [], nor = [], uv = [], col = [], pat = [], idx = [], ao = [];
+  const hasAt = (x, y, z) => has.has(key(x, y, z));
   for (const c of cells) {
     const open = DIRS.map(d => !has.has(key(c.ix + d.n[0], c.iy + d.n[1], c.iz + d.n[2])));
     if (!open.some(Boolean)) continue;
@@ -178,8 +201,11 @@ export function mergeFigure(cells) {
         uv.push(U[v * 2], U[v * 2 + 1]);
         col.push(C[v * 3], C[v * 3 + 1], C[v * 3 + 2]);
         pat.push(T[v]);
+        ao.push(cornerShade(hasAt, c.ix, c.iy, c.iz, d, ...CORNERS[v - d * 4]));
       }
-      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      // (split each quad along the diagonal that keeps the shading even)
+      if (ao[base] + ao[base + 2] < ao[base + 1] + ao[base + 3]) idx.push(base + 1, base + 2, base + 3, base + 1, base + 3, base);
+      else idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
     });
     g.dispose();
   }
@@ -189,6 +215,7 @@ export function mergeFigure(cells) {
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setAttribute('pattern', new THREE.Float32BufferAttribute(pat, 1));
+  geo.setAttribute('aoc', new THREE.Float32BufferAttribute(ao, 1));
   geo.setIndex(idx);
   geo.computeBoundingSphere();
   return geo;
@@ -212,6 +239,9 @@ export const patternGlsl = (tiles = GRID) => `
 export function patternPatch(sh) {
   sh.vertexShader = 'attribute float pattern;\nvarying float vPat;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPat = pattern;');
   sh.fragmentShader = 'varying float vPat;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>${patternGlsl()}`);
+  // corner shading (see shadeVoxel)
+  sh.vertexShader = 'attribute float aoc;\nvarying float vAo;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vAo = aoc;');
+  sh.fragmentShader = 'varying float vAo;\n' + sh.fragmentShader.replace('#include <aomap_fragment>', '#include <aomap_fragment>\n  reflectedLight.indirectDiffuse *= vAo;\n  reflectedLight.directDiffuse *= mix(1.0, vAo, 0.7);');
 }
 // the same patterns on a material whose map covers each face once (the workshop's blocks)
 export function fixedPatternPatch(material, pattern) {

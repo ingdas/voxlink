@@ -5,6 +5,7 @@ import { Player } from '../player.js';
 import { S, INK, voxelMaterial, mulberry32, mergeFigure } from '../voxels.js';
 import { toon, LAYER_OVERLAY } from '../render.js';
 import { t } from '../i18n.js';
+import { setLookTheme, LK } from '../looks.js';
 import { makePortal, paintView } from '../portal.js';
 
 const gardenName = () => t('museum.name');
@@ -227,6 +228,7 @@ class Garden {
     scene.add(this.world.group);
     scene.fog.color.setHex(this.world.theme.skyHorizon);
     scene.fog.density = this.world.theme.fogDensity * 0.8;
+    setLookTheme('meadow'); LK.b.z = LK.b.w = 0;
     ctx.audio.setWorld?.('meadow');
     this.group = new THREE.Group();
     scene.add(this.group);

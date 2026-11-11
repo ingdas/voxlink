@@ -2,6 +2,7 @@
 // and marching-squares contours (flat ground tops with cliff walls for any 2D shape).
 import * as THREE from 'three';
 import { toon, LAYER_FX } from './render.js';
+import { groundMaterial, glows } from './looks.js';
 
 // ---------- signed distance helpers (negative = inside) ----------
 // wobbly blob: radius varies with angle, like the classic island outline
@@ -217,7 +218,8 @@ export class Batch {
     this._m.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(sx, sy, sz));
     return this.add(geo, color, this._m, kind);
   }
-  build(group, blockers) {
+  // wear: the ground wears round a pedestal at the middle
+  build(group, blockers, { wear = false } = {}) {
     const mats = {
       solid: toon(0xffffff, { vertexColors: true }),
       glow: toon(0xffffff, { vertexColors: true }),
@@ -225,7 +227,7 @@ export class Batch {
     };
     mats.glow.onBeforeCompile = glowPatch;
     mats.glow.customProgramCacheKey = () => 'vx-glow';
-    mats.ground = mats.solid;
+    mats.ground = groundMaterial(toon(0xffffff, { vertexColors: true }), wear);
     const meshes = [];
     for (const { kind, list } of this.parts.values()) {
       let n = 0;
@@ -251,6 +253,7 @@ export class Batch {
       m.receiveShadow = true;
       if (kind === 'fx') m.layers.set(LAYER_FX);
       else blockers.push(m);
+      if (kind === 'glow') glows(m);
       m.userData.static = true;
       group.add(m);
       meshes.push(m);

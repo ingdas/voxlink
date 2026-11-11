@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Renderer } from './render.js';
+import { LK } from './looks.js';
 import { LEVELS, CHAPTERS, ENDING, expandLevel, parTime, partsFor } from './levels.js';
 import { S, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, getAtlas } from './voxels.js';
 import { Game, PACK_SIZE, TOOLS } from './game.js';
@@ -1310,6 +1311,7 @@ function frame(now) {
   let dt = (now - lastTime) / 1000;
   lastTime = now;
   if (dt > 0.1) dt = 0.1;
+  LK.a.x += dt; // the looks' clock (the sea)
   audio.updateMusic();
   // CrazyGames is told when the player is in active play (walking an island, the Keeper's Isle, the Garden, the
   // Workshop's editor), not in menus, cutscenes, the celebration, the pause menu or while held upright
@@ -1397,4 +1399,4 @@ async function boot() {
 boot();
 
 // expose for debugging
-window.__voxlink = { game, renderer, save, openNexus, startLevel, LEVELS, ctx };
+window.__voxlink = { game, renderer, save, openNexus, startLevel, LEVELS, ctx, looks: { LK } };
