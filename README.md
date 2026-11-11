@@ -76,8 +76,9 @@ Workshop editor:
 - Every island but the first has three **sparks** of the Keeper's Lantern: up on a hay stack, a terrace or a
   mesa, on the tallest thing around with a breeze ring beside it to float you up, out on the far side, or
   hanging in the air a jump up. Walk into one to catch it: its breeze carries you at bridge speed for a few
-  seconds, it charges the **Magnet** for this run (on small figures too) and it counts towards the island's
-  three for good (`js/sparks.js`).
+  seconds, it charges the **Magnet** for this run (on small figures too; from the second world on the far-side
+  spark is green and charges **Kubo Express**) and it counts towards the island's three for good
+  (`js/sparks.js`).
   Ten sparks, found anywhere, earn **Kubo's lift**: jump again in mid-air and he springs you about a metre higher.
   Thirty, and he **carries you**: keep jump held after his lift and you glide down slowly.
 - Each figure has 3 stars: finish it, beat the par time, and use no hints. The goals sit under the

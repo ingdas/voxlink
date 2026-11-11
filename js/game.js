@@ -384,9 +384,14 @@ export class Game {
     // the island's sparks (not on the very first figure's): the ones caught in this run are gone; on a finished
     // island you only walk, the ones you've ever found are
     this.sparkMask = resume?.sparks ?? 0;
+    this.sparkMint = 0;
     if (campaign && this.levelIndex > 0) {
       const found = this.events.sparksFound?.(level) ?? 0;
-      this.sparks = new Sparks(this.scene, sparkSpots(this.world, 77 + hashId(level.id), this.footR), { gone: built ? found : this.sparkMask, pale: found });
+      const spots = sparkSpots(this.world, 77 + hashId(level.id), this.footR);
+      // from the second world on, the last one (out on the far side, or in the air) is green: it charges Kubo
+      // Express, which is at its best far from the figure, where that spark is
+      this.sparkMint = level.chapter >= 1 && spots.length ? 1 << (spots.length - 1) : 0;
+      this.sparks = new Sparks(this.scene, spots, { gone: built ? found : this.sparkMask, pale: found, mint: this.sparkMint });
       // a spark on a tall thing no jump reaches has a breeze ring beside it: the pedestal's updraft, up to its top
       this.rings = this.sparks.spots.filter(s => s.lift).map(({ lift: z }) => {
         const fx = makeLiftFx(this.scene, z.r, z.top - z.y);
@@ -735,12 +740,12 @@ export class Game {
     this.events.saveSession?.(this.sessionData());
   }
 
-  // A spark of the Keeper's Lantern caught: a magnet charge for this run (any figure, small ones too), and it counts
-  // towards the island's three.
+  // A spark of the Keeper's Lantern caught: a magnet charge for this run (any figure, small ones too; a green one
+  // charges Kubo Express), and it counts towards the island's three.
   catchSpark(k) {
     this.sparkMask |= 1 << k;
-    const s = this.sparks.spots[k], p = this.player.pos;
-    this.fx.burst(new THREE.Vector3(p.x, p.y + 1.1, p.z), 0xffd23f, 26, 5);
+    const s = this.sparks.spots[k], p = this.player.pos, express = !!(this.sparkMint & (1 << k));
+    this.fx.burst(new THREE.Vector3(p.x, p.y + 1.1, p.z), express ? 0x4be3a0 : 0xffd23f, 26, 5);
     this.audio.spark?.(this.sparks.items.filter(i => !i.live).length);
     this.events.vibrate?.(22);
     // …and its breeze goes through you: for a few seconds you run as on a bridge, wherever you are (the detour for
@@ -748,11 +753,11 @@ export class Game {
     this.player.gustT = SPARK_GUST;
     this.audio.breeze?.();
     if (!this.roaming) {
-      this.magnetCharges = Math.min(9, this.magnetCharges + 1);
-      this.events.magnet?.(this.magnetCharges, true);
+      if (express) { this.expressCharges = Math.min(9, this.expressCharges + 1); this.events.express?.(this.expressCharges, true); }
+      else { this.magnetCharges = Math.min(9, this.magnetCharges + 1); this.events.magnet?.(this.magnetCharges, true); }
       this.events.saveSession?.(this.sessionData());
     }
-    this.events.spark?.(this.level, k, s);
+    this.events.spark?.(this.level, k, express ? 'express' : 'magnet');
     this.player.canHop = !!this.events.canHop?.();
     this.player.canGlide = !!this.events.canGlide?.();
   }

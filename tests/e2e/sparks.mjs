@@ -230,6 +230,25 @@ await suite('sparks', async t => {
   t.check('…and with jump held after his lift you sink slowly, carried', g1.carried && g1.air > g0.air + 0.6 && g1.sink > -2.2, { before: g0, after: g1 });
   await h.close();
 
+  // from the second world on, the spark out on the far side is green and charges Kubo Express
+  const e = await t.page({ save: saveWith(MEADOW, { seen: { farm: true, 'tip.sparks': true } }), query: '?debug' });
+  await t.hideDebug(e);
+  await e.evaluate(() => window.__voxlink.startLevel(5));
+  await t.app(e, 'playing');
+  await e.waitForTimeout(400);
+  const tools = () => e.evaluate(() => { const g = window.__voxlink.game, shown = id => !document.getElementById(id).classList.contains('hidden') && getComputedStyle(document.getElementById(id)).display !== 'none'; return { mint: g.sparkMint, kinds: g.sparks.spots.map(s => s.kind), magnet: g.magnetCharges, express: g.expressCharges, magnetBtn: shown('btn-magnet'), expressBtn: shown('btn-express') }; });
+  const e0 = await tools();
+  t.check('Windmill Farm: the third spark, out on the far side, is the green one', e0.mint === 4 && e0.kinds[2] === 'far' && !e0.expressBtn, e0);
+  await e.evaluate(() => window.__voxlink.ctx.companion.reset());
+  await touch(e, 2);
+  await e.waitForFunction(() => window.__voxlink.game.sparkMask === 4, null, { timeout: 5000 }).catch(() => {});
+  await e.waitForFunction(() => /Express/.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || ''), null, { timeout: 12000 }).catch(() => {});
+  const e1 = await tools();
+  t.check('…catching it charges Kubo Express (not the magnet), whose button appears', e1.express === 1 && e1.magnet === 0 && e1.expressBtn && !e1.magnetBtn, e1);
+  t.check('…and the first time, Kubo says what Express does', /Kubo Express/.test(await speech(e)) && /F/.test(await speech(e)), await speech(e));
+  t.check('in the Meadow every spark is gold', await e.evaluate(() => { window.__voxlink.startLevel(2, true); return window.__voxlink.game.sparkMint === 0; }));
+  await e.close();
+
   // a finished island you walk onto: the sparks you found are gone, the rest wait
   const q = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true, farm: true }, extra: { sparks: { ladybug: 5 } } }), query: '?debug' });
   await t.hideDebug(q);

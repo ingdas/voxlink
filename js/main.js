@@ -282,7 +282,7 @@ const game = new Game({
     canHop: () => canHop(),
     canGlide: () => canGlide(),
     hop: () => ctx.companion?.lift(),
-    spark: (l, k) => onSpark(l, k),
+    spark: (l, k, tool) => onSpark(l, k, tool),
     // a link on the first figure: Kubo hops, and the very first one ever gets a word from him
     cheer: () => { ctx.companion?.cheer(); game.events.tipOnce('firstLink', t('kubo.firstLink')); },
     // first steps onto a figure's island this visit: its intro line, the first time ever
@@ -1026,8 +1026,8 @@ function greetBack() {
   if (save.seen.oldSave && !save.seen.oldSaveTold) { save.seen.oldSaveTold = true; persist(); kuboSays(t('kubo.newFigures')); }
 }
 // a spark caught: it counts towards the island's three for good (a paler one, found on an earlier run, only charges
-// the magnet again); the first one ever, Kubo says what the magnet does
-function onSpark(l, k) {
+// its tool again); the first of each colour, Kubo says what its tool does
+function onSpark(l, k, tool) {
   const before = save.sparks[l.id] || 0, was = sparksOf(l);
   save.sparks[l.id] = before | (1 << k);
   const n = sparksOf(l);
@@ -1046,7 +1046,7 @@ function onSpark(l, k) {
     } else if (all === Math.ceil(HOP_SPARKS / 2)) kuboSays(t('kubo.hopSoon', { n: all, left: HOP_SPARKS - all }));
     else if (all === GLIDE_SPARKS - 10) kuboSays(t('kubo.glideSoon', { n: all, left: 10 }));
   }
-  if (!game.roaming) game.events.tipOnce('magnet', t(mobile ? 'kubo.magnet.touch' : 'kubo.magnet.desk'));
+  if (!game.roaming) game.events.tipOnce(tool, t(`kubo.${tool}.${mobile ? 'touch' : 'desk'}`));
 }
 const sparkView = new THREE.Vector3();
 // what a rebuild would still earn: "beat 2:15", "use no hints" or both
@@ -1279,8 +1279,9 @@ $('btn-rebuild').onclick = () => rebuild();
 $('btn-express').onclick = () => input.actions.push({ type: 'express' });
 function renderTool(btn, count, n, gained) {
   const b = $(btn);
-  // (the magnet also shows on a small figure once a spark has charged it)
-  b.classList.toggle('hidden', !(game.stageCount > 1 || (btn === 'btn-magnet' && (n > 0 || game.sparkMask))));
+  // (a tool also shows on a small figure once a spark has charged it: the magnet by a gold one, Express by a green)
+  const mine = btn === 'btn-magnet' ? game.sparkMask & ~game.sparkMint : game.sparkMask & game.sparkMint;
+  b.classList.toggle('hidden', !(game.stageCount > 1 || n > 0 || mine));
   document.body.classList.toggle('has-tools', game.stageCount > 1);
   b.classList.toggle('empty', n <= 0);
   $(count).textContent = n;

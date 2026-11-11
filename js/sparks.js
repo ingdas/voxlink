@@ -127,17 +127,19 @@ function starGeometry() {
 const easeBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
 
 // The lights themselves. gone: bits of the sparks that aren't here (caught this run, or found before on an island
-// you only walk); pale: bits of the ones found before (they still charge the magnet, in a paler light).
+// you only walk); pale: bits of the ones found before (they still charge a tool, in a paler light); mint: bits of
+// the ones that charge Kubo Express instead of the magnet (green, not gold).
 export class Sparks {
-  constructor(scene, spots, { gone = 0, pale = 0 } = {}) {
+  constructor(scene, spots, { gone = 0, pale = 0, mint = 0 } = {}) {
     this.scene = scene;
     this.spots = spots;
     this.group = new THREE.Group();
     this.items = spots.map((s, k) => {
-      const old = !!(pale & (1 << k));
-      const star = new THREE.Mesh(starGeometry(), toon(old ? 0xcfe6ff : 0xffd23f, { emissive: old ? 0x6f9fd8 : 0xff9d00, emissiveIntensity: 0.55 }));
+      const old = !!(pale & (1 << k)), green = !!(mint & (1 << k));
+      const [body, glow, light] = green ? (old ? [0xd4f2e4, 0x6fbf9c, 0xc4f0dc] : [0x4be3a0, 0x12a86a, 0x9ff2cc]) : old ? [0xcfe6ff, 0x6f9fd8, 0xbfe0ff] : [0xffd23f, 0xff9d00, 0xffdf80];
+      const star = new THREE.Mesh(starGeometry(), toon(body, { emissive: glow, emissiveIntensity: 0.55 }));
       glows(star);
-      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: sharedDot(), color: old ? 0xbfe0ff : 0xffdf80, transparent: true, opacity: 0.26, depthWrite: false, blending: THREE.AdditiveBlending }));
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: sharedDot(), color: light, transparent: true, opacity: 0.26, depthWrite: false, blending: THREE.AdditiveBlending }));
       halo.layers.set(LAYER_OVERLAY);
       halo.scale.setScalar(1.5);
       const g = new THREE.Group();

@@ -585,3 +585,12 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   lift earned, a jump pressed just before landing became a small hop in the air instead of the next jump off the
   ground: within 0.3 m of the ground on the way down it waits for the landing, as it always did.
 
+## 2026-11-11 · Green sparks: Kubo Express from the second world on
+
+- Every spark charged the magnet, so small figures had one tool, and Kubo Express (every carried block that fits
+  flies to its bubble from wherever you stand) stayed a big-figure tool earned by a link counter. From Windmill
+  Farm on, an island's **last spark, the one out on the far side (or in the air), is green and charges Express**
+  instead: that spark is where Express is at its best, as far from the figure as the island goes. The Meadow's
+  are all gold, so the first world introduces one tool, not two. Express's button shows on a small figure once it
+  has a charge (like the magnet's), and Kubo says what it does the first time (his existing line).
+
