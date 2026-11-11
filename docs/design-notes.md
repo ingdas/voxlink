@@ -515,3 +515,19 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   not different: it is the reward. What it adds is in the walking: fences, blocks and pedestal steps stop being
   things you go round.
 
+## 2026-11-11 · Movement you can feel
+
+- **Bridges at speed.** A breeze lane carries you at 17–18 m/s, but nothing said so except the ground going by:
+  the same view, the same sounds as a walk. Past about 10 m/s (only a lane gets you there) the view now widens by
+  up to 7 % and **wind lines** hang in the air ahead, off to both sides of your way, so you streak past them
+  (26 thin boxes in one instanced mesh, recycled as they fall behind). They build over a third of a second and go
+  in half that. The first try (2 cm wide, 40 % white) couldn't be seen against a bright sky: 4.5 cm and 70 %.
+  Neither happens with reduced motion.
+- **Jumps and landings.** Through your own eyes what happens at your feet is out of view (the ground only comes
+  into it about 2.5 m ahead), so a puff of dust there showed nothing. A jump and a landing now send a **ring of
+  dust over the ground** from your feet, 2.5 m for a jump and 3.5 to 5 m for a landing, in the colour of what
+  you stand on (grass, sand, snow, planks, stone), plus a few bits at your feet for when you do look down. Water
+  keeps its splash.
+- **Fixed in passing.** A finished figure's part flags stayed up, and one could stand right in the way on, in the
+  middle of the view you get back after the celebration: they're put away once the figure is finished.
+

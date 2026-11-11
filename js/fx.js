@@ -50,9 +50,59 @@ class ParticlePool {
   }
 }
 
+// Wind lines that hang in the air ahead of you while a breeze lane carries you along: you fly past them.
+class Streaks {
+  constructor(scene, n = 26) {
+    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, 0.045, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, fog: false }), n);
+    this.mesh.layers.set(LAYER_OVERLAY);
+    this.mesh.frustumCulled = false;
+    this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.mesh.visible = false;
+    this.items = Array.from({ length: n }, () => ({ p: new THREE.Vector3(), len: 2, live: false }));
+    this.dir = new THREE.Vector3(0, 0, -1);
+    scene.add(this.mesh);
+  }
+  // vel: your velocity; amount: 0 (none) to 1 (full speed)
+  update(camera, vel, amount) {
+    const m = this.mesh;
+    m.material.opacity = amount * 0.7;
+    if (amount < 0.02) { if (m.visible) { m.visible = false; for (const it of this.items) it.live = false; } return; }
+    const fresh = !m.visible;
+    m.visible = true;
+    const h = Math.hypot(vel.x, vel.z);
+    if (h > 1) this.dir.set(vel.x / h, 0, vel.z / h);
+    const d = this.dir, c = camera.position;
+    _q.setFromUnitVectors(_s.set(0, 0, 1), d);
+    this.items.forEach((it, i) => {
+      const along = (it.p.x - c.x) * d.x + (it.p.z - c.z) * d.z, side = (it.p.x - c.x) * -d.z + (it.p.z - c.z) * d.x;
+      if (!it.live || along < -2 || along > 30 || Math.abs(side) > 7) {
+        // a new one, off to one side of the way ahead (never across the middle of the view)
+        const a = fresh ? 3 + Math.random() * 20 : 16 + Math.random() * 10, s = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 2.8);
+        it.p.set(c.x + d.x * a - d.z * s, c.y - 1 + Math.random() * 2.4, c.z + d.z * a + d.x * s);
+        it.len = 2.2 + Math.random() * 2.6;
+        it.live = true;
+      }
+      m.setMatrixAt(i, _m.compose(it.p, _q, _e2.set(1, 1, it.len)));
+    });
+    m.instanceMatrix.needsUpdate = true;
+  }
+}
+const _e2 = new THREE.Vector3();
+
 export class FX {
   constructor(scene) {
     this.scene = scene;
+    this.wind = new Streaks(scene);
+    // dust rings that spread over the ground from your feet (through your own eyes a puff at your feet is out of view)
+    const dustGeo = new THREE.RingGeometry(0.88, 1, 40).rotateX(-Math.PI / 2);
+    this.dustRings = Array.from({ length: 3 }, () => {
+      const r = new THREE.Mesh(dustGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }));
+      r.layers.set(LAYER_OVERLAY);
+      r.visible = false;
+      r.userData.t = 1;
+      scene.add(r);
+      return r;
+    });
     this.bits = new ParticlePool(scene, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial(), 260);
     this.confetti = new ParticlePool(scene, new THREE.PlaneGeometry(1, 0.6), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), 360);
     this.rings = [];
@@ -86,6 +136,26 @@ export class FX {
     ring.userData.t = 0;
     this.scene.add(ring);
     this.rings.push(ring);
+  }
+
+  // a low puff of dust round your feet (a jump, a landing), and a ring of it spreading `reach` metres over the ground
+  puff(pos, color, n = 8, power = 1.6, reach = 0) {
+    const c = this.col.set(color);
+    if (reach > 0) {
+      const r = this.dustRings.reduce((a, b) => (b.userData.t > a.userData.t ? b : a));
+      r.position.set(pos.x, pos.y + 0.05, pos.z);
+      r.material.color.copy(c);
+      Object.assign(r.userData, { t: 0, reach });
+      r.visible = true;
+    }
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = power * (0.5 + Math.random() * 0.7);
+      this.bits.emit({
+        pos: this.tmp.set(pos.x + Math.cos(a) * 0.22, pos.y + 0.06, pos.z + Math.sin(a) * 0.22),
+        vel: new THREE.Vector3(Math.cos(a) * s, 0.5 + Math.random() * 0.8, Math.sin(a) * s),
+        color: c.clone().offsetHSL(0, 0, (Math.random() - 0.5) * 0.1), life: 0.35 + Math.random() * 0.3, size: 0.06 + Math.random() * 0.07, spin: 8, g: 3, drag: 3,
+      });
+    }
   }
 
   sparkle(pos) {
@@ -124,6 +194,14 @@ export class FX {
       r.material.opacity = Math.max(0, 0.9 * (1 - k));
       r.quaternion.copy(camera.quaternion);
       if (k >= 1) { this.scene.remove(r); r.material.dispose(); this.rings.splice(i, 1); }
+    }
+    for (const r of this.dustRings) {
+      if (!r.visible) continue;
+      r.userData.t += dt / 0.5;
+      const k = Math.min(1, r.userData.t), e = 1 - (1 - k) * (1 - k);
+      r.scale.setScalar(0.3 + e * r.userData.reach);
+      r.material.opacity = 0.6 * (1 - k * k);
+      if (k >= 1) r.visible = false;
     }
     if (this.beamTime > 0 && this.beamTarget) {
       const p = this.beamTarget.position;

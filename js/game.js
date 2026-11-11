@@ -16,6 +16,7 @@ export const PACK_SIZE = 4;
 // tools on big figures: a charge every `every` links (counted while below `max`)
 export const TOOLS = { magnet: { every: 12, max: 3, reach: 10 }, express: { every: 20, max: 2 } };
 const _e = new THREE.Euler();
+const _dust = new THREE.Color(), _white = new THREE.Color(0xffffff);
 const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
 const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
 // First-play tutorial: the first link comes first, with the block lying right in front of you. 'meet' (right after
@@ -133,8 +134,8 @@ export class Game {
         this.fx.burst(new THREE.Vector3(p.x, p.y + 0.12, p.z), 0xe6fbff, 5, 1.6);
       }
     };
-    this.player.onLand = v => this.audio.land(v);
-    this.player.onJump = () => this.audio.jump();
+    this.player.onLand = v => { this.audio.land(v); this.dust(Math.round(THREE.MathUtils.clamp(v, 6, 13)) - 1, 1 + Math.min(v, 14) * 0.08, 1.8 + Math.min(v, 16) * 0.2); };
+    this.player.onJump = () => { this.audio.jump(); this.dust(5, 1.2, 2.2); };
     this.player.onPad = () => {
       this.audio.boing();
       const p = this.player.pos;
@@ -168,6 +169,14 @@ export class Game {
     this.pack = [];
     this.active = 0;
     this.comfort = { kick: 1, spin: 1 }; // scaled down by the reduced-motion setting
+  }
+
+  // a puff of dust round your feet, in the colour of what you stand on (water has its own splash)
+  dust(n, power, reach) {
+    const p = this.player.pos, s = this.world?.surfaceAt?.(p.x, p.z, p.y);
+    if (!this.world || s?.splash || this.world.floorAt?.(p.x, p.z) === null) return;
+    const c = { wood: 0xd9b38c, stone: 0xd2ccdc, crystal: 0xd6dcff, snow: 0xffffff, ice: 0xe6f6ff }[s?.sound] ?? _dust.set(this.world.theme.grass).lerp(_white, 0.4).getHex();
+    this.fx.puff(p, c, n, power, reach);
   }
 
   // ---------- level lifecycle ----------
@@ -331,6 +340,8 @@ export class Game {
     this.syncStage();
     this.buildDistrictFlags();
     for (const d of this.districtDone) if (this.flags[d]) this.flags[d].banner.material.color.setScalar(0.55);
+    // (a finished figure's part flags have nothing left to say, and one may stand right in the way on)
+    if (built && this.flagGroup) this.flagGroup.visible = false;
     // (a run you come back to keeps the charges it had)
     this.magnetCharges = resume?.magnet ?? (this.stageCount > 1 ? 1 : 0);
     this.magnetLinks = 0;
@@ -755,6 +766,8 @@ export class Game {
     this.figureMat = null;
     this.life?.dispose();
     this.life = null;
+    this.rush = 0;
+    this.fx.wind.update(this.camera, this.player.vel, 0);
     this.arch = null;
     this.world = null;
   }
@@ -1222,7 +1235,7 @@ export class Game {
     LK.b.z = this.arch ? -this.arch.group.position.x : 0; LK.b.w = this.arch ? -this.arch.group.position.z : 0;
 
     this.life?.update(dt, this.t, this.camera.position, this.camera, d => { if (this.mode === 'play') this.audio.plop?.(d); });
-    if (this.mode !== 'play') this.sparks?.update(dt, this.t, null);
+    if (this.mode !== 'play') { this.sparks?.update(dt, this.t, null); if (this.rush) { this.rush = 0; this.fx.wind.update(this.camera, this.player.vel, 0); } }
     if (this.mode === 'play') this.updatePlay(dt);
     else if (this.mode === 'showcase') this.updateOrbit(dt, 0.08, 1);
     else if (this.mode === 'celebrate') this.updateCelebrate(dt);
@@ -1429,9 +1442,15 @@ export class Game {
     if (this.liftFx) this.liftFx.update(dt, this.t, !!lift, this.player.floating);
     this.sparks?.update(dt, this.t, this.player, k => this.catchSpark(k), q => this.fx.sparkle(q));
     this.player.applyCamera(this.camera);
-    if (this.kick > 0.001 || this.camera.fov !== this.camera.userData.baseFov) {
+    // carried along a breeze lane (well over a run): the view widens a touch and wind lines streak past (neither
+    // with reduced motion)
+    const rush = THREE.MathUtils.clamp((Math.hypot(this.player.vel.x, this.player.vel.z) - 9.5) / 6, 0, 1) * this.comfort.kick;
+    this.rush = (this.rush || 0) + (rush - (this.rush || 0)) * Math.min(1, dt * (rush > this.rush ? 3 : 6));
+    if (this.rush < 0.003) this.rush = 0;
+    this.fx.wind.update(this.camera, this.player.vel, this.rush);
+    if (this.kick > 0.001 || this.rush > 0 || this.camera.fov !== this.camera.userData.baseFov) {
       this.kick = this.kick > 0.002 ? this.kick * Math.exp(-dt * 9) : 0;
-      this.camera.fov = (this.camera.userData.baseFov || 70) * (1 + this.kick * 0.03 * this.comfort.kick);
+      this.camera.fov = (this.camera.userData.baseFov || 70) * (1 + this.kick * 0.03 * this.comfort.kick + this.rush * 0.07);
       this.camera.updateProjectionMatrix();
     }
     this.camera.updateMatrixWorld();
@@ -1498,6 +1517,7 @@ export class Game {
   walkOn() {
     this.roaming = true;
     this.sparks?.drop(this.events.sparksFound?.(this.level) ?? 0);
+    if (this.flagGroup) this.flagGroup.visible = false;
     this.fx.clearBeam();
     for (const v of this.voxels) { v.mesh.position.copy(v.target); v.mesh.rotation.set(0, 0, 0); v.mesh.scale.setScalar(1); }
     this.arch?.refresh();
