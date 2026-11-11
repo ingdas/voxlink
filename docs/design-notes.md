@@ -666,3 +666,10 @@ thing, not more realism. Detail that is added draws from a random source of its 
   smaller ones riding on it; **floes** are slabs with a paler rim under a cap of snow, and **penguins** stand on
   the bigger ones. The **great crystal** has a bright heart, slivers between its shards and a nest of stones.
   Snow wears fewer, shorter stalks than other ground.
+- **Frostwood.** The **log cabin** has grooves between its logs on all four walls and log ends crossing at the
+  corners, lit windows, a lip of snow and icicles along the eaves, smoke rising from a stone chimney, a wreath on
+  the door and a lantern beside it; its firewood is stacked between stakes with the cut ends showing, there's a
+  chopping block with an axe in it and a **snowman** (coal eyes, carrot, twig arms, scarf, bucket hat) by the
+  door. Both stand inside the cabin's own clearing and are added last, so nothing else moves. **Stumps** flare at
+  the foot and show their rings under the snow; snow is heaped along the stream's banks. (The Meadow's cottage
+  smokes too.)

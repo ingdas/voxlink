@@ -154,7 +154,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     T, themeId, rng, R, clearR, seed, difficulty, quality, group, B, colliders, blockers, tops, updaters, obstacles, spawnZ, opts, out: {},
     bound: R + 1, hasSea: true, seaY: seaY ?? -1.7, wind: null, pads: [], gravityScale: 1, voidY: undefined,
     walkSd: null, floorAt: () => 0, surfaceAt: null, coastSd: null,
-    cstep: 0.5, mood,
+    cstep: 0.5, mood, extras: [],
     // decoration's own random source (a layout's draws stay as they were), and where grass gathers round a foot
     drng: seeded(seed * 131 + (part ? 7 : 3)), skirts: [],
     // the layout's count of trees or rocks, scaled by the island's mood

@@ -7,7 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
-import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin } from './world-props.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin, snowman, stump } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -250,7 +250,7 @@ function meadow(W) {
   scatterProps(W, 1, (x, z) => !W.nearCentre(x, z, 6) && !W.spawnPath(x, z, 3) && W.walkSd(x, z) < -3 && W.walkSd(x, z) > -7
     && W.flatAt(x, z, 2.6, 0.01) !== null && !W.blocked(x, z, 2.6, W.floorAt(x, z), 4) && !W.crowded(x, z, 3), (x, z) => {
     const y = W.floorAt(x, z), ry = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
-    const H = house(W, x, z, ry, { wall: 0xfff1dc, roof: 0xe0604f, door: 0x9a6b4f, chimney: 0xb8705a, shutters: 0x4fa58a, box: [1.45, 3.2], clear: 2.4, y });
+    const H = house(W, x, z, ry, { wall: 0xfff1dc, roof: 0xe0604f, door: 0x9a6b4f, chimney: 0xb8705a, shutters: 0x4fa58a, smoke: true, box: [1.45, 3.2], clear: 2.4, y });
     // a flower box under each front window, and stepping stones to the door
     for (const sa of [-1, 1]) {
       const a = sa * 2.8 * 0.3;
@@ -279,7 +279,7 @@ function meadow(W) {
   });
   scatterProps(W, W.more('rocks', Math.round(R * 0.2)), (x, z) => okTree(W, x, z, 1.0), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4));
   Object.assign(W, SKIES.meadow);
-  W.extras = [() => butterflies(W)];
+  W.extras.push(() => butterflies(W));
 }
 
 function butterflies(W) {
@@ -805,7 +805,7 @@ function storm(W) {
   W.tuftScale = 1.3; W.sway = 1.8;
   gusts(W, { first: 5 + rng() * 3, len: 3.0, peak: 1.1 });
   Object.assign(W, SKIES.storm);
-  W.extras = [() => leaves(W)];
+  W.extras.push(() => leaves(W));
 }
 
 // every so often a gust of `len` seconds pushes the player (peak in m/s), from around W.windDir
@@ -1099,7 +1099,7 @@ function farm(W) {
 
 // ---------- frostwood: a snowy pine forest, a log cabin and a frozen stream; deep snowdrifts slow you ----------
 function frostwood(W) {
-  const { R, T, seed, rng, clearR } = W;
+  const { R, T, seed, rng, clearR } = W, late = [];
   const isl = sdBlob(0, 0, R, seed, 0.9);
   W.walkSd = isl; W.coastSd = isl; W.radiusAt = isl.radiusAt;
   W.seaY = -1.4;
@@ -1147,15 +1147,47 @@ function frostwood(W) {
   if (cab) {
     const { x, z } = cab, ry = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
     const fwd = [Math.sin(ry), Math.cos(ry)], side = [Math.cos(ry), -Math.sin(ry)];
-    house(W, x, z, ry, { w: 3.4, d: 2.8, h: 2.1, roofH: 1.2, wall: 0x8a5a3c, roof: 0xfafcff, door: 0x5c3a28, glass: 0xffd27a });
-    // log ends at the corners and a few log lines across the front
-    for (const s of [-1, 1]) for (let y = 0.25; y < 2.1; y += 0.42) put(W, GEO.cyl(8), 0xb07a50, x + side[0] * s * 1.75 + fwd[0] * 1.45, y, z + side[1] * s * 1.75 + fwd[1] * 1.45, { sx: 0.2, sy: 0.25, sz: 0.2, rx: Math.PI / 2, ry });
-    for (let y = 0.42; y < 2.1; y += 0.42) put(W, GEO.box(), 0x6b4a36, x + fwd[0] * 1.415, y, z + fwd[1] * 1.415, { sx: 3.42, sy: 0.05, sz: 0.04, ry });
-    put(W, GEO.box(), 0x8f8aa8, x - side[0] * 1.0 - fwd[0] * 0.5, 3.1, z - side[1] * 1.0 - fwd[1] * 0.5, { sx: 0.5, sy: 1.4, sz: 0.5 }); // chimney
-    // stacked firewood
+    const Hs = house(W, x, z, ry, { w: 3.4, d: 2.8, h: 2.1, roofH: 1.2, wall: 0x8a5a3c, roof: 0xfafcff, door: 0x5c3a28, glass: 0xffd27a, trim: null, chimney: 0x8f8aa8, footing: 0x9a96ad,
+      lit: true, icicles: true, smoke: true });
+    // log walls: a groove between every two logs on all four sides, the logs' ends crossing at the corners
+    for (let y = 0.42; y < 2.1; y += 0.42) {
+      for (const so of [-1, 1]) {
+        put(W, GEO.box(), 0x6b4a36, ...Hs.at(0, y, so * 1.412), { sx: 3.42, sy: 0.05, sz: 0.04, ry });
+        put(W, GEO.box(), 0x6b4a36, ...Hs.at(so * 1.712, y, 0), { sx: 0.04, sy: 0.05, sz: 2.82, ry });
+      }
+    }
+    for (const sa of [-1, 1]) for (const so of [-1, 1]) for (let k = 0; k < 5; k++) {
+      const y = 0.22 + k * 0.42;
+      putL(W, GEO.cyl(8), k % 2 ? 0xb07a50 : 0xa06e46, ...Hs.at(sa * 1.75, y, so * 1.5), { sx: 0.2, sy: 0.34, sz: 0.2, ry, rx: Math.PI / 2 });
+      putL(W, GEO.cyl(8), 0xe2c08c, ...Hs.at(sa * 1.75, y, so * 1.675), { sx: 0.13, sy: 0.012, sz: 0.13, ry, rx: Math.PI / 2 });
+      putL(W, GEO.cyl(8), k % 2 ? 0xa06e46 : 0xb07a50, ...Hs.at(sa * 1.85, y + 0.21, so * 1.4), { sx: 0.2, sy: 0.34, sz: 0.2, ry, rz: Math.PI / 2 });
+      putL(W, GEO.cyl(8), 0xe2c08c, ...Hs.at(sa * 2.025, y + 0.21, so * 1.4), { sx: 0.13, sy: 0.012, sz: 0.13, ry, rz: Math.PI / 2 });
+    }
+    // a wreath on the door, a lantern beside it
+    for (let k = 0; k < 8; k++) { const a = (k / 8) * 6.283; put(W, GEO.ico(), k % 4 ? 0x2f7a5a : 0xd9443b, ...Hs.at(Math.cos(a) * 0.15, 0.95 + Math.sin(a) * 0.15, 1.5), { sx: 0.07, sy: 0.07, sz: 0.05 }); }
+    put(W, GEO.box(), 0x3a2a20, ...Hs.at(0.62, 1.52, 1.5), { sx: 0.05, sy: 0.05, sz: 0.2, ry });
+    put(W, GEO.box(), 0xffd27a, ...Hs.at(0.62, 1.36, 1.58), { sx: 0.14, sy: 0.2, sz: 0.14, ry, kind: 'glow' });
+    put(W, GEO.cone(4), 0x3a2a20, ...Hs.at(0.62, 1.52, 1.58), { sx: 0.13, sy: 0.1, sz: 0.13, ry: ry + Math.PI / 4 });
+    // stacked firewood between two stakes, the cut ends showing; a chopping block with an axe in it
     const wx = x + side[0] * 2.4 + fwd[0] * 0.6, wz = z + side[1] * 2.4 + fwd[1] * 0.6;
-    for (let k = 0; k < 6; k++) put(W, GEO.cyl(7), k % 2 ? 0xb07a50 : 0x9a6b4f, wx + side[0] * ((k % 3) - 1) * 0.32, 0.17 + Math.floor(k / 3) * 0.3, wz + side[1] * ((k % 3) - 1) * 0.32, { sx: 0.16, sy: 1.0, sz: 0.16, rx: Math.PI / 2, ry });
+    for (let k = 0; k < 9; k++) {
+      const col = k % 3, row = Math.floor(k / 3), px = wx + side[0] * (col - 1) * 0.32 + (row % 2) * side[0] * 0.08, py = 0.17 + row * 0.29, pz = wz + side[1] * (col - 1) * 0.32 + (row % 2) * side[1] * 0.08;
+      putL(W, GEO.cyl(7), k % 2 ? 0xb07a50 : 0x9a6b4f, px, py, pz, { sx: 0.16, sy: 1.0, sz: 0.16, ry, rx: Math.PI / 2 });
+      for (const e of [-1, 1]) putL(W, GEO.cyl(7), 0xe2c08c, px + fwd[0] * e * 0.503, py, pz + fwd[1] * e * 0.503, { sx: 0.12, sy: 0.01, sz: 0.12, ry, rx: Math.PI / 2 });
+    }
+    for (const e of [-1, 1]) put(W, GEO.box(), 0x6b4a36, wx + side[0] * e * 0.55, 0.5, wz + side[1] * e * 0.55, { sx: 0.07, sy: 1.0, sz: 0.07, ry });
+    put(W, GEO.dome(), 0xfafcff, wx, 0.98, wz, { sx: 0.5, sy: 0.12, sz: 0.5 });
     W.box(wx - 0.6, 0, wz - 0.6, wx + 0.6, 0.6, wz + 0.6, { sound: 'wood' });
+    late.push(() => {
+      // (close by the cabin, where no block lies: added last, so they move nothing)
+      const [bx, , bz] = Hs.at(-2.35, 0, 0.9), [mx, , mz] = Hs.at(1.25, 0, 2.2);
+      stump(W, bx, bz, 0, { r: 0.3, h: 0.42 });
+      putL(W, GEO.box(), 0x8a5a3c, bx + 0.12, 0.72, bz, { sx: 0.045, sy: 0.6, sz: 0.045, rz: -0.5 });
+      putL(W, GEO.box(), 0x8f8aa8, bx - 0.04, 0.5, bz, { sx: 0.2, sy: 0.12, sz: 0.04, rz: -0.5 });
+      W.box(bx - 0.3, 0, bz - 0.3, bx + 0.3, 0.45, bz + 0.3, { sound: 'wood' });
+      snowman(W, mx, mz, ry + 0.4);
+      W.box(mx - 0.35, 0, mz - 0.35, mx + 0.35, 1.5, mz + 0.35, { sound: 'snow' });
+    });
   }
 
   // the forest: tall pines, stumps and snowy rocks
@@ -1163,8 +1195,7 @@ function frostwood(W) {
   W.landmark(); // before the trees and rocks, which grow around it
   scatterProps(W, W.more('trees', Math.round(R * 1.3)), (x, z) => okTree(W, x, z, 1.2) && stream(x, z) > 1.8 && !inDrift(x, z), (x, z) => tree(W, 'pine', x, z, 0.9 + rng() * 0.7, 0), 10);
   scatterProps(W, Math.round(R * 0.25), (x, z) => okTree(W, x, z, 1) && stream(x, z) > 1.2 && !inDrift(x, z), (x, z) => {
-    put(W, GEO.cyl(8), 0x8a5a3c, x, 0.25, z, { sx: 0.35, sy: 0.5, sz: 0.35 });
-    put(W, GEO.cyl(8), 0xfafcff, x, 0.52, z, { sx: 0.37, sy: 0.06, sz: 0.37 });
+    stump(W, x, z, 0);
     W.box(x - 0.35, 0, z - 0.35, x + 0.35, 0.55, z + 0.35, { top: false, sound: 'wood' });
     W.obstacles.push({ x, z, r: 0.7 });
   });
@@ -1173,6 +1204,15 @@ function frostwood(W) {
     rock(W, x, z, s, 0);
     put(W, GEO.dome(), 0xffffff, x, s * 0.55, z, { sx: s * 0.85, sy: s * 0.35, sz: s * 0.8, ry: rng() * 3 });
   });
+  // snow heaped along the stream's banks
+  for (let i = 0, k = 0; i < 400 && k < 30; i++) {
+    const a = W.drng() * 6.283, r = Math.sqrt(W.drng()) * R, x = Math.cos(a) * r, z = Math.sin(a) * r, sd = stream(x, z);
+    if (sd < 0.05 || sd > 0.45 || isl(x, z) > -0.8) continue;
+    const ss = 0.3 + W.drng() * 0.35;
+    put(W, GEO.dome(), 0xffffff, x, -0.03, z, { sx: ss * 1.3, sy: ss * 0.45, sz: ss, ry: W.drng() * 3, kind: 'fx' });
+    k++;
+  }
+  late.forEach(f => f());
   Object.assign(W, SKIES.frostwood);
 }
 

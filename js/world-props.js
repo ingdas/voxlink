@@ -6,6 +6,7 @@
 // was, and all added detail draws from W.drng instead, so richer models never move what a layout places.
 import * as THREE from 'three';
 import { GEO, bevelBox, mergeGeos } from './world-kit.js';
+import { toon, LAYER_FX } from './render.js';
 
 const Q = new THREE.Quaternion(), V = new THREE.Vector3(), M = new THREE.Matrix4(), E = new THREE.Euler();
 const C1 = new THREE.Color(), C2 = new THREE.Color();
@@ -340,9 +341,10 @@ export function tower(W, x, z, w, d, h, base, ox, oz, steps, { body, cap, step =
 // ---------- houses ----------
 // a little house: walls on a stone footing, a gable roof along its width with eaves and rows of tiles, a framed door
 // with a step, two windows with frames and shutters facing `ry`, a window in each side wall; chimney: its colour
-// box: [half size, height] of a square collider (else the walls' own footprint); clear: how far loose blocks keep off
+// box: [half size, height] of a square collider (else the walls' own footprint); clear: how far loose blocks keep off;
+// lit: the windows glow; icicles: they hang from the eaves; smoke: it rises from the chimney
 export function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wall, roof, door = 0x7a4e32, glass = 0x7ec8f0, trim = null, chimney = null, shutters = null, footing = 0xb9b0a0,
-  box = null, clear = null, y = W.floorAt(x, z) ?? 0 }) {
+  box = null, clear = null, lit = false, icicles = false, smoke = false, y = W.floorAt(x, z) ?? 0 }) {
   const fwd = [Math.sin(ry), Math.cos(ry)], side = [Math.cos(ry), -Math.sin(ry)];
   // local (across, up, out) → the world
   const at = (a, up, o) => [x + side[0] * a + fwd[0] * o, y + up, z + side[1] * a + fwd[1] * o];
@@ -377,7 +379,7 @@ export function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wal
     const r2 = ry + turn, f = turn ? [side[0] * Math.sign(a), side[1] * Math.sign(a)] : fwd;
     const p = turn ? at(a, up, o) : at(a, up, o);
     put(W, GEO.box(), frame, p[0], p[1], p[2], { sx: 0.66, sy: 0.66, sz: 0.07, ry: r2 });
-    put(W, GEO.box(), glass, p[0] + f[0] * 0.03, p[1], p[2] + f[1] * 0.03, { sx: 0.5, sy: 0.5, sz: 0.05, ry: r2 });
+    put(W, GEO.box(), glass, p[0] + f[0] * 0.03, p[1], p[2] + f[1] * 0.03, { sx: 0.5, sy: 0.5, sz: 0.05, ry: r2, kind: lit ? 'glow' : 'solid' });
     put(W, GEO.box(), frame, p[0] + f[0] * 0.06, p[1], p[2] + f[1] * 0.06, { sx: 0.04, sy: 0.5, sz: 0.012, ry: r2 });
     put(W, GEO.box(), frame, p[0] + f[0] * 0.06, p[1], p[2] + f[1] * 0.06, { sx: 0.5, sy: 0.04, sz: 0.012, ry: r2 });
     put(W, GEO.box(), frame, p[0] + f[0] * 0.07, p[1] - 0.36, p[2] + f[1] * 0.07, { sx: 0.78, sy: 0.07, sz: 0.16, ry: r2 });
@@ -393,6 +395,19 @@ export function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wal
     const p = at(-w * 0.28, h + roofH * 0.55, -d * 0.2);
     block(W, chimney, p[0], p[1], p[2], 0.42, 1.1, 0.42, { b: 0.04, ry, tint: footTint(0.88, 1.02) });
     block(W, shade(chimney, 0.8), p[0], p[1] + 0.58, p[2], 0.54, 0.12, 0.54, { b: 0.03, ry });
+    if (smoke) chimneySmoke(W, p[0], p[1] + 0.7, p[2]);
+  }
+  if (icicles) {
+    const r = W.drng;
+    for (const so of [-1, 1]) {
+      // a lip of snow along the eave, icicles of uneven length under it
+      putL(W, GEO.box(), roof, ...at(0, eave + 0.03, so * (hw - 0.06)), { sx: w + 0.6, sy: 0.17, sz: 0.3, ry, rx: so * slope });
+      for (let t = -w / 2 - 0.15; t < w / 2 + 0.2; t += 0.26) {
+        const il = 0.12 + r() * 0.3;
+        if (r() < 0.25) continue;
+        put(W, GEO.cone(5), 0xdff4ff, ...at(t + (r() - 0.5) * 0.1, eave - 0.12 - il / 2, so * (hw - 0.02)), { sx: 0.045, sy: il, sz: 0.045, rx: Math.PI });
+      }
+    }
   }
   const turned = Math.abs(Math.sin(ry)) > 0.5, ex = box ? box[0] : (turned ? d : w) / 2 + 0.05, ez = box ? box[0] : (turned ? w : d) / 2 + 0.05;
   W.box(x - ex, y, z - ez, x + ex, y + (box ? box[1] : h + roofH), z + ez, { sound: 'wood' });
@@ -651,4 +666,56 @@ export function penguin(W, x, y, z, ry, s = 1) {
     putL(W, GEO.box(), dark, x + sx * e * 0.2 * s, y + 0.32 * s, z + sz * e * 0.2 * s, { sx: 0.04 * s, sy: 0.26 * s, sz: 0.1 * s, ry, rz: e * 0.3 });
     put(W, GEO.box(), 0xffa94d, x + sx * e * 0.08 * s + fx * 0.07 * s, y + 0.02 * s, z + sz * e * 0.08 * s + fz * 0.07 * s, { sx: 0.08 * s, sy: 0.035 * s, sz: 0.13 * s, ry });
   }
+}
+
+// smoke from a chimney: a few puffs that swell as they rise and drift, then thin away (one instanced mesh)
+export function chimneySmoke(W, x, y, z, color = 0xf4f1ec) {
+  W.extras.push(() => {
+    const N = 5, im = new THREE.InstancedMesh(GEO.blob(), toon(color, { fog: true }), N);
+    im.layers.set(LAYER_FX);
+    im.frustumCulled = false;
+    W.group.add(im);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+    W.updaters.push((dt, t) => {
+      const wx = W.wind ? W.wind.x : 0, wz = W.wind ? W.wind.z : 0;
+      for (let i = 0; i < N; i++) {
+        const k = (t * 0.16 + i / N) % 1, s = 0.12 + Math.sin(k * Math.PI) * 0.26;
+        im.setMatrixAt(i, m.compose(p.set(x + k * k * (0.9 + wx * 3) + Math.sin(k * 5 + i) * 0.08, y + k * 2.6, z + k * k * (0.4 + wz * 3)), q, sc.set(s, s * 0.85, s)));
+      }
+      im.instanceMatrix.needsUpdate = true;
+    });
+  });
+}
+
+// a snowman: three balls, coal eyes and buttons, a carrot, twig arms, a scarf, a bucket for a hat
+export function snowman(W, x, z, ry, y = 0, s = 1) {
+  const fx = Math.sin(ry), fz = Math.cos(ry), sx = Math.cos(ry), sz = -Math.sin(ry), snow = 0xfafcff, coal = 0x2a2438;
+  const at = (a, up, f) => [x + sx * a * s + fx * f * s, y + up * s, z + sz * a * s + fz * f * s];
+  put(W, GEO.lump(0), snow, ...at(0, 0.36, 0), { sx: 0.46 * s, sy: 0.4 * s, sz: 0.46 * s, tint: footTint(0.86, 1.02) });
+  put(W, GEO.lump(1), snow, ...at(0, 0.92, 0), { sx: 0.34 * s, sy: 0.31 * s, sz: 0.34 * s, tint: footTint(0.9, 1.02) });
+  put(W, GEO.blob(), snow, ...at(0, 1.36, 0), { sx: 0.24 * s, sy: 0.23 * s, sz: 0.24 * s });
+  for (const e of [-1, 1]) put(W, GEO.ico(), coal, ...at(e * 0.09, 1.42, 0.21), { sx: 0.035 * s, sy: 0.035 * s, sz: 0.03 * s });
+  for (let k = 0; k < 5; k++) put(W, GEO.ico(), coal, ...at((k - 2) * 0.045, 1.3 - Math.abs(k - 2) * -0.015, 0.215), { sx: 0.018 * s, sy: 0.018 * s, sz: 0.015 * s });
+  putL(W, GEO.cone(5), 0xff8a3d, ...at(0, 1.37, 0.32), { sx: 0.04 * s, sy: 0.2 * s, sz: 0.04 * s, ry, rx: Math.PI / 2 });
+  for (const up of [0.8, 0.95, 1.1]) put(W, GEO.ico(), coal, ...at(0, up, 0.325), { sx: 0.03 * s, sy: 0.03 * s, sz: 0.025 * s });
+  for (const e of [-1, 1]) {
+    putL(W, GEO.taper(5, 0.5), 0x6b4a36, ...at(e * 0.5, 1.05, 0), { sx: 0.03 * s, sy: 0.5 * s, sz: 0.03 * s, ry, rz: -e * 1.1 });
+    putL(W, GEO.taper(4, 0.5), 0x6b4a36, ...at(e * 0.68, 1.22, 0), { sx: 0.02 * s, sy: 0.16 * s, sz: 0.02 * s, ry, rz: -e * 0.3 });
+  }
+  put(W, GEO.cyl(10), 0xd9443b, ...at(0, 1.17, 0), { sx: 0.25 * s, sy: 0.09 * s, sz: 0.25 * s });
+  putL(W, GEO.box(), 0xd9443b, ...at(0.14, 1.0, 0.24), { sx: 0.1 * s, sy: 0.32 * s, sz: 0.04 * s, ry, rz: 0.15 });
+  put(W, GEO.taper(8, 0.8), 0x5c6a8a, ...at(0, 1.66, 0), { sx: 0.19 * s, sy: 0.24 * s, sz: 0.19 * s, rz: 0.12 });
+  put(W, GEO.cyl(8), 0x4a5670, ...at(0, 1.55, 0), { sx: 0.205 * s, sy: 0.04 * s, sz: 0.205 * s, rz: 0.12 });
+}
+
+// a tree stump: bark that flares at the foot, the cut face with its rings showing, snow lying on it in the snow worlds
+export function stump(W, x, z, y = 0, { r = 0.35, h = 0.5, bark = 0x8a5a3c } = {}) {
+  const d = W.drng, snowy = W.T.step === 'snow';
+  put(W, GEO.taper(9, 0.82), bark, x, y + h / 2, z, { sx: r * 1.12, sy: h, sz: r * 1.12, ry: d() * 3, tint: footTint(0.74, 1.04) });
+  for (let k = 0; k < 3; k++) { const a = d() * 6.283; putL(W, GEO.cone(5), shade(bark, 0.86), x + Math.cos(a) * r * 0.95, y + 0.08, z + Math.sin(a) * r * 0.95, { sx: 0.11, sy: 0.3, sz: 0.11, ry: -a, rz: -2.05 }); }
+  put(W, GEO.cyl(9), 0xe2c08c, x, y + h + 0.005, z, { sx: r * 0.88, sy: 0.02, sz: r * 0.88 });
+  put(W, GEO.cyl(9), 0xc9a06a, x, y + h + 0.012, z, { sx: r * 0.55, sy: 0.02, sz: r * 0.55 });
+  put(W, GEO.cyl(8), 0xe2c08c, x, y + h + 0.018, z, { sx: r * 0.26, sy: 0.02, sz: r * 0.26 });
+  if (snowy) put(W, GEO.dome(), 0xfafcff, x + r * 0.15, y + h + 0.01, z - r * 0.1, { sx: r * 0.78, sy: 0.13, sz: r * 0.7, ry: d() * 3 });
+  W.skirts.push({ x, z, y, r: r + 0.1 });
 }
