@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "이 섬의 불꽃 세 개를 다 모았어요! 랜턴이 조금 더 밝게 빛나요.",
   "toast.spark": "불꽃 {n}/{total}!",
   "a11y.goal.sparks": "찾은 불꽃: {n}/{total}",
+  "kubo.hopSoon": "불꽃 {n}개! {left}개만 더 모으면 <b>공중에서 밀어 올려 줄</b> 만큼 힘이 세져요.",
+  "kubo.hop": "불꽃 {n}개! 이제 밀어 올려 줄 수 있어요. <b>공중에서 한 번 더 점프</b>하면 제가 받쳐 줄게요.",
 };

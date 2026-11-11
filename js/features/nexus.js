@@ -216,6 +216,8 @@ class Isle {
     this.player.onStep = (hs, surf) => ctx.audio.step(surf?.sound);
     this.player.onLand = v => ctx.audio.land(v);
     this.player.onJump = () => ctx.audio.jump();
+    this.player.canHop = ctx.canHop();
+    this.player.onHop = () => ctx.audio.hop();
     this.player.onRescue = () => ctx.audio.whoosh(1);
     // where you arrive: out of the portal you came through, or on the plaza facing the world that's next
     this.current = CHAPTERS.findIndex(ch => ch.levels.some(l => l.index < save.unlocked && !isDone(l)));

@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Bu adanın üç kıvılcımı da tamam! Fener biraz daha parlak yanıyor.",
   "toast.spark": "Kıvılcım {n} / {total}!",
   "a11y.goal.sparks": "Bulunan kıvılcımlar: {n} / {total}",
+  "kubo.hopSoon": "{n} kıvılcım! {left} tane daha, sonra seni <b>havada itecek</b> kadar güçlü olacağım.",
+  "kubo.hop": "{n} kıvılcım! Artık seni itebilirim: <b>havadayken bir kez daha zıpla</b>, ben seni yakalarım.",
 };

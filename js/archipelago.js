@@ -938,6 +938,8 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     colliders: [], blockers: [],
     // the puzzle lives on the active island, in the middle of the scene (turned with the island: `spin`)
     get R() { return active.world.R; }, get tops() { return activeTops; }, get spin() { return active.spin; },
+    // (the active island's bounce pads, as the scene sees them)
+    get pads() { return active.world.pads.map(p => ({ ...turned(active, p), vel: turned(active, p.vel) })); },
     radiusAt: th => active.world.radiusAt(th + active.spin),
     isFreeGround: (x, z, m) => active.world.isFreeGround(...mine(x, z), m),
     heightAt: (x, z, maxY) => active.world.heightAt(...mine(x, z), maxY),

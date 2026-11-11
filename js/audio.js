@@ -196,6 +196,11 @@ export class Audio {
     this.tone({ f: 520, f2: 180, type: 'sine', dur: 0.09, vol: v });
     this.noise({ dur: 0.12, vol: v * 0.6, freq: 1800, f2: 700, q: 0.8 });
   }
+  // Kubo's lift: a soft springy note under your feet
+  hop() {
+    this.tone({ f: 420, f2: 840, type: 'triangle', dur: 0.14, vol: 0.14 });
+    this.tone({ f: 1260, type: 'sine', t: 0.04, dur: 0.12, vol: 0.05, wet: 0.4 });
+  }
   // a spark caught: a quick run of bells, a step higher for each one you hold
   spark(n = 1) {
     const base = 79 + Math.min(3, n) * 2;

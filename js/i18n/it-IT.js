@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Tutte e tre le scintille di quest’isola! La Lanterna brilla un po’ di più.",
   "toast.spark": "Scintilla {n} di {total}!",
   "a11y.goal.sparks": "Scintille trovate: {n} di {total}",
+  "kubo.hopSoon": "{n} scintille! Ancora {left} e sarò abbastanza forte da darti una <b>spinta a mezz’aria</b>.",
+  "kubo.hop": "{n} scintille! Ora posso darti una spinta: <b>salta di nuovo a mezz’aria</b> e ti prendo io.",
 };

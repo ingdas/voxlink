@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Ketiga percikan di pulau ini! Lentera bersinar sedikit lebih terang.",
   "toast.spark": "Percikan {n} dari {total}!",
   "a11y.goal.sparks": "Percikan ditemukan: {n} dari {total}",
+  "kubo.hopSoon": "{n} percikan! {left} lagi dan aku cukup kuat untuk memberimu <b>dorongan di udara</b>.",
+  "kubo.hop": "{n} percikan! Sekarang aku bisa memberimu dorongan: <b>lompat sekali lagi di udara</b> dan aku akan menangkapmu.",
 };

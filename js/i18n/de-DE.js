@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Alle drei Funken dieser Insel! Die Laterne leuchtet ein bisschen heller.",
   "toast.spark": "Funke {n} von {total}!",
   "a11y.goal.sparks": "Funken gefunden: {n} von {total}",
+  "kubo.hopSoon": "{n} Funken! Noch {left}, dann bin ich stark genug, dir <b>mitten in der Luft Schwung</b> zu geben.",
+  "kubo.hop": "{n} Funken! Jetzt kann ich dir Schwung geben: <b>Spring in der Luft noch einmal</b>, und ich fange dich auf.",
 };

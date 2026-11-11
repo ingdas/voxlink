@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Tämän saaren kaikki kolme kipinää! Lyhty loistaa vähän kirkkaammin.",
   "toast.spark": "Kipinä {n}/{total}!",
   "a11y.goal.sparks": "Kipinöitä löydetty: {n}/{total}",
+  "kubo.hopSoon": "{n} kipinää! Vielä {left}, niin jaksan antaa sinulle <b>vauhtia ilmassa</b>.",
+  "kubo.hop": "{n} kipinää! Nyt voin antaa sinulle vauhtia: <b>hyppää ilmassa uudestaan</b>, niin otan sinut kiinni.",
 };

@@ -28,20 +28,25 @@ await suite('sparks', async t => {
       const g = V.game, w = g.world, spots = g.sparks?.spots || [], missed = [];
       for (const s of spots) {
         let ok = false;
-        for (const d of [3, 4.5, 2]) for (let k = 0; k < 16 && !ok; k++) {
-          const th = (k / 16) * Math.PI * 2, x = s.x + Math.cos(th) * d, z = s.z + Math.sin(th) * d, f = w.floorAt(x, z);
-          if (f === null || w.walkSd(x, z) > -0.4 || w.heightAt(x, z) > f + 0.05) continue;
+        // straight at it from all round, or by way of each bounce pad (a trampoline, a clam, a jump pad)
+        const starts = [];
+        for (const d of [3, 4.5, 2]) for (let k = 0; k < 16; k++) starts.push({ x: s.x + Math.cos((k / 16) * Math.PI * 2) * d, z: s.z + Math.sin((k / 16) * Math.PI * 2) * d });
+        for (const pad of w.pads) for (let k = 0; k < 8; k++) starts.push({ x: pad.x + Math.cos((k / 8) * Math.PI * 2) * 2, z: pad.z + Math.sin((k / 8) * Math.PI * 2) * 2, pad });
+        for (const st of starts) {
+          const f = w.floorAt(st.x, st.z);
+          if (ok || f === null || w.walkSd(st.x, st.z) > -0.4 || w.heightAt(st.x, st.z) > f + 0.05) continue;
           const pl = new Player(), input = { move: { x: 0, y: -1, sprint: true }, jumpHeld: true };
-          pl.spawn(x, z, 0); pl.pos.y = f;
-          for (let n = 0, stuck = 0; n < 420 && !ok; n++) {
-            const dx = s.x - pl.pos.x, dz = s.z - pl.pos.z, h = Math.hypot(dx, dz), px = pl.pos.x, pz = pl.pos.z;
+          pl.spawn(st.x, st.z, 0); pl.pos.y = f;
+          for (let n = 0, stuck = 0, flown = !st.pad; n < 540 && !ok; n++) {
+            if (pl.launchT > 0) flown = true;
+            const dx = (flown ? s.x : st.pad.x) - pl.pos.x, dz = (flown ? s.z : st.pad.z) - pl.pos.z, h = Math.hypot(dx, dz), px = pl.pos.x, pz = pl.pos.z;
             pl.yaw = Math.atan2(-dx, -dz);
             input.move.y = h > 0.15 ? -1 : 0;
             // a jump when something's in the way, or right under a spark that hangs in the air
-            if (pl.onGround && (stuck > 4 || (h < 0.5 && s.y - pl.pos.y > 2.4))) pl.jumpBuffer = 0.14;
+            if (pl.onGround && flown && (stuck > 4 || (h < 0.5 && s.y - pl.pos.y > 2.4))) pl.jumpBuffer = 0.14;
             pl.update(1 / 60, input, { x: 0, y: 0 }, g.colliders, w, null);
             stuck = Math.hypot(pl.pos.x - px, pl.pos.z - pz) < 0.01 && h > 0.15 ? stuck + 1 : 0;
-            ok = Math.hypot(dx, dz, s.y - Math.min(Math.max(s.y, pl.pos.y), pl.pos.y + 1.7)) < 0.95;
+            ok = Math.hypot(pl.pos.x - s.x, pl.pos.z - s.z, s.y - Math.min(Math.max(s.y, pl.pos.y), pl.pos.y + 1.7)) < 0.95;
           }
         }
         if (!ok) missed.push(`${s.kind}@${s.x.toFixed(1)},${s.y.toFixed(1)},${s.z.toFixed(1)}`);
@@ -54,6 +59,8 @@ await suite('sparks', async t => {
   t.check('three sparks on every other island', all.slice(1).every(r => r.n === 3), all.filter((r, i) => i && r.n !== 3));
   t.check('every spark can be reached on foot', all.every(r => !r.missed.length), all.filter(r => r.missed.length).map(r => `${r.id}: ${r.missed.join(' ')}`).join('; '));
   const kinds = all.flatMap(r => r.kinds);
+  const farm = all.slice(5, 10), cove = all.slice(25, 30);
+  t.check('the farm\'s and the cove\'s are up on the stacks their trampolines and clams throw you onto', [...farm, ...cove].every(r => r.kinds.filter(k => k === 'high').length === 2), [...farm, ...cove].map(r => r.kinds.join()));
   t.check('most islands have one up high or in the air', kinds.filter(k => k === 'high').length >= 40 && kinds.filter(k => k === 'leap').length >= 10, { high: kinds.filter(k => k === 'high').length, leap: kinds.filter(k => k === 'leap').length });
   // the same spots every time
   const again = await a.evaluate(() => { const V = window.__voxlink, at = i => { V.startLevel(i); return JSON.stringify(V.game.sparks.spots); }; const x = at(7); at(12); return x === at(7); });
@@ -125,6 +132,38 @@ await suite('sparks', async t => {
   const s6 = await state(p);
   t.check('…catching one again charges the magnet and changes nothing else', s6.magnet === 1 && s6.saved === 7 && s6.chip === '3 / 3', s6);
   await p.close();
+
+  // Kubo's lift: ten sparks, found anywhere, earn a hop in mid-air
+  // jump, then jump again in the air: how high your feet get
+  const apex = async page => {
+    await page.evaluate(() => { const g = window.__voxlink.game, s = g.arch.spawnOf(g.level, 9); g.player.pos.set(s.x, 0, s.z); g.player.vel.set(0, 0, 0); });
+    await page.waitForTimeout(300);
+    const top = page.evaluate(() => new Promise(res => { const g = window.__voxlink.game, t0 = performance.now(); let m = 0; const tick = () => { m = Math.max(m, g.player.pos.y); if (performance.now() - t0 > 1700) res(m); else requestAnimationFrame(tick); }; tick(); }));
+    await page.keyboard.down('Space'); await page.waitForTimeout(330); await page.keyboard.up('Space');
+    await page.keyboard.down('Space'); await page.waitForTimeout(500); await page.keyboard.up('Space');
+    return top;
+  };
+  const h = await t.page({ save: saveWith(MEADOW.slice(0, 4), { extra: { sparks: { tulip: 7, mushroom: 1 } } }), query: '?debug' });
+  await t.hideDebug(h);
+  await h.evaluate(() => window.__voxlink.startLevel(3));
+  await t.app(h, 'playing');
+  await h.waitForTimeout(400);
+  const a0 = await apex(h);
+  t.check('four sparks: jumping again in the air does nothing', !(await h.evaluate(() => window.__voxlink.game.player.canHop)) && a0 > 1.3 && a0 < 1.7, a0);
+  await h.evaluate(() => window.__voxlink.ctx.companion.reset());
+  await touch(h, 0);
+  await h.waitForFunction(() => /5/.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || '') && /lift/i.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || ''), null, { timeout: 12000 }).catch(() => {});
+  t.check('the fifth spark: Kubo says five more earn a lift', /5 more/.test(await speech(h)) && /lift/i.test(await speech(h)), await speech(h));
+  await h.evaluate(() => { const V = window.__voxlink; V.save.sparks.mushroom = 7; V.save.sparks.ladybug |= 2; V.save.sparks.apple = 1; V.ctx.companion.reset(); });
+  await touch(h, 2);
+  await h.waitForFunction(() => window.__voxlink.game.player.canHop, null, { timeout: 5000 }).catch(() => {});
+  await h.waitForTimeout(300);
+  t.check('the tenth spark: Kubo says how his lift works', /10/.test(await speech(h)) && /jump again/i.test(await speech(h)), await speech(h));
+  const a1 = await apex(h);
+  t.check('…and a second jump in mid-air now lifts you well higher', a1 > a0 + 0.6 && a1 < a0 + 1.4, { before: a0, after: a1 });
+  const a2 = await apex(h);
+  t.check('…one hop per jump, back again after landing', Math.abs(a2 - a1) < 0.3, { a1, a2 });
+  await h.close();
 
   // a finished island you walk onto: the sparks you found are gone, the rest wait
   const q = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true, farm: true }, extra: { sparks: { ladybug: 5 } } }), query: '?debug' });

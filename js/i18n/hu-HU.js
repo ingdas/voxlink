@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "A sziget mindhárom szikrája megvan! A Lámpás egy kicsit fényesebben ragyog.",
   "toast.spark": "Szikra: {n} / {total}!",
   "a11y.goal.sparks": "Megtalált szikrák: {n} / {total}",
+  "kubo.hopSoon": "{n} szikra! Még {left}, és elég erős leszek, hogy <b>a levegőben is meglökjelek</b>.",
+  "kubo.hop": "{n} szikra! Most már meg tudlak lökni: <b>ugorj még egyet a levegőben</b>, és elkaplak.",
 };

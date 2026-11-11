@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "この島のひばなが 3つ ぜんぶ そろった！ ランタンが すこし 明るくなったよ。",
   "toast.spark": "ひばな {n}/{total}！",
   "a11y.goal.sparks": "見つけたひばな：{n}/{total}",
+  "kubo.hopSoon": "ひばなが {n}こ！ あと {left}こで、<b>空中で もちあげて</b>あげられるよ。",
+  "kubo.hop": "ひばなが {n}こ！ もう もちあげて あげられるよ。<b>空中で もう一回ジャンプ</b>してね、うけとめるから。",
 };

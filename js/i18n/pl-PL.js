@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Wszystkie trzy iskry tej wyspy! Latarnia świeci trochę jaśniej.",
   "toast.spark": "Iskra {n} z {total}!",
   "a11y.goal.sparks": "Znalezione iskry: {n} z {total}",
+  "kubo.hopSoon": "{n} iskier! Jeszcze {left} i będę mieć dość siły, by <b>podbić cię w powietrzu</b>.",
+  "kubo.hop": "{n} iskier! Teraz mogę cię podbić: <b>skocz jeszcze raz w powietrzu</b>, a ja cię złapię.",
 };

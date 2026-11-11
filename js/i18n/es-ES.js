@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "¡Las tres chispas de esta isla! El Farol brilla un poco más.",
   "toast.spark": "¡Chispa {n} de {total}!",
   "a11y.goal.sparks": "Chispas encontradas: {n} de {total}",
+  "kubo.hopSoon": "¡{n} chispas! {left} más y tendré fuerza para darte un <b>empujón en pleno salto</b>.",
+  "kubo.hop": "¡{n} chispas! Ahora puedo darte un empujón: <b>salta otra vez en el aire</b> y yo te recojo.",
 };

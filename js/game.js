@@ -141,6 +141,12 @@ export class Game {
       this.fx.burst(new THREE.Vector3(p.x, p.y + 0.15, p.z), 0xff9eef, 14, 3);
     };
     this.player.onRescue = () => this.audio.whoosh(1);
+    this.player.onHop = () => {
+      this.audio.hop?.();
+      const p = this.player.pos;
+      this.fx.burst(new THREE.Vector3(p.x, p.y - 0.1, p.z), 0xffc93c, 10, 2.5);
+      this.events.hop?.();
+    };
     this.raycaster = new THREE.Raycaster();
     this.raycaster.layers.enableAll();
     this.pickGroup = new THREE.Group();
@@ -310,6 +316,7 @@ export class Game {
     else if (arrive === 'hub' && this.arch) { const a = this.arch.arrival(); this.player.spawn(a.x, a.z, a.yaw); }
     else if (this.arch) { const s = this.arch.spawnOf(level, Math.min(R - 3, 9)); this.player.spawn(s.x, s.z, s.yaw); }
     else this.player.spawn(0, Math.min(R - 3, 9), 0);
+    this.player.canHop = !!this.events.canHop?.();
     this.onIsland = false; this.islandT = 0; this.arrived = false;
     this.switching = false; this.inPortal = this.arch ? this.arch.atPortal(this.player.pos.x, this.player.pos.z) : false;
     this.linkOrder = [];
@@ -711,6 +718,7 @@ export class Game {
       this.events.saveSession?.(this.sessionData());
     }
     this.events.spark?.(this.level, k, s);
+    this.player.canHop = !!this.events.canHop?.();
   }
 
   // Kubo Express: every carried block that fits flies across the island to its bubble.

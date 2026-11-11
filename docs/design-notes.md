@@ -468,7 +468,7 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   Tulip already has three lines of his on arrival), how the magnet works on the first catch, and cheers an
   island's third.
 - **Seen, not changed.** Sparks on other islands aren't drawn until you step onto them (an island's puzzle and
-  its sparks load together); there is no reward yet for a whole world's sparks beyond the count.
+  its sparks load together).
 
 ## 2026-11-11 · The islands are lived in: butterflies, birds, fish, shooting stars
 
@@ -494,4 +494,24 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
 - Wings are two instances each of one flat wing (the left a mirror image), turned on the CPU: a world's life is
   3–8 draw calls and a few dozen matrices a frame; phones get about 60 % of the numbers and one fish. When the
   scene shifts to another island everything alive shifts with it. Cutscenes hide it (and the sparks).
+
+## 2026-11-11 · Sparks, part two: the stacks the pads throw you onto, and Kubo's lift
+
+- **Pads count.** The first placement only called a top climbable if a jump got you there, so on Windmill Farm and
+  in Shipwreck Cove (whose tall hay stacks and rock stacks are reached by trampoline and by giant clam) and on
+  Starfall Peak (whose jump pads fling you to the high islets) the sparks sat on the low things beside the worlds'
+  best climbs. A top a bounce pad lands you on now counts too (`world.pads`, the archipelago turns them with their
+  island), and the highest tops still win: both high sparks of every farm and cove island are up on the stacks,
+  Starfall's on the islets about 5 m up. Of the 147: 78 up high (was 62), 54 on the far side, 15 in the air. The
+  test's stand-in player now also tries every pad (walk onto it, then make for the spark once it has thrown you).
+- **Kubo's lift.** Sparks only paid out a magnet charge each, which a player who doesn't use the magnet has no
+  reason to chase. **Ten sparks, found anywhere, earn a hop in mid-air** for good: jump again while you're up and
+  Kubo darts under your feet, squashes and springs you on (`HOP_V` 6.6 m/s against the jump's 8.6: about 0.9 m
+  more, 2.4 m in all, so a terrace's second step or a hay stack from its bale is one go). One hop per jump; not
+  while a pad is throwing you or in the updraft (which floats you). It works on the Keeper's Isle and in the
+  Garden too. Kubo says five more will do it at the fifth spark, and how it works at the tenth; ten is the first
+  world's twelve less two, so it lands around the end of the Meadow for a player who looks for them.
+- The sparks stay where they were placed for a single jump, so the hop makes the later worlds' easier to reach,
+  not different: it is the reward. What it adds is in the walking: fences, blocks and pedestal steps stop being
+  things you go round.
 

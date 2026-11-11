@@ -1,5 +1,6 @@
 // Sparks of the Keeper's Lantern: three lights the storm blew onto every figure's island (see docs/design-notes.md,
-// 2026-11-11). Up to two float over high spots you can climb onto (a hay bale, a terrace, a rock stack), one out on
+// 2026-11-11). Up to two float over high spots you can get onto (a terrace you jump up, a hay stack its trampoline
+// throws you onto, a rock stack), one out on
 // the far side of the island, and where there's only one high spot the third hangs in the air, a jump up. Catching
 // one charges the magnet for this run, and counts towards the island's three for good.
 import * as THREE from 'three';
@@ -10,6 +11,7 @@ import { GRAVITY, JUMP_V } from './player.js';
 import { mulberry32 } from './voxels.js';
 
 export const SPARKS = 3;
+export const HOP_SPARKS = 10; // sparks (anywhere) that earn Kubo's lift, the hop in mid-air
 const HOVER = 1.05; // metres a spark floats over the ground or the top it's on
 const CATCH = 0.95; // caught within this far of you (anywhere from your feet to your head)
 const BODY = 1.7;
@@ -33,7 +35,7 @@ export function sparkSpots(world, seed, footR) {
     const m = mid(t);
     return Math.min(t.box.max.x - t.box.min.x, t.box.max.z - t.box.min.z) >= 0.8 && world.heightAt(m.x, m.z) <= t.y + 0.05;
   });
-  // the ones you can get up onto: a jump from the ground beside them, or from a top you can already reach
+  // the ones you can get up onto: a jump from the ground beside them or from a top you can already reach…
   const beside = t => {
     const b = t.box, o = 0.55, pts = [];
     for (let k = 0; k <= 4; k++) {
@@ -42,7 +44,9 @@ export function sparkSpots(world, seed, footR) {
     }
     return pts;
   };
-  const up = new Set();
+  // …or a bounce pad throws you onto (a hay trampoline, a giant clam, a jump pad)
+  const lands = (world.pads || []).map(p => ({ x: p.x + p.vel.x * p.t, z: p.z + p.vel.z * p.t }));
+  const up = new Set(tops.filter(t => lands.some(l => l.x > t.box.min.x - 0.2 && l.x < t.box.max.x + 0.2 && l.z > t.box.min.z - 0.2 && l.z < t.box.max.z + 0.2)));
   for (let grew = true; grew;) {
     grew = false;
     for (const t of tops) {

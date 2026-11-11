@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Alle drie de vonken van dit eiland! De Lantaarn schijnt weer wat feller.",
   "toast.spark": "Vonk {n} van {total}!",
   "a11y.goal.sparks": "Vonken gevonden: {n} van {total}",
+  "kubo.hopSoon": "{n} vonken! Nog {left} en ik ben sterk genoeg om je <b>in de lucht een zetje</b> te geven.",
+  "kubo.hop": "{n} vonken! Nu kan ik je een zetje geven: <b>spring nog eens in de lucht</b> en ik vang je op.",
 };

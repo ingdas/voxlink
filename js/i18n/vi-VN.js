@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Đủ cả ba tia lửa của đảo này! Đèn lồng sáng thêm một chút.",
   "toast.spark": "Tia lửa {n} trên {total}!",
   "a11y.goal.sparks": "Tia lửa đã tìm thấy: {n} trên {total}",
+  "kubo.hopSoon": "{n} tia lửa! Thêm {left} tia nữa là mình đủ sức <b>đẩy bạn lên giữa không trung</b>.",
+  "kubo.hop": "{n} tia lửa! Giờ mình có thể đẩy bạn lên: <b>nhảy thêm lần nữa khi đang ở trên không</b> và mình sẽ đỡ bạn.",
 };

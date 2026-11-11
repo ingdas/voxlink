@@ -4,7 +4,7 @@ import { LK } from './looks.js';
 import { LEVELS, CHAPTERS, ENDING, expandLevel, parTime, partsFor } from './levels.js';
 import { S, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, getAtlas } from './voxels.js';
 import { Game, PACK_SIZE, TOOLS } from './game.js';
-import { SPARKS } from './sparks.js';
+import { SPARKS, HOP_SPARKS } from './sparks.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { FX } from './fx.js';
@@ -132,6 +132,9 @@ const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id), 0);
 // sparks: three on every figure's island but the very first
 const hasSparks = l => !l.kind && l !== LEVELS[0];
 const sparksOf = l => { let b = save.sparks[l.id] || 0, n = 0; for (; b; b >>= 1) n += b & 1; return Math.min(SPARKS, n); };
+const totalSparks = () => LEVELS.reduce((n, l) => n + sparksOf(l), 0);
+// Kubo's lift (a hop in mid-air) is earned with ten sparks, found anywhere
+const canHop = () => totalSparks() >= HOP_SPARKS;
 const worldSparks = ch => ({ n: ch.levels.reduce((n, l) => n + sparksOf(l), 0), max: ch.levels.filter(hasSparks).length * SPARKS });
 
 const fmt = s => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
@@ -274,6 +277,8 @@ const game = new Game({
     // a while without a link: the hint (once, ever)
     lost: () => game.events.tipOnce('hint', coachText('hint')),
     sparksFound: l => save.sparks[l.id] || 0,
+    canHop: () => canHop(),
+    hop: () => ctx.companion?.lift(),
     spark: (l, k) => onSpark(l, k),
     // a link on the first figure: Kubo hops, and the very first one ever gets a word from him
     cheer: () => { ctx.companion?.cheer(); game.events.tipOnce('firstLink', t('kubo.firstLink')); },
@@ -1029,6 +1034,13 @@ function onSpark(l, k) {
     persist();
     toast(t('toast.spark', { n, total: SPARKS }));
     if (n >= SPARKS) { kuboSays(t('kubo.sparksAll')); fx.confettiBurst(game.player.pos.clone().setY(game.player.pos.y + 1.2), 1.5, 60); }
+    // ten sparks, anywhere: Kubo's lift (halfway there, he says what's coming)
+    const all = totalSparks();
+    if (all === HOP_SPARKS) {
+      kuboSays(t('kubo.hop', { n: all }), true);
+      [0, 1, 2].forEach(k => setTimeout(() => audio.star(k), 200 + k * 160));
+      fx.confettiBurst(game.player.pos.clone().setY(game.player.pos.y + 1.2), 2, 120);
+    } else if (all === Math.ceil(HOP_SPARKS / 2)) kuboSays(t('kubo.hopSoon', { n: all, left: HOP_SPARKS - all }));
   }
   if (!game.roaming) game.events.tipOnce('magnet', t(mobile ? 'kubo.magnet.touch' : 'kubo.magnet.desk'));
 }
@@ -1381,7 +1393,7 @@ const ctx = {
   get app() { return app; }, set app(v) { app = v; },
   get base() { return base; }, overlays,
   setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openNexus, enterTitle, pause, resume, showComplete, splitsHtml,
-  playPrologue, showEnding, continueGame, enterWorld, chapterUnlocked, hideDoneCard, worldSparks,
+  playPrologue, showEnding, continueGame, enterWorld, chapterUnlocked, hideDoneCard, worldSparks, canHop,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [], frame: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures

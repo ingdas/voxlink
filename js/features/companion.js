@@ -15,8 +15,9 @@ let ctx, THREE;
 let kubo = null; // { group, body, eyes, mouth, pos, ... }
 let bubble, box, bubbleText, live;
 let bark = '', barkLeft = 0, barkAge = 9, coachHtml = '', nudgeT = 0, hold = false, lastLevel = null, lastCoach = '';
-let shown = false, lastSeq = -1, cheerT = 0, leadAt = null, lastPick = '';
+let shown = false, lastSeq = -1, cheerT = 0, liftT = 0, leadAt = null, lastPick = '';
 let route = [], leadOpts = {}; // the points still ahead when he leads you somewhere
+const LIFT = 0.3; // seconds he spends under your feet for a lift
 const queue = []; // lines waiting their turn (each gets a fair read before the next)
 
 // how long a line stays up: dense scripts (CJK, Thai) carry more per character
@@ -75,6 +76,8 @@ export function init(c) {
     nudge() { nudgeT = 0.45; box.classList.remove('nudge'); void box.offsetWidth; box.classList.add('nudge'); },
     // a hop and a spin (a link on the first figure)
     cheer() { cheerT = 0.7; },
+    // his lift: he darts under your feet for the hop in mid-air, and springs back to your side
+    lift() { liftT = LIFT; },
     // fly ahead and wait there until you come close, then on to the next point (a point or a list: the way on
     // along the bridges after a finished figure, the first block for a player who's stuck); he goes there even
     // while he talks (his bubble comes along). above: float that much higher (over a block); near: how close counts
@@ -161,6 +164,11 @@ function update(g, dt) {
   // never right in your face (or inside the camera)
   const ax = kubo.pos.x - pl.pos.x, az = kubo.pos.z - pl.pos.z, ad = Math.hypot(ax, az);
   if (ad < 1.8) { const s = 1.8 / Math.max(ad, 0.01); kubo.pos.x = pl.pos.x + ax * s; kubo.pos.z = pl.pos.z + az * s; }
+  // giving you a lift: right under your feet for a moment, squashed by the push
+  liftT = Math.max(0, liftT - dt);
+  if (liftT > 0) kubo.pos.set(pl.pos.x, pl.pos.y - 0.42, pl.pos.z);
+  const squash = liftT > 0 ? Math.sin((liftT / LIFT) * Math.PI) : 0;
+  kubo.body.scale.set(1 + squash * 0.3, 1 - squash * 0.4, 1 + squash * 0.3);
   const speed = before.distanceTo(kubo.pos) / Math.max(dt, 1e-3);
 
   // bob, lean into the motion, look at you (calm with reduced motion)

@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Alle tre gnistene på denne øya! Lykta skinner litt sterkere.",
   "toast.spark": "Gnist {n} av {total}!",
   "a11y.goal.sparks": "Gnister funnet: {n} av {total}",
+  "kubo.hopSoon": "{n} gnister! {left} til, så er jeg sterk nok til å gi deg et <b>løft i lufta</b>.",
+  "kubo.hop": "{n} gnister! Nå kan jeg gi deg et løft: <b>hopp en gang til i lufta</b>, så tar jeg imot deg.",
 };

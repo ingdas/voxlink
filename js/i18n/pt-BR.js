@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "As três faíscas desta ilha! A Lanterna brilha um pouco mais forte.",
   "toast.spark": "Faísca {n} de {total}!",
   "a11y.goal.sparks": "Faíscas encontradas: {n} de {total}",
+  "kubo.hopSoon": "{n} faíscas! Mais {left} e vou ter força para te dar um <b>empurrãozinho no ar</b>.",
+  "kubo.hop": "{n} faíscas! Agora posso te dar um empurrãozinho: <b>pule de novo no ar</b> e eu te seguro.",
 };

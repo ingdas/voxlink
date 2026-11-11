@@ -52,6 +52,8 @@ export default {
   "kubo.sparks": "Look, a <b>spark</b> from the Keeper's Lantern! The storm blew three onto every island. Catch one and it charges your <b>magnet</b>.",
   "kubo.sparksAll": "All three sparks of this island! The Lantern shines a little brighter.",
   "toast.spark": "Spark {n} of {total}!",
+  "kubo.hopSoon": "{n} sparks! {left} more and I'll be strong enough to give you a <b>lift in mid-air</b>.",
+  "kubo.hop": "{n} sparks! Now I can give you a lift: <b>jump again in mid-air</b> and I'll catch you.",
   "a11y.goal.sparks": "Sparks found: {n} of {total}",
   "aria.drop": "Drop",
   "aria.jump": "Jump",

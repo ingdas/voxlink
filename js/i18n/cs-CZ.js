@@ -672,4 +672,6 @@ export default {
   "kubo.sparksAll": "Všechny tři jiskry tohoto ostrova! Lucerna svítí o trochu jasněji.",
   "toast.spark": "Jiskra {n} z {total}!",
   "a11y.goal.sparks": "Nalezené jiskry: {n} z {total}",
+  "kubo.hopSoon": "{n} jisker! Ještě {left} a budu mít dost síly, abych tě <b>nadhodil ve vzduchu</b>.",
+  "kubo.hop": "{n} jisker! Teď tě můžu nadhodit: <b>skoč ve vzduchu ještě jednou</b> a já tě chytím.",
 };
