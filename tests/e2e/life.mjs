@@ -68,6 +68,44 @@ await suite('life', async t => {
   t.check('…in open water, never across land or a bridge', fish.every(f => f.sd > 1), Math.min(...fish.map(f => f.sd)));
   await p.close();
 
+  // finished figures are alive: two little jumps when you step onto a finished figure's island, one now and then
+  // on the other islands, and all of them back exactly where they stood
+  const f = await t.page({ save: saveWith(MEADOW, { seen: { 'tip.sparks': true } }), query: '?debug' });
+  await t.hideDebug(f);
+  await f.evaluate(() => window.__voxlink.startLevel(2, true));
+  await t.app(f, 'playing');
+  const rise = ms => f.evaluate(ms => new Promise(res => {
+    const g = window.__voxlink.game, t0 = performance.now(); let top = 0, hops = 0, up = false;
+    const tick = () => {
+      const d = Math.max(...g.voxels.map(v => v.mesh.position.y - v.target.y));
+      top = Math.max(top, d);
+      if (d > 0.1 && !up) { up = true; hops++; } else if (d < 0.02) up = false;
+      if (performance.now() - t0 > ms) res({ top, hops, off: Math.max(...g.voxels.map(v => v.mesh.position.distanceTo(v.target))), scale: Math.max(...g.voxels.map(v => Math.abs(v.mesh.scale.y - 1))) });
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  }), ms);
+  const hello = await rise(2600);
+  t.check('a finished figure gives two little jumps when you step onto its island', hello.hops === 2 && hello.top > 0.25 && hello.top < 0.6, hello);
+  t.check('…and stands exactly as built again', hello.off < 1e-6 && hello.scale < 1e-6, hello);
+  const others = await f.evaluate(() => new Promise(res => {
+    const g = window.__voxlink.game, t0 = performance.now(), seen = new Set();
+    const figs = g.arch.parts.filter(q => q.level !== g.level).map(q => q.world.group.children.find(c => c.isMesh && c.material === g.figureMat)).filter(Boolean);
+    const tick = () => {
+      figs.forEach((m, i) => { if (m.position.y > 0.5 + 0.12) seen.add(i); });
+      if (performance.now() - t0 > 16000 || seen.size >= 2) res({ figs: figs.length, hopped: seen.size });
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  }));
+  t.check('the finished figures on the other islands give a jump now and then', others.figs === 4 && others.hopped >= 2, others);
+  // with reduced motion they stand still
+  await f.evaluate(() => { const V = window.__voxlink; document.body.classList.add('reduce-motion'); V.game.comfort.kick = 0; V.startLevel(3, true); });
+  await t.app(f, 'playing');
+  const still = await rise(1800);
+  t.check('reduced motion: no jumps', still.hops === 0 && still.top < 1e-6, still);
+  await f.close();
+
   // the night worlds: shooting stars, and nothing jumping over the void
   const q = await t.page({ save: ALL_OPEN, query: '?debug' });
   await t.hideDebug(q);

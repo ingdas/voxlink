@@ -20,6 +20,16 @@ const KIT = {
   storm: { birds: [3, 0x2f2c44, 0.2, 12] },
 };
 
+// A finished figure's little jump on its pedestal, u from 0 to 1: it crouches, goes up with a stretch, lands with a
+// squash and settles. Returns [how high it is, how tall it stands (1 = as built)]; it lands at u = HOP_LANDS.
+export const HOP_LANDS = 0.7;
+export function hopPose(u, height) {
+  if (u < 0.2) return [0, 1 - 0.1 * Math.sin((u / 0.2) * Math.PI / 2)];
+  if (u < HOP_LANDS) { const k = (u - 0.2) / (HOP_LANDS - 0.2); return [height * 4 * k * (1 - k), 0.9 + 0.17 * Math.sin(k * Math.PI)]; }
+  const k = (u - HOP_LANDS) / (1 - HOP_LANDS);
+  return [0, 1 - 0.1 * (1 - k) * Math.cos(k * Math.PI * 1.5)];
+}
+
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _v = new THREE.Vector3();
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 const X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);

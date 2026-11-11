@@ -8,7 +8,7 @@ import { Player } from './player.js';
 import { LAYER_OVERLAY, toon } from './render.js';
 import { setLookTheme, LK } from './looks.js';
 import { Sparks, sparkSpots } from './sparks.js';
-import { makeLife } from './life.js';
+import { makeLife, hopPose, HOP_LANDS } from './life.js';
 import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
@@ -16,7 +16,7 @@ export const PACK_SIZE = 4;
 // tools on big figures: a charge every `every` links (counted while below `max`)
 export const TOOLS = { magnet: { every: 12, max: 3, reach: 10 }, express: { every: 20, max: 2 } };
 const _e = new THREE.Euler();
-const _dust = new THREE.Color(), _white = new THREE.Color(0xffffff);
+const _dust = new THREE.Color(), _white = new THREE.Color(0xffffff), _dustAt = new THREE.Vector3();
 const yawOf = q => _e.setFromQuaternion(q, 'YXZ').y;
 const CHUNK_MAX = 12; // puzzler mode: most blocks one ground-built chunk may hold
 // First-play tutorial: the first link comes first, with the block lying right in front of you. 'meet' (right after
@@ -376,6 +376,7 @@ export class Game {
       this.sparks = new Sparks(this.scene, sparkSpots(this.world, 77 + hashId(level.id), this.footR), { gone: built ? found : this.sparkMask, pale: found });
     }
     this.barked = new Set();
+    this.figHop = null;
     this.chainQueue = [];
     this.chain = 0;
     this.kick = 0;
@@ -1243,11 +1244,44 @@ export class Game {
 
     this.camera.updateMatrixWorld();
     this.updateVoxels(dt);
+    if (this.figHop || this.roaming) this.updateFigureHop(dt);
     this.updateIslands();
     this.events.frame?.(this, dt);
     this.updateSockets(dt);
     this.updateSnaps(dt);
     this.fx.update(dt, this.camera);
+  }
+
+  // A finished figure is alive (it already hops and turns as it's finished): it gives two little jumps when you step
+  // onto its island, and one now and then while you're about (not with reduced motion).
+  hopFigure(height = 0.28, times = 1, wait = 0) { if (this.comfort.kick) this.figHop = { u: -wait / 0.62, height, left: times - 1, landed: false }; }
+  updateFigureHop(dt) {
+    const f = this.figHop;
+    if (!f) {
+      if (this.mode !== 'play' || !this.onIsland) return;
+      if ((this.figIdle = (this.figIdle ?? 6 + Math.random() * 6) - dt) <= 0) { this.figIdle = 8 + Math.random() * 9; this.hopFigure(); }
+      return;
+    }
+    f.u += dt / 0.62;
+    if (f.u < 0) return;
+    const [up, tall] = hopPose(Math.min(1, f.u), f.height), wide = 1 / Math.sqrt(tall);
+    for (const v of this.voxels) {
+      if (v.state !== 'placed') continue;
+      v.mesh.position.set(v.target.x * wide, PEDESTAL_TOP + (v.target.y - PEDESTAL_TOP) * tall + up, v.target.z * wide);
+      v.mesh.scale.set(wide, tall, wide);
+    }
+    if (!f.landed && f.u >= HOP_LANDS) {
+      f.landed = true;
+      // (heard from nearby)
+      const d = Math.hypot(this.camera.position.x, this.camera.position.z);
+      if (d < 22) this.audio.tone({ f: 150, f2: 90, type: 'sine', dur: 0.12, vol: 0.16 * (1 - d / 22) });
+      // (a ring of dust from under the pedestal)
+      this.fx.puff(_dustAt.set(0, 0, 0), this.world.theme.pedestal?.[1] ?? 0xffffff, 0, 0, Math.max(this.footR, 2.6) + 1.4 + f.height * 2);
+    }
+    if (f.u >= 1) {
+      if (f.left > 0) Object.assign(f, { u: 0, left: f.left - 1, height: f.height * 0.7, landed: false });
+      else { this.figHop = null; for (const v of this.voxels) if (v.state === 'placed') { v.mesh.position.copy(v.target); v.mesh.scale.setScalar(1); } }
+    }
   }
 
   // the first figure of a first play: links get more weight there (slow motion, a bigger snap, Kubo cheering)
@@ -1460,7 +1494,16 @@ export class Game {
     const wasOn = this.onIsland;
     this.onIsland = !this.arch || this.arch.onActive(this.player.pos.x, this.player.pos.z);
     if (this.onIsland) this.islandT += dt;
-    if (this.onIsland && !wasOn && !this.arrived) { this.arrived = true; this.events.arrive?.(this.level); }
+    if (this.onIsland && !wasOn && !this.arrived) {
+      this.arrived = true;
+      this.events.arrive?.(this.level);
+      // a finished figure is glad to see you
+      if (this.roaming && this.comfort.kick) {
+        this.hopFigure(0.42, 2, 0.3);
+        this.figIdle = 9 + Math.random() * 6;
+        this.audio.tone({ f: 587, f2: 880, type: 'triangle', t: 0.3, dur: 0.14, vol: 0.07 });
+      }
+    }
     if (this.onIsland && !this.roaming && (!this.tutorial || this.tutorial === 'done')) this.elapsed += dt;
     this.sinceLink += dt;
     while (this.chainQueue.length && this.chainQueue[0].at <= this.t) {

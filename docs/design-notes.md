@@ -531,3 +531,15 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
 - **Fixed in passing.** A finished figure's part flags stayed up, and one could stand right in the way on, in the
   middle of the view you get back after the celebration: they're put away once the figure is finished.
 
+## 2026-11-11 · Rebuilt figures are alive
+
+- A figure hopped and turned once, as it was finished, and then stood still for good: the more of a world you
+  had rebuilt, the more of it was statues. Now a finished figure **gives two little jumps when you step onto its
+  island** (crouch, up with a stretch, land with a squash and a ring of dust from under the pedestal, a short
+  chirp), **one now and then while you're about** (every 8–17 s), and the finished figures **on the other
+  islands** do too (every 7–17 s each), so across the water you see the ones you've rebuilt moving.
+- One pose function (`hopPose` in `js/life.js`: how high, how tall; width follows so the volume stays) drives
+  both: the island you're on moves its blocks (they are separate meshes there), the others their merged mesh.
+  The figure ends exactly where it was built. Nothing collides differently: the jump is 0.3–0.4 m and over in
+  0.6 s. None of it with reduced motion.
+
