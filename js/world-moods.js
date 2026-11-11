@@ -3,7 +3,8 @@
 // mushrooms, an ancient oak, a wreck…). A world's islands get its moods in campaign order, so no two match.
 // The layout calls W.landmark() before its trees and rocks, so they grow around the landmark.
 import * as THREE from 'three';
-import { GEO } from './world-kit.js';
+import { GEO, bevelBox } from './world-kit.js';
+import { shade, mix, footTint, capTint, leafTint, capOf, stoneGeo } from './world-props.js';
 
 // tint: theme colour overrides; trees / rocks: multipliers on the layout's counts; fruit: colour of fruit in
 // round trees; o: options for the landmark
@@ -128,11 +129,20 @@ function local(W, x, y, z, ry, k = 1) {
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), P = new THREE.Vector3(), S = new THREE.Vector3();
   return {
     W, x, y, z, ry, at,
-    p(geo, color, lx, ly, lz, { sx = 1, sy = 1, sz = 1, rx = 0, ry: r2 = 0, rz = 0, kind = 'solid' } = {}) {
+    p(geo, color, lx, ly, lz, { sx = 1, sy = 1, sz = 1, rx = 0, ry: r2 = 0, rz = 0, kind = 'solid', tint = null } = {}) {
       const [wx, wz] = at(lx, lz);
       Q.setFromEuler(E.set(rx, ry + r2, rz, 'YXZ'));
-      W.B.add(geo, color, M.compose(P.set(wx, y + ly * k, wz), Q, S.set(sx * k, sy * k, sz * k)), kind);
+      W.B.add(geo, color, M.compose(P.set(wx, y + ly * k, wz), Q, S.set(sx * k, sy * k, sz * k)), kind, tint);
     },
+    // a one-off shape (freed once merged), and a bevelled block of real size
+    own(geo, color, lx, ly, lz, { rx = 0, ry: r2 = 0, rz = 0, kind = 'solid', tint = null } = {}) {
+      const [wx, wz] = at(lx, lz);
+      Q.setFromEuler(E.set(rx, ry + r2, rz, 'YXZ'));
+      W.B.own(geo, color, M.compose(P.set(wx, y + ly * k, wz), Q, S.set(k, k, k)), kind, tint);
+    },
+    block(color, lx, ly, lz, w, h, d, { b = 0.05, ...o } = {}) { this.own(bevelBox(w, h, d, Math.min(b, w * 0.3, h * 0.3, d * 0.3)), color, lx, ly, lz, o); },
+    // grass gathers round its foot here
+    skirt(lx, lz, r) { const [wx, wz] = at(lx, lz); W.skirts.push({ x: wx, z: wz, y, r: r * k }); },
     box(lx, lz, hx, hz, y0, y1, o = {}) {
       const [wx, wz] = at(lx, lz);
       return W.box(wx - hx * k, y + y0 * k, wz - hz * k, wx + hx * k, y + y1 * k, wz + hz * k, o);
@@ -145,110 +155,202 @@ const stoneOf = (W, o) => o.stone ?? W.T.rock;
 
 // ---------- landmarks ----------
 const BUILD = {
-  // a stone well with a little roof and a bucket
+  // a stone well: a ring of dressed stones in two courses under a capping, a windlass with a crank between two posts,
+  // a little shingled roof over it, the bucket hanging on its rope
   well(W, L, o) {
-    const st = o.stone ?? 0xcfc8b8;
-    L.p(GEO.cyl(12), st, 0, 0.4, 0, { sx: 0.95, sy: 0.8, sz: 0.95 });
-    L.p(GEO.cyl(12), 0xb9b0a0, 0, 0.82, 0, { sx: 1.02, sy: 0.08, sz: 1.02 });
-    L.p(GEO.cyl(12), 0x3a6fa8, 0, 0.7, 0, { sx: 0.72, sy: 0.04, sz: 0.72, kind: 'fx' });
-    for (const s of [-1, 1]) L.p(GEO.box(), W.T.trunk, s * 0.85, 1.1, 0, { sx: 0.14, sy: 1.6, sz: 0.14 });
-    L.p(GEO.cyl(8), W.T.trunk, 0, 1.55, 0, { sx: 0.07, sy: 1.8, sz: 0.07, rz: Math.PI / 2 });
-    L.p(GEO.cone(4), 0xe0604f, 0, 2.25, 0, { sx: 1.45, sy: 0.8, sz: 1.2, ry: Math.PI / 4 });
-    L.p(GEO.cyl(8), 0x8a5a3c, 0.2, 1.05, 0, { sx: 0.16, sy: 0.22, sz: 0.16 });
+    const st = o.stone ?? 0xcfc8b8, dark = shade(st, 0.84), wood = W.T.trunk, cap = capOf(W.T), d = W.drng, N = 9;
+    for (let c = 0; c < 2; c++) for (let k = 0; k < N; k++) {
+      const a = ((k + c * 0.5) / N) * Math.PI * 2;
+      L.block((k + c) % 2 ? st : shade(st, 0.93), Math.sin(a) * 0.84, 0.2 + c * 0.38, Math.cos(a) * 0.84, 0.61, 0.39, 0.3, { b: 0.05, ry: a, tint: footTint(c ? 0.95 : 0.82, 1.02) });
+    }
+    for (let k = 0; k < N; k++) {
+      const a = ((k + 0.25) / N) * Math.PI * 2;
+      L.block(dark, Math.sin(a) * 0.86, 0.83, Math.cos(a) * 0.86, 0.63, 0.1, 0.42, { b: 0.03, ry: a, tint: capTint(cap.color, 0.8, 0.96) });
+    }
+    L.p(GEO.cyl(12), 0x2f3a4a, 0, 0.42, 0, { sx: 0.7, sy: 0.8, sz: 0.7 });
+    L.p(GEO.cyl(12), 0x3a8fc8, 0, 0.6, 0, { sx: 0.69, sy: 0.04, sz: 0.69, kind: 'fx' });
+    // the posts, the beam they carry and the windlass with its crank
+    for (const s of [-1, 1]) {
+      L.p(GEO.box(), wood, s * 1.0, 0.97, 0, { sx: 0.14, sy: 1.94, sz: 0.14, tint: footTint(0.78, 1.03) });
+      L.p(GEO.box(), shade(wood, 0.9), s * 1.0, 1.93, 0, { sx: 0.12, sy: 0.1, sz: 1.5 });
+      L.p(GEO.box(), shade(wood, 0.9), s * 0.78, 1.72, 0, { sx: 0.07, sy: 0.07, sz: 0.5, ry: Math.PI / 2, rx: s * 0.8 });
+    }
+    L.p(GEO.box(), shade(wood, 0.9), 0, 1.94, 0, { sx: 2.2, sy: 0.1, sz: 0.12 });
+    L.p(GEO.cyl(8), shade(wood, 1.1), 0, 1.45, 0, { sx: 0.06, sy: 2.14, sz: 0.06, rz: Math.PI / 2 });
+    L.p(GEO.cyl(10), shade(wood, 1.16), 0, 1.45, 0, { sx: 0.13, sy: 0.8, sz: 0.13, rz: Math.PI / 2 });
+    L.p(GEO.box(), 0x5c5c6a, 1.12, 1.36, 0, { sx: 0.04, sy: 0.24, sz: 0.04 });
+    L.p(GEO.cyl(6), wood, 1.2, 1.26, 0, { sx: 0.035, sy: 0.18, sz: 0.035, rz: Math.PI / 2 });
+    L.p(GEO.cyl(5), 0xd9c49a, 0.12, 1.18, 0, { sx: 0.018, sy: 0.5, sz: 0.018 });
+    L.p(GEO.taper(8, 1.3), 0x8a5a3c, 0.12, 0.88, 0, { sx: 0.13, sy: 0.24, sz: 0.13, tint: footTint(0.85, 1.05) });
+    L.p(GEO.cyl(8), 0x5c5c6a, 0.12, 0.93, 0, { sx: 0.172, sy: 0.035, sz: 0.172 });
+    // the roof: a gable along the beam, two rows of shingles a side
+    L.p(GEO.cyl(3), 0xe0604f, 0, 2.22, 0, { sx: 0.98, sy: 2.6, sz: 0.52, rx: -Math.PI / 2, ry: Math.PI / 2 });
+    const slope = Math.atan2(0.78, 0.85);
+    for (const s of [-1, 1]) for (const t of [0.42, 0.8]) L.p(GEO.box(), shade(0xe0604f, 0.8), 0, 1.96 + 0.78 * (1 - t) + 0.03, s * 0.85 * t, { sx: 2.62, sy: 0.045, sz: 0.09, rx: s * slope });
+    L.p(GEO.box(), shade(0xe0604f, 0.8), 0, 2.74, 0, { sx: 2.66, sy: 0.08, sz: 0.12 });
+    // a spare bucket and a few stones at its foot
+    L.p(GEO.taper(8, 1.3), 0x8a5a3c, -1.25, 0.13, 0.75, { sx: 0.14, sy: 0.26, sz: 0.14, tint: footTint(0.85, 1.05) });
+    for (let k = 0; k < 3; k++) { const a = d() * 6.283; L.p(GEO.rock(), dark, Math.sin(a) * 1.3, 0.07, Math.cos(a) * 1.3, { sx: 0.18, sy: 0.12, sz: 0.15, ry: d() * 6 }); }
+    L.skirt(0, 0, 1.2);
     L.box(0, 0, 1, 1, 0, 0.9, { sound: 'stone' });
   },
 
-  // a ring of standing stones, open towards the pedestal, with a trilithon at the back and an altar
+  // a ring of standing stones, open towards the pedestal, with a trilithon at the back and an altar; each stone
+  // narrows towards its top and leans its own way, moss (or snow) on what faces up
   stones(W, L, o) {
-    const st = stoneOf(W, o), dark = new THREE.Color(st).multiplyScalar(0.85).getHex();
+    const st = stoneOf(W, o), dark = new THREE.Color(st).multiplyScalar(0.85).getHex(), cap = capOf(W.T), d = W.drng;
+    const tint = capTint(o.stone ? shade(st, 1.08) : cap.color, cap.from + 0.12, 0.82);
     for (let k = 0; k < 8; k++) {
       const a = (k / 8) * Math.PI * 2;
       if (k === 0) continue; // the gap faces the pedestal (+z)
       const lx = Math.sin(a) * 2.6, lz = Math.cos(a) * 2.6;
       if (k === 4) continue; // the trilithon stands there
-      const h = 1.5 + W.rng() * 0.8;
-      L.p(GEO.box(), k % 2 ? st : dark, lx, h / 2, lz, { sx: 0.7, sy: h, sz: 0.45, ry: a, rz: (W.rng() - 0.5) * 0.12 });
-      if (o.glow) L.p(GEO.box(), o.glow, lx + Math.sin(a) * -0.24, h * 0.55, lz + Math.cos(a) * -0.24, { sx: 0.12, sy: h * 0.4, sz: 0.03, ry: a, kind: 'glow' });
+      const h = 1.5 + W.rng() * 0.8, rz = (W.rng() - 0.5) * 0.12;
+      L.own(stoneGeo(0.76, h, 0.5, { top: 0.64 + d() * 0.2, lean: (d() - 0.5) * 0.1, skew: (d() - 0.5) * 0.35 }), k % 2 ? st : dark, lx, -0.04, lz, { ry: a, rz, tint });
+      // runes down its inner face
+      if (o.glow) for (const [t, w, hh] of [[0.36, 0.13, 0.05], [0.47, 0.05, 0.13], [0.6, 0.13, 0.05], [0.7, 0.06, 0.06]]) L.p(GEO.box(), o.glow, lx - Math.sin(a) * 0.24 * (1 - t * 0.3), h * t, lz - Math.cos(a) * 0.24 * (1 - t * 0.3), { sx: w, sy: hh, sz: 0.03, ry: a, kind: 'glow' });
+      if (d() < 0.7) { const ra = d() * 6.283; L.p(GEO.rock(), dark, lx + Math.sin(ra) * 0.6, 0.08, lz + Math.cos(ra) * 0.6, { sx: 0.22, sy: 0.14, sz: 0.18, ry: d() * 6, tint }); }
+      L.skirt(lx, lz, 0.55);
       L.box(lx, lz, 0.4, 0.4, 0, h, { sound: 'stone' });
     }
     for (const s of [-1, 1]) {
-      L.p(GEO.box(), st, s * 0.75, 1.3, -2.6, { sx: 0.6, sy: 2.6, sz: 0.5 });
+      L.own(stoneGeo(0.64, 2.64, 0.54, { top: 0.86, lean: -s * 0.02 }), st, s * 0.75, -0.04, -2.6, { tint });
+      L.skirt(s * 0.75, -2.6, 0.5);
       L.box(s * 0.75, -2.6, 0.32, 0.3, 0, 2.6, { sound: 'stone' });
     }
-    L.p(GEO.box(), dark, 0, 2.8, -2.6, { sx: 2.4, sy: 0.4, sz: 0.6 });
-    L.p(GEO.box(), dark, 0, 0.22, 0, { sx: 1.3, sy: 0.44, sz: 0.8 });
+    L.own(stoneGeo(2.5, 0.42, 0.66, { top: 0.93, skew: 0.02 }), dark, 0, 2.58, -2.6, { tint });
+    // the altar: a slab on two feet
+    for (const s of [-1, 1]) L.block(st, s * 0.42, 0.14, 0, 0.3, 0.28, 0.62, { b: 0.04 });
+    L.block(dark, 0, 0.36, 0, 1.36, 0.16, 0.84, { b: 0.04, tint: footTint(0.92, 1.03) });
     if (o.glow) L.p(GEO.ico(), o.glow, 0, 0.62, 0, { sx: 0.2, sy: 0.2, sz: 0.2, kind: 'glow' });
     L.box(0, 0, 0.6, 0.6, 0, 0.44, { top: true, sound: 'stone' });
   },
 
-  // giant toadstools of rising heights: hop from cap to cap
+  // giant toadstools of rising heights: hop from cap to cap. Each has a stout stem with a ring, a cap with a rolled
+  // rim and spots, gills underneath, and little ones coming up at its foot
   mushrooms(W, L, o) {
-    const caps = o.glow ? [0x6ee7ff, 0xff9ee8, 0xb693f5] : [0xe8413b, 0xff6b4a, 0xd9443b];
+    const caps = o.glow ? [0x6ee7ff, 0xff9ee8, 0xb693f5] : [0xe8413b, 0xff6b4a, 0xd9443b], d = W.drng;
     const list = [[0.4, -0.2, 2.5, 1.3], [1.6, 0.9, 1.7, 0.95], [-1.4, 1.0, 0.9, 0.75], [-0.9, -1.4, 1.5, 0.8], [1.3, -1.5, 0.5, 0.5]];
+    const kind = o.glow ? 'glow' : 'solid', stem = 0xf5ecd8, gill = o.glow ? 0xc9e4f5 : 0xdcc49c;
     for (const [lx, lz, h, cr] of list) {
-      L.p(GEO.cyl(9), 0xf5ecd8, lx, h / 2, lz, { sx: cr * 0.32, sy: h, sz: cr * 0.32 });
+      L.p(GEO.taper(9, 0.62), stem, lx, h / 2, lz, { sx: cr * 0.37, sy: h, sz: cr * 0.37, tint: footTint(0.84, 1.03) });
+      if (h > 0.8) L.p(GEO.taper(9, 0.45), shade(stem, 0.93), lx, h * 0.72, lz, { sx: cr * 0.42, sy: cr * 0.2, sz: cr * 0.42 });
       const c = pick(W, caps);
-      L.p(GEO.dome(), c, lx, h - 0.05, lz, { sx: cr, sy: cr * 0.6, sz: cr, kind: o.glow ? 'glow' : 'solid' });
+      L.p(GEO.dome(), c, lx, h - 0.05, lz, { sx: cr, sy: cr * 0.6, sz: cr, kind, tint: footTint(0.86, 1.08) });
+      L.p(GEO.cyl(12), shade(c, 0.84), lx, h - 0.045, lz, { sx: cr * 1.035, sy: cr * 0.09, sz: cr * 1.035, kind });
       // the underside (the dome is open at the bottom: from below you'd look straight into it): gills, a darker
       // ring round the stem
-      L.p(GEO.cyl(12), o.glow ? 0xe8f6ff : 0xf3e2c4, lx, h - 0.08, lz, { sx: cr * 0.99, sy: 0.06, sz: cr * 0.99, kind: o.glow ? 'glow' : 'solid' });
-      L.p(GEO.cyl(12), o.glow ? 0xc9e4f5 : 0xdcc49c, lx, h - 0.12, lz, { sx: cr * 0.55, sy: 0.04, sz: cr * 0.55 });
+      L.p(GEO.cyl(12), o.glow ? 0xe8f6ff : 0xf3e2c4, lx, h - 0.08, lz, { sx: cr * 0.99, sy: 0.06, sz: cr * 0.99, kind });
+      L.p(GEO.cyl(12), gill, lx, h - 0.12, lz, { sx: cr * 0.55, sy: 0.04, sz: cr * 0.55 });
+      for (let k = 0; k < 8; k++) L.p(GEO.box(), gill, lx, h - 0.112, lz, { sx: 0.035 * cr, sy: 0.012, sz: cr * 1.9, ry: (k / 8) * Math.PI });
       for (let k = 0; k < 5; k++) {
-        const a = k * 1.26 + W.rng(), rr = cr * (0.35 + W.rng() * 0.35);
-        L.p(GEO.ico(), 0xffffff, lx + Math.cos(a) * rr, h - 0.05 + cr * 0.6 * Math.sqrt(1 - (rr / cr) ** 2), lz + Math.sin(a) * rr, { sx: cr * 0.12, sy: cr * 0.06, sz: cr * 0.12 });
+        const a = k * 1.26 + W.rng(), rr = cr * (0.35 + W.rng() * 0.35), ss = cr * (0.09 + d() * 0.07);
+        L.p(GEO.ico(), 0xffffff, lx + Math.cos(a) * rr, h - 0.05 + cr * 0.6 * Math.sqrt(1 - (rr / cr) ** 2), lz + Math.sin(a) * rr, { sx: ss, sy: ss * 0.5, sz: ss });
       }
+      L.p(GEO.ico(), 0xffffff, lx, h - 0.05 + cr * 0.6, lz, { sx: cr * 0.16, sy: cr * 0.07, sz: cr * 0.16 });
+      // little ones at its foot
+      for (let k = 0; k < 2; k++) {
+        const a = d() * 6.283, rr = cr * 0.5 + 0.15, bh = 0.12 + d() * 0.14, bx = lx + Math.cos(a) * rr, bz = lz + Math.sin(a) * rr;
+        L.p(GEO.cyl(6), stem, bx, bh / 2, bz, { sx: 0.035, sy: bh, sz: 0.035 });
+        L.p(GEO.dome(), c, bx, bh - 0.01, bz, { sx: 0.1, sy: 0.075, sz: 0.1, kind });
+      }
+      L.skirt(lx, lz, cr * 0.45);
       L.box(lx, lz, cr * 0.3, cr * 0.3, 0, h);
       L.box(lx, lz, cr * 0.7, cr * 0.7, h, h + cr * 0.45, { top: true, sound: 'grass' });
     }
   },
 
-  // an ancient tree with roots and a huge crown (bare: winter branches; fruit from the mood)
+  // an ancient tree: a thick trunk with a hollow, big roots, boughs reaching into a huge crown of leafy lumps
+  // (bare: winter boughs with snow on them; fruit from the mood); on a green island a swing hangs from a bough
   oak(W, L, o) {
-    const T = W.T, s = 1.35;
-    L.p(GEO.cyl(9), T.trunk, 0, 1.9 * s, 0, { sx: 0.55 * s, sy: 3.8 * s, sz: 0.55 * s });
+    const T = W.T, s = 1.35, d = W.drng, bark = footTint(0.72, 1.05);
+    L.p(GEO.taper(10, 0.6), T.trunk, 0, 1.95 * s, 0, { sx: 0.66 * s, sy: 3.9 * s, sz: 0.66 * s, tint: bark });
     for (let k = 0; k < 5; k++) {
       const a = k * 1.256 + W.rng() * 0.4;
-      L.p(GEO.cone(6), T.trunk, Math.sin(a) * 0.55 * s, 0.35, Math.cos(a) * 0.55 * s, { sx: 0.3 * s, sy: 1.0, sz: 0.3 * s, rx: Math.cos(a) * 0.7, rz: -Math.sin(a) * 0.7 });
+      L.p(GEO.cone(6), shade(T.trunk, 0.82), Math.sin(a) * 0.72 * s, 0.34, Math.cos(a) * 0.72 * s, { sx: 0.3 * s, sy: 1.5, sz: 0.3 * s, ry: a, rx: 2.0 });
     }
-    // branches
+    // a hollow facing the pedestal, and a knot or two
+    L.p(GEO.ico(), 0x3a2a24, 0, 1.5 * s, 0.56 * s, { sx: 0.2 * s, sy: 0.3 * s, sz: 0.08 });
+    L.p(GEO.ico(), shade(T.trunk, 0.8), 0.42 * s, 2.3 * s, 0.36 * s, { sx: 0.1 * s, sy: 0.12 * s, sz: 0.06 });
+    // boughs
     for (let k = 0; k < 4; k++) {
       const a = k * 1.57 + 0.4;
-      L.p(GEO.cyl(6), T.trunk, Math.sin(a) * 0.9 * s, 3.9 * s, Math.cos(a) * 0.9 * s, { sx: 0.16 * s, sy: 2.0 * s, sz: 0.16 * s, rx: Math.cos(a) * 0.8, rz: -Math.sin(a) * 0.8 });
+      L.p(GEO.taper(6, 0.5), shade(T.trunk, 0.94), Math.sin(a) * 1.0 * s, 3.85 * s, Math.cos(a) * 1.0 * s, { sx: 0.2 * s, sy: 2.4 * s, sz: 0.2 * s, ry: a, rx: 0.85 });
     }
     if (o.bare) {
       for (let k = 0; k < 4; k++) {
         const a = k * 1.57 + 0.4;
-        L.p(GEO.dome(), 0xffffff, Math.sin(a) * 1.5 * s, 4.55 * s, Math.cos(a) * 1.5 * s, { sx: 0.3 * s, sy: 0.12, sz: 0.3 * s });
+        // twigs off each bough, and snow lying along it
+        for (let j = 0; j < 2; j++) L.p(GEO.taper(5, 0.4), shade(T.trunk, 0.94), Math.sin(a) * (1.3 + j * 0.5) * s, (4.3 + j * 0.35) * s, Math.cos(a) * (1.3 + j * 0.5) * s, { sx: 0.07 * s, sy: 1.1 * s, sz: 0.07 * s, ry: a + (j ? 0.9 : -0.9), rx: 0.5 });
+        L.p(GEO.dome(), 0xffffff, Math.sin(a) * 1.5 * s, 4.52 * s, Math.cos(a) * 1.5 * s, { sx: 0.34 * s, sy: 0.13, sz: 0.24 * s, ry: a });
+        L.p(GEO.dome(), 0xffffff, Math.sin(a) * 0.95 * s, 3.98 * s, Math.cos(a) * 0.95 * s, { sx: 0.26 * s, sy: 0.1, sz: 0.2 * s, ry: a });
       }
+      L.p(GEO.dome(), 0xffffff, 0, 3.88 * s, 0, { sx: 0.42 * s, sy: 0.14, sz: 0.42 * s });
     } else {
       const leaf = () => pick(W, T.leaves);
-      const kind = o.glowLeaves ? 'glow' : 'solid';
-      L.p(GEO.blob(), leaf(), 0, 5.4 * s, 0, { sx: 2.4 * s, sy: 1.7 * s, sz: 2.4 * s, ry: W.rng() * 3, kind });
+      const kind = o.glowLeaves ? 'glow' : 'solid', tint = o.glowLeaves ? null : leafTint();
+      L.p(GEO.lump(0), leaf(), 0, 5.4 * s, 0, { sx: 2.45 * s, sy: 1.7 * s, sz: 2.45 * s, ry: W.rng() * 3, kind, tint });
       for (let k = 0; k < 5; k++) {
         const a = k * 1.256 + W.rng() * 0.5;
         const c = leaf();
-        L.p(GEO.blob(), c, Math.sin(a) * 1.9 * s, (4.4 + W.rng() * 0.8) * s, Math.cos(a) * 1.9 * s, { sx: 1.4 * s, sy: 1.1 * s, sz: 1.4 * s, ry: W.rng() * 3, kind });
+        L.p(GEO.lump(k + 1), c, Math.sin(a) * 1.9 * s, (4.4 + W.rng() * 0.8) * s, Math.cos(a) * 1.9 * s, { sx: 1.45 * s, sy: 1.1 * s, sz: 1.45 * s, ry: W.rng() * 3, kind, tint });
         if (W.mood.fruit) for (let f = 0; f < 3; f++) L.p(GEO.ico(), W.mood.fruit, Math.sin(a + f) * 2.6 * s, (3.9 + W.rng()) * s, Math.cos(a + f) * 2.6 * s, { sx: 0.16, sy: 0.16, sz: 0.16 });
+        // smaller lumps between the big ones, and tufts on top
+        const b = a + 0.63, cc = new THREE.Color(c).offsetHSL(0, 0, k % 2 ? 0.04 : -0.04).getHex();
+        L.p(GEO.lump(k + 2), cc, Math.sin(b) * 2.35 * s, (4.9 + d() * 0.7) * s, Math.cos(b) * 2.35 * s, { sx: 0.9 * s, sy: 0.72 * s, sz: 0.9 * s, ry: d() * 6, kind, tint });
+        if (k < 3) L.p(GEO.lump(k), cc, Math.sin(b * 2) * 1.1 * s, (6.55 + d() * 0.3) * s, Math.cos(b * 2) * 1.1 * s, { sx: 0.95 * s, sy: 0.7 * s, sz: 0.95 * s, ry: d() * 6, kind, tint });
+      }
+      // a swing from the bough that faces the pedestal
+      if (T.step === 'grass' && !o.glowLeaves) {
+        for (const e of [-1, 1]) L.p(GEO.cyl(5), 0xd9c49a, 1.25 + e * 0.28, 2.6, 1.75, { sx: 0.02, sy: 3.3, sz: 0.02 });
+        L.p(GEO.box(), 0xb07a50, 1.25, 0.95, 1.75, { sx: 0.74, sy: 0.06, sz: 0.26 });
       }
     }
+    L.skirt(0, 0, 0.95 * s);
     L.box(0, 0, 0.6 * s, 0.6 * s, 0, 4.5 * s, { sound: 'wood' });
   },
 
-  // an old colonnade on a plinth: broken columns, one beam still standing, one column fallen
+  // an old colonnade on a stepped plinth: columns of stacked drums on bases, some with capitals and a beam still on
+  // them, some broken off; one lies fallen in pieces; moss on what faces up
   ruin(W, L, o) {
-    const st = o.stone ?? 0xe8e2d4, dark = new THREE.Color(st).multiplyScalar(0.86).getHex();
-    L.p(GEO.box(), dark, 0, 0.15, 0, { sx: 4.4, sy: 0.3, sz: 3.2 });
+    const st = o.stone ?? 0xe8e2d4, dark = new THREE.Color(st).multiplyScalar(0.86).getHex(), d = W.drng;
+    const cap = capOf(W.T), moss = o.stone ? shade(st, 1.06) : cap.color, mt = capTint(moss, 0.7, 0.9);
+    L.block(dark, 0, 0.07, 0, 4.7, 0.16, 3.5, { b: 0.04 });
+    L.block(shade(st, 0.93), 0, 0.2, 0, 4.4, 0.2, 3.2, { b: 0.04, tint: footTint(0.9, 1.02) });
+    // joints in the plinth's top
+    for (const t of [-1.1, 0, 1.1]) L.p(GEO.box(), dark, t, 0.301, 0, { sx: 0.03, sy: 0.006, sz: 3.1, kind: 'ground' });
+    L.p(GEO.box(), dark, 0, 0.301, 0, { sx: 4.3, sy: 0.006, sz: 0.03, kind: 'ground' });
     L.box(0, 0, 2.2, 1.6, 0, 0.3, { top: true, sound: 'stone' });
+    const drums = (lx, lz, y0, h, turn = {}) => {
+      const n = Math.max(1, Math.round(h / 0.62)), dh = h / n;
+      for (let k = 0; k < n; k++) L.p(GEO.cyl(12), k % 2 ? st : shade(st, 0.95), lx + (d() - 0.5) * 0.03, y0 + dh * (k + 0.5), lz + (d() - 0.5) * 0.03, { sx: 0.31, sy: dh - 0.015, sz: 0.31, ry: d() * 3, tint: k === n - 1 ? mt : footTint(0.93, 1.02), ...turn });
+      for (let k = 1; k < n; k++) L.p(GEO.cyl(12), dark, lx, y0 + dh * k, lz, { sx: 0.285, sy: 0.03, sz: 0.285 });
+    };
     const cols = [[-1.6, -1.1, 2.7], [1.6, -1.1, 2.7], [-1.6, 1.1, 1.3], [1.6, 1.1, 0.6], [0, -1.1, 2.7]];
     for (const [lx, lz, h] of cols) {
-      L.p(GEO.cyl(10), st, lx, 0.3 + h / 2, lz, { sx: 0.32, sy: h, sz: 0.32 });
-      L.p(GEO.box(), dark, lx, 0.38, lz, { sx: 0.8, sy: 0.16, sz: 0.8 });
-      if (h > 2) L.p(GEO.box(), dark, lx, 0.3 + h + 0.08, lz, { sx: 0.8, sy: 0.16, sz: 0.8 });
+      L.block(dark, lx, 0.38, lz, 0.82, 0.16, 0.82, { b: 0.035 });
+      L.p(GEO.cyl(12), st, lx, 0.5, lz, { sx: 0.38, sy: 0.09, sz: 0.38 });
+      drums(lx, lz, 0.5, h - 0.2 - (h > 2 ? 0.14 : 0));
+      if (h > 2) {
+        L.p(GEO.taper(12, 0.72), st, lx, 0.3 + h - 0.09, lz, { sx: 0.42, sy: 0.14, sz: 0.42, rx: Math.PI });
+        L.block(dark, lx, 0.3 + h + 0.08, lz, 0.84, 0.16, 0.84, { b: 0.035, tint: mt });
+      } else {
+        // broken off: a tilted stub on top
+        L.p(GEO.cyl(10), st, lx + 0.04, 0.3 + h + 0.03, lz, { sx: 0.3, sy: 0.16, sz: 0.3, rx: 0.2, rz: 0.12, tint: mt });
+      }
       L.box(lx, lz, 0.34, 0.34, 0.3, 0.3 + h, { top: h < 2, sound: 'stone' });
     }
-    L.p(GEO.box(), st, 0, 3.3, -1.1, { sx: 4.1, sy: 0.4, sz: 0.7 });
+    // the beam: three long stones, moss lying on them
+    for (const [t, w] of [[-1.38, 1.34], [0, 1.4], [1.38, 1.34]]) L.block(t ? st : shade(st, 0.94), t, 3.3, -1.1, w, 0.4, 0.7, { b: 0.045, tint: mt });
+    L.block(dark, 0, 3.54, -1.1, 4.3, 0.1, 0.84, { b: 0.03, tint: mt });
     if (o.glow) L.p(GEO.box(), o.glow, 0, 3.3, -0.74, { sx: 2.4, sy: 0.08, sz: 0.02, kind: 'glow' });
-    L.p(GEO.cyl(10), st, 0.3, 0.6, 1.9, { sx: 0.3, sy: 2.3, sz: 0.3, rz: Math.PI / 2, ry: 0.3 });
+    // the fallen column, in three pieces, and rubble
+    for (let k = 0; k < 3; k++) {
+      const t = (k - 1) * 0.8;
+      L.p(GEO.cyl(12), k % 2 ? st : shade(st, 0.95), 0.3 + Math.cos(0.3) * t, 0.6, 1.9 - Math.sin(0.3) * t, { sx: 0.3, sy: 0.74 - (k === 2 ? 0.14 : 0), sz: 0.3, rz: Math.PI / 2, ry: 0.3, tint: mt });
+    }
+    for (let k = 0; k < 5; k++) { const a = d() * 6.283, r = 2.2 + d() * 0.9; L.p(GEO.rock(), k % 2 ? st : dark, Math.sin(a) * r * 1.1, 0.08, Math.cos(a) * r * 0.8, { sx: 0.2 + d() * 0.14, sy: 0.13, sz: 0.18, ry: d() * 6, tint: mt }); }
+    L.skirt(0, 0, 2.9);
     L.box(0.3, 1.9, 1.1, 0.35, 0, 0.9, { top: true, sound: 'stone' });
   },
 

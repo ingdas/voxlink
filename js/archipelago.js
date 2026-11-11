@@ -747,6 +747,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
   // meets land or a landing, each opening onto a landing marked by a taller post with the world's lamp.
   const S = STYLES[hubWorld.themeId] || STYLES.meadow;
   const B = new Batch();
+  const plankRng = mulberry32(77 + chapter * 13), shadeOf = (hex, k) => new THREE.Color(hex).multiplyScalar(k).getHex();
   const pieceList = [hub, ...parts];
   const onLand = (ax, az) => pieceList.some(k => k.world.walkSd(...toLocal(k, ax, az)) < -0.05);
   const inLanding = (x, z, m = 0) => landings.some(n => Math.hypot(x - n.x, z - n.z) < LANDING + m);
@@ -789,7 +790,9 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     P.forEach(([x, z], i) => {
       if (inLanding(x, z, -0.2)) return;
       const t = tangent(P, i);
-      B.put(GEO.box(), S.planks[i % 2], x, DECK - 0.02, z, { sx: 2 * HW + 0.1, sy: 0.06, sz: 0.46, ry: Math.atan2(t[0], t[1]), kind: 'ground' });
+      // each plank its own length and lie, a touch darker now and then
+      const pr = plankRng();
+      B.put(GEO.box(), pr < 0.18 ? shadeOf(S.planks[i % 2], 0.92) : S.planks[i % 2], x, DECK - 0.02, z, { sx: 2 * HW + 0.04 + pr * 0.16, sy: 0.06, sz: 0.455, ry: Math.atan2(t[0], t[1]) + (plankRng() - 0.5) * 0.035, kind: 'ground' });
     });
     const line = simplify(P, 0.05);
     for (let i = 1; i < line.length; i++) beam(line[i - 1], line[i], DECK - 0.12, 0.16, 2 * HW, S.base);
@@ -841,13 +844,18 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     const w = (S.postW || 0.14) * (newel ? 1.5 : 1), top = DECK + (newel ? 1.2 : 0.95), h = postH + top - DECK - 0.95;
     B.put(S.round ? GEO.cyl(8) : GEO.box(), S.post, px, top - h / 2, pz, S.round ? { sx: w * 0.6, sy: h, sz: w * 0.6 } : { sx: w, sy: h, sz: w });
     if (S.cap) B.put(GEO.box(), S.cap, px, top + 0.03, pz, { sx: w + 0.06, sy: 0.07, sz: w + 0.06 });
+    // (a square wooden post is cut to a point)
+    else if (!S.round && !newel) B.put(GEO.cone(4), S.post, px, top + 0.05, pz, { sx: w * 0.78, sy: 0.1, sz: w * 0.78, ry: Math.PI / 4 });
     if (!newel) continue;
     const y = top + (S.cap ? 0.07 : 0);
     const put = (geo, color, dy, s, o = {}) => B.put(geo, color, px, y + dy, pz, { sx: s[0], sy: s[1], sz: s[2], ...o });
     switch (S.top) {
       case 'flowers':
-        put(GEO.box(), 0xd9774a, 0.09, [0.34, 0.18, 0.34]);
-        for (let i = 0; i < 3; i++) B.put(GEO.blob(), flowers[i % flowers.length], px + [-0.08, 0.08, 0][i], y + 0.24, pz + [0.06, 0.04, -0.08][i], { sx: 0.08, sy: 0.08, sz: 0.08 });
+        // a pot of flowers: a rim, leaves, a posy
+        put(GEO.taper(8, 1.25), 0xd9774a, 0.1, [0.15, 0.2, 0.15]);
+        put(GEO.cyl(8), 0xc0623a, 0.2, [0.2, 0.04, 0.2]);
+        put(GEO.lump(1), 0x5fae4f, 0.27, [0.19, 0.11, 0.19]);
+        for (let i = 0; i < 5; i++) B.put(GEO.ico(), flowers[i % flowers.length], px + Math.cos(i * 1.257) * 0.11, y + 0.33 + (i % 2) * 0.04, pz + Math.sin(i * 1.257) * 0.11, { sx: 0.065, sy: 0.065, sz: 0.065 });
         break;
       case 'hay':
         put(GEO.box(), 0xe9c75a, 0.14, [0.42, 0.28, 0.32]);

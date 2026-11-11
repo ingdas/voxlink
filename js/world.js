@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { toon, LAYER_FX, LAYER_OVERLAY } from './render.js';
 import { Batch, GEO, contours, topGeometry, wallGeometry, projectInside, sharedDot, seeded } from './world-kit.js';
-import { pedestal as buildPedestal } from './world-props.js';
+import { pedestal as buildPedestal, shoreRocks } from './world-props.js';
 import { buildSky } from './world-sky.js';
 import { LAYOUTS } from './world-layouts.js';
 import { placeLandmark } from './world-moods.js';
@@ -253,6 +253,8 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
 
   // --- Pedestal ---
   if (pedestal) buildPedestal(W, T.pedestal);
+  // stones in the shallows along a low shore
+  if (W.hasSea && T.water != null && W.seaY > -4) shoreRocks(W, coastSd);
 
   // --- Ground cover: clumps of grass and drifts of flowers (instanced, no outlines, swaying in the wind) ---
   const swayU = { uTime: { value: 0 }, uWind: { value: new THREE.Vector2() }, uSway: { value: W.sway ?? 1 } };

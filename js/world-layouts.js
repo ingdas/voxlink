@@ -7,7 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
-import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel } from './world-props.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -139,19 +139,33 @@ function meadow(W) {
     }
   }
   if (pond) {
-    const { px, pz, rp } = pond;
-    const wl = contours((x, z) => pond.sd(x, z) + 0.02, px - rp * 1.5, pz - rp * 1.5, px + rp * 1.5, pz + rp * 1.5, 0.3);
-    W.B.add(topGeometry(wl, -0.3), 0x5fcfe8, null, 'fx');
+    const { px, pz, rp } = pond, d = W.drng;
+    const area = [px - rp * 1.5, pz - rp * 1.5, px + rp * 1.5, pz + rp * 1.5];
+    W.B.add(topGeometry(contours((x, z) => pond.sd(x, z) + 0.02, ...area, 0.3), -0.3), 0x6fd6ec, null, 'fx');
+    // the middle is deeper
+    W.B.add(topGeometry(contours((x, z) => pond.sd(x, z) + rp * 0.34, ...area, 0.3), -0.28), 0x45b9e0, null, 'fx');
+    // stones round the rim (not where the bridge lands)
+    for (let k = 0; k < 22; k++) {
+      const a = (k / 22) * Math.PI * 2 + d() * 0.2, rr = pond.sd.radiusAt(a) + 0.12 + d() * 0.12;
+      const x = px + Math.cos(a) * rr, z = pz + Math.sin(a) * rr, ss = 0.14 + d() * 0.16;
+      if (Math.abs(z - pz) < 1.25 || d() < 0.2) continue;
+      put(W, GEO.rock(), shade(T.rock, 0.9 + d() * 0.16), x, 0.02, z, { sx: ss * 1.25, sy: ss * 0.7, sz: ss, ry: d() * 6, tint: capTint(mix(T.rock, T.tuft, 0.5), 0.6, 0.9) });
+    }
+    W.skirts.push({ x: px, z: pz, y: 0, r: rp + 0.45 });
     // lily pads, some with a flower
     for (let i = 0; i < 9; i++) {
       const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * rp * 0.8;
       const x = px + Math.cos(a) * r, z = pz + Math.sin(a) * r;
       if (Math.abs(z - pz) < 1.1) continue;
-      const s = 0.35 + rng() * 0.25;
-      put(W, GEO.cyl(9), 0x4fae4a, x, -0.27, z, { sx: s, sy: 0.03, sz: s, kind: 'fx' });
-      if (rng() < 0.4) put(W, GEO.ico(), 0xff9ec7, x, -0.18, z, { sx: 0.12, sy: 0.09, sz: 0.12, kind: 'fx' });
+      const s = 0.35 + rng() * 0.25, turn = d() * 6.283;
+      // a round leaf with a notch cut out of it
+      W.B.own(new THREE.CylinderGeometry(s, s, 0.03, 9, 1, false, turn, Math.PI * 1.8).translate(x, -0.262, z), i % 2 ? 0x4fae4a : 0x5fbf55, null, 'fx');
+      if (rng() < 0.4) {
+        for (let k = 0; k < 6; k++) { const pa = (k / 6) * 6.283; putL(W, GEO.octa(), k % 2 ? 0xff9ec7 : 0xffc2dc, x + Math.cos(pa) * 0.07, -0.19, z + Math.sin(pa) * 0.07, { sx: 0.05, sy: 0.11, sz: 0.035, ry: -pa, rz: -0.6, kind: 'fx' }); }
+        put(W, GEO.ico(), 0xffd23f, x, -0.2, z, { sx: 0.045, sy: 0.045, sz: 0.045, kind: 'fx' });
+      }
     }
-    // reeds
+    // reeds: a cattail with a couple of long leaves
     for (let i = 0; i < 14; i++) {
       const a = rng() * Math.PI * 2;
       const x = px + Math.cos(a) * (rp + 0.1), z = pz + Math.sin(a) * (rp * 0.95);
@@ -159,16 +173,32 @@ function meadow(W) {
       const h = 0.7 + rng() * 0.5;
       put(W, GEO.cyl(4), 0x5a9e48, x, -0.3 + h / 2, z, { sx: 0.03, sy: h, sz: 0.03, kind: 'fx' });
       put(W, GEO.cyl(6), 0x7a5236, x, -0.3 + h - 0.1, z, { sx: 0.06, sy: 0.22, sz: 0.06, kind: 'fx' });
+      for (let k = 0; k < 2; k++) {
+        const la = d() * 6.283, lh = h * (0.6 + d() * 0.3);
+        putL(W, GEO.cone(4), k ? 0x6cb352 : 0x4f9444, x + Math.cos(la) * 0.1, -0.3 + lh / 2, z + Math.sin(la) * 0.1, { sx: 0.05, sy: lh, sz: 0.018, ry: -la, rz: -0.2 - d() * 0.25, kind: 'fx' });
+      }
     }
-    // bridge: planks, beams, posts and rails
+    // bridge: a beam on four piles, planks of uneven length, posts with caps, two rails and braces
     const { x0, x1, z } = bridge;
     const L = x1 - x0, cx = (x0 + x1) / 2;
     put(W, GEO.box(), 0x8a5a3c, cx, 0.17, z, { sx: L, sy: 0.12, sz: 1.5 });
-    for (let x = x0 + 0.25; x < x1; x += 0.5) put(W, GEO.box(), (Math.round((x - x0) * 2) % 2) ? 0xc08a5c : 0xb27b50, x, 0.26, z, { sx: 0.44, sy: 0.07, sz: 1.6 });
+    for (let x = x0 + 0.25; x < x1; x += 0.5) {
+      const odd = Math.round((x - x0) * 2) % 2;
+      block(W, odd ? 0xc08a5c : 0xb27b50, x, 0.26, z + (d() - 0.5) * 0.06, 0.45, 0.075, 1.58 + d() * 0.1, { b: 0.014, tint: footTint(0.94, 1.03) });
+    }
     const rx0 = pond.px - pond.rp * 1.2 - 0.2, rx1 = pond.px + pond.rp * 1.2 + 0.2;
     for (const s of [-1, 1]) {
-      for (let x = rx0; x <= rx1 + 0.01; x += (rx1 - rx0) / Math.max(2, Math.round((rx1 - rx0) / 1.3))) put(W, GEO.box(), 0x7a4e32, x, 0.65, z + s * 0.8, { sx: 0.14, sy: 0.8, sz: 0.14 });
+      const nP = Math.max(2, Math.round((rx1 - rx0) / 1.3));
+      for (let k = 0; k <= nP; k++) {
+        const x = rx0 + ((rx1 - rx0) * k) / nP;
+        put(W, GEO.box(), 0x7a4e32, x, 0.65, z + s * 0.8, { sx: 0.14, sy: 0.84, sz: 0.14, tint: footTint(0.82, 1.03) });
+        put(W, GEO.cone(4), 0x8a5a3c, x, 1.13, z + s * 0.8, { sx: 0.125, sy: 0.12, sz: 0.125, ry: Math.PI / 4 });
+        // a brace up to the rail
+        if (k < nP) putL(W, GEO.box(), 0x8a5a3c, x + (rx1 - rx0) / nP / 2, 0.66, z + s * 0.8, { sx: 0.05, sy: 0.05, sz: Math.hypot((rx1 - rx0) / nP, 0.5) - 0.1, ry: Math.PI / 2, rx: (k % 2 ? 1 : -1) * Math.atan2(0.5, (rx1 - rx0) / nP) });
+      }
       put(W, GEO.box(), 0xc08a5c, (rx0 + rx1) / 2, 1.0, z + s * 0.8, { sx: rx1 - rx0 + 0.2, sy: 0.1, sz: 0.12 });
+      put(W, GEO.box(), 0xb27b50, (rx0 + rx1) / 2, 0.42, z + s * 0.8, { sx: rx1 - rx0, sy: 0.07, sz: 0.07 });
+      for (const e of [rx0 + 0.5, rx1 - 0.5]) put(W, GEO.cyl(7), 0x6b4a36, e, -0.2, z + s * 0.62, { sx: 0.11, sy: 0.75, sz: 0.11 });
       W.box(rx0 - 0.1, 0.25, z + s * 0.8 - 0.08, rx1 + 0.1, 1.1, z + s * 0.8 + 0.08, { sound: 'wood' });
     }
     W.box(x0, -0.8, z - 0.8, x1, 0.3, z + 0.8, { sound: 'wood' });
@@ -184,20 +214,14 @@ function meadow(W) {
     const y = W.floorAt(x, z), hx = 2.3, hz = 1.7;
     beds.push({ x, z });
     const open = Math.abs(x) > Math.abs(z) ? (x > 0 ? 'w' : 'e') : (z > 0 ? 'n' : 's');
+    // a bed of dark soil with a stone at each corner
+    put(W, GEO.box(), 0x9a6a46, x, y + 0.012, z, { sx: hx * 2 - 0.3, sy: 0.03, sz: hz * 2 - 0.3, kind: 'fx' });
+    put(W, GEO.box(), 0x7d5236, x, y + 0.016, z, { sx: hx * 2 - 0.9, sy: 0.03, sz: hz * 2 - 0.9, kind: 'fx' });
     const side = (ax, az, bx, bz, gapSide) => {
-      // posts + two rails, with a 1.6 m opening in the middle of the open side
+      // a white picket fence, with a 1.6 m opening in the middle of the open side
       const L = Math.hypot(bx - ax, bz - az);
       const segs = gapSide ? [[0, 0.5 - 0.8 / L], [0.5 + 0.8 / L, 1]] : [[0, 1]];
-      for (const [t0, t1] of segs) {
-        const sx = ax + (bx - ax) * t0, sz = az + (bz - az) * t0, ex = ax + (bx - ax) * t1, ez = az + (bz - az) * t1;
-        const l = Math.hypot(ex - sx, ez - sz), along = Math.abs(ex - sx) > Math.abs(ez - sz);
-        for (let k = 0; k <= Math.max(1, Math.round(l / 1.1)); k++) {
-          const t = k / Math.max(1, Math.round(l / 1.1));
-          put(W, GEO.box(), 0xf3e6cf, sx + (ex - sx) * t, y + 0.4, sz + (ez - sz) * t, { sx: 0.12, sy: 0.8, sz: 0.12 });
-        }
-        for (const ry of [0.35, 0.65]) put(W, GEO.box(), 0xf8efdc, (sx + ex) / 2, y + ry, (sz + ez) / 2, { sx: along ? l : 0.07, sy: 0.08, sz: along ? 0.07 : l });
-        W.box(Math.min(sx, ex) - 0.07, y, Math.min(sz, ez) - 0.07, Math.max(sx, ex) + 0.07, y + 0.8, Math.max(sz, ez) + 0.07, { sound: 'wood' });
-      }
+      for (const [t0, t1] of segs) picketFence(W, ax + (bx - ax) * t0, az + (bz - az) * t0, ax + (bx - ax) * t1, az + (bz - az) * t1, { y });
     };
     side(x - hx, z - hz, x + hx, z - hz, open === 'n');
     side(x - hx, z + hz, x + hx, z + hz, open === 's');
@@ -217,13 +241,8 @@ function meadow(W) {
   scatterProps(W, Math.round(2 + R * 0.08), (x, z) => !W.nearCentre(x, z, 3.5) && !W.spawnPath(x, z, 2) && W.walkSd(x, z) < -3.5
     && W.flatAt(x, z, 2.2, 0.01) !== null && !W.blocked(x, z, 2.2, W.floorAt(x, z), 3) && !W.crowded(x, z, 2.6), (x, z) => {
     const y = W.floorAt(x, z), r = 0.55, L = 1.3;
-    const bale = (bx, by, bz) => {
-      put(W, GEO.cyl(10), 0xf2cf6b, bx, by + r, bz, { sx: r, sy: L, sz: r, rz: Math.PI / 2 });
-      put(W, GEO.cyl(10), 0xe0b752, bx, by + r, bz, { sx: r * 0.75, sy: L + 0.02, sz: r * 0.75, rz: Math.PI / 2 });
-      W.box(bx - L / 2, by, bz - r, bx + L / 2, by + r * 2, bz + r, { top: true, sound: 'grass' });
-    };
-    bale(x, y, z - r - 0.02); bale(x, y, z + r + 0.02);
-    if (rng() < 0.7) bale(x, y + r * 2, z);
+    bale(W, x, y, z - r - 0.02, r, L); bale(W, x, y, z + r + 0.02, r, L);
+    if (rng() < 0.7) bale(W, x, y + r * 2, z, r, L, true, { loose: false });
     W.obstacles.push({ x, z, r: 0.3 });
   });
 
@@ -231,18 +250,17 @@ function meadow(W) {
   scatterProps(W, 1, (x, z) => !W.nearCentre(x, z, 6) && !W.spawnPath(x, z, 3) && W.walkSd(x, z) < -3 && W.walkSd(x, z) > -7
     && W.flatAt(x, z, 2.6, 0.01) !== null && !W.blocked(x, z, 2.6, W.floorAt(x, z), 4) && !W.crowded(x, z, 3), (x, z) => {
     const y = W.floorAt(x, z), ry = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
-    const fwd = new THREE.Vector3(Math.sin(ry), 0, Math.cos(ry));
-    put(W, GEO.box(), 0xfff1dc, x, y + 1.0, z, { sx: 2.8, sy: 2.0, sz: 2.4, ry });
-    // gable roof: a three-sided cylinder tipped onto its side with the apex up, ridge along the long wall
-    putQ(W, GEO.cyl(3), 0xe0604f, V.set(x, y + 2.45, z), Q.setFromEuler(E.set(-Math.PI / 2, ry + Math.PI / 2, 0, 'YXZ')), new THREE.Vector3(1.75, 3.1, 1.0));
-    put(W, GEO.box(), 0x9a6b4f, x + fwd.x * 1.21, y + 0.6, z + fwd.z * 1.21, { sx: 0.7, sy: 1.2, sz: 0.06, ry });
-    for (const s of [-1, 1]) {
-      const sx = Math.cos(ry) * s * 0.9, sz = -Math.sin(ry) * s * 0.9;
-      put(W, GEO.box(), 0x7ec8f0, x + fwd.x * 1.21 + sx, y + 1.2, z + fwd.z * 1.21 + sz, { sx: 0.5, sy: 0.5, sz: 0.06, ry });
+    const H = house(W, x, z, ry, { wall: 0xfff1dc, roof: 0xe0604f, door: 0x9a6b4f, chimney: 0xb8705a, shutters: 0x4fa58a, box: [1.45, 3.2], clear: 2.4, y });
+    // a flower box under each front window, and stepping stones to the door
+    for (const sa of [-1, 1]) {
+      const a = sa * 2.8 * 0.3;
+      put(W, GEO.box(), 0x8a5a3c, ...H.at(a, 0.8, 1.31), { sx: 0.62, sy: 0.14, sz: 0.2, ry });
+      for (let k = 0; k < 4; k++) put(W, GEO.ico(), T.flowers[(k + (sa > 0 ? 1 : 0)) % T.flowers.length], ...H.at(a - 0.22 + k * 0.15, 0.93, 1.33), { sx: 0.07, sy: 0.07, sz: 0.07 });
     }
-    put(W, GEO.box(), 0xb8705a, x - fwd.x * 0.6 + Math.cos(ry) * 0.8, y + 3.0, z - fwd.z * 0.6 - Math.sin(ry) * 0.8, { sx: 0.35, sy: 0.9, sz: 0.35 });
-    W.box(x - 1.45, y, z - 1.45, x + 1.45, y + 3.2, z + 1.45, { sound: 'wood' });
-    W.obstacles.push({ x, z, r: 2.4 });
+    for (let k = 0; k < 3; k++) {
+      const [sx, sy, sz] = H.at((W.drng() - 0.5) * 0.3, 0.015, 2.05 + k * 0.68);
+      if (W.walkSd(sx, sz) < -0.6 && Math.abs((W.floorAt(sx, sz) ?? 99) - y) < 0.01) put(W, GEO.cyl(7), k % 2 ? 0xd9cfbd : 0xc9bea9, sx, sy, sz, { sx: 0.3, sy: 0.04, sz: 0.24, ry: W.drng() * 3, kind: 'fx' });
+    }
   });
 
   W.landmark(); // before the trees and rocks, which grow around it
@@ -250,8 +268,13 @@ function meadow(W) {
   // bushes and rocks
   scatterProps(W, Math.round(R * 0.6), (x, z) => okTree(W, x, z, 1.0), (x, z) => {
     const y = W.floorAt(x, z), s = 0.45 + rng() * 0.35;
-    put(W, GEO.blob(), T.leaves[Math.floor(rng() * 4)], x, y + s * 0.55, z, { sx: s * 1.2, sy: s, sz: s, ry: rng() * 3 });
-    if (rng() < 0.5) for (let k = 0; k < 3; k++) put(W, GEO.ico(), T.flowers[Math.floor(rng() * T.flowers.length)], x + (rng() - 0.5) * s * 1.6, y + s * (0.7 + rng() * 0.4), z + (rng() - 0.5) * s * 1.6, { sx: 0.08, sy: 0.08, sz: 0.08 });
+    bush(W, x, y, z, s, T.leaves[Math.floor(rng() * 4)], rng() * 3);
+    // some are in flower
+    if (rng() < 0.5) for (let k = 0; k < 3; k++) {
+      const c = T.flowers[Math.floor(rng() * T.flowers.length)], fx = x + (rng() - 0.5) * s * 1.6, fy = y + s * (0.7 + rng() * 0.4), fz = z + (rng() - 0.5) * s * 1.6;
+      put(W, GEO.ico(), c, fx, fy, fz, { sx: 0.09, sy: 0.09, sz: 0.09 });
+      for (let j = 0; j < 2; j++) put(W, GEO.ico(), c, x + (W.drng() - 0.5) * s * 1.8, y + s * (0.5 + W.drng() * 0.6), z + (W.drng() - 0.5) * s * 1.5, { sx: 0.07, sy: 0.07, sz: 0.07 });
+    }
     W.obstacles.push({ x, z, r: s + 0.4 });
   });
   scatterProps(W, W.more('rocks', Math.round(R * 0.2)), (x, z) => okTree(W, x, z, 1.0), (x, z) => rock(W, x, z, 0.3 + rng() * 0.4));
@@ -1323,16 +1346,15 @@ function hub(W) {
   } else W.ground(isl, { top: T.grass, side: T.cliff, depth: Math.max(5, -W.seaY + 4), jag: 0.4 });
   if (lay === 'storm' || lay === 'cliffs') { W.windDir = rng() * Math.PI * 2; gusts(W, { first: 6, len: 2.6, peak: lay === 'storm' ? 1.0 : 0.8, calm: [9, 7] }); }
   // a round plaza of flagstones
-  for (let i = 0; i < 60; i++) {
-    const a = rng() * Math.PI * 2, r = 1 + rng() * 4.2;
-    put(W, GEO.box(), rng() < 0.5 ? 0xd9cfbd : 0xc9bea9, Math.cos(a) * r, 0.015, Math.sin(a) * r, { sx: 0.5 + rng() * 0.4, sy: 0.04, sz: 0.45 + rng() * 0.3, ry: rng(), kind: 'fx' });
-  }
+  for (let i = 0; i < 360; i++) rng(); // (the draws the old scattered flagstones made: what follows stays as it was)
+  plaza(W, 0, 0, 5.1, [0xd9cfbd, 0xc9bea9]);
+  W.noTuft = (x, z) => Math.hypot(x, z) < 5.05;
   // the portal: a ring of stones in the world's colours on a stepped slab, a glowing keystone, and inside it the
   // way to the Keeper's Isle (js/portal.js)
   const pz = R - 3.2;
   W.portal = { x: 0, z: pz };
   portalRing(W, 0, pz, 0, [T.pedestal[0], T.pedestal[1]], T.pedestal[2]);
-  put(W, GEO.box(), T.pedestal[0], 0, 0.12, pz, { sx: 3.6, sy: 0.24, sz: 1.3 });
+  block(W, T.pedestal[0], 0, 0.12, pz, 3.6, 0.24, 1.3, { b: 0.04, tint: footTint(0.88, 1.03) });
   put(W, GEO.box(), T.pedestal[1], 0, 0.06, pz + 0.95, { sx: 2.6, sy: 0.12, sz: 0.7, kind: 'ground' });
   put(W, GEO.box(), T.pedestal[1], 0, 0.06, pz - 0.95, { sx: 2.6, sy: 0.12, sz: 0.7, kind: 'ground' });
   for (const s of [-1, 1]) W.box(s * 1.55 - 0.35, 0, pz - 0.3, s * 1.55 + 0.35, 3.4, pz + 0.3, { sound: 'stone' });
@@ -1347,8 +1369,7 @@ function hub(W) {
   // lamps and the world's own trees round the rim
   for (const a of [-0.6, 0.6, Math.PI - 0.5, Math.PI + 0.5]) {
     const x = Math.sin(a) * 5.4, z = -Math.cos(a) * 5.4;
-    put(W, GEO.cyl(6), 0x5c5c6a, x, 1.1, z, { sx: 0.08, sy: 2.2, sz: 0.08 });
-    put(W, GEO.box(), 0xffd27a, x, 2.3, z, { sx: 0.32, sy: 0.38, sz: 0.32, kind: 'glow' });
+    lampPost(W, x, z, 2.08, 0xffd27a);
     W.box(x - 0.15, 0, z - 0.15, x + 0.15, 2.4, z + 0.15);
   }
   const trees = { meadow: 'round', farm: 'round', frost: 'pine', frostwood: 'pine', reef: 'palm', cove: 'palm', starfall: 'crystal', moon: 'crystal', cliffs: 'bent', storm: 'bent' }[lay] || 'round';
@@ -1428,9 +1449,13 @@ function portalRing(W, x, z, ry, cols, light) {
   const at = (lx, y, lz = 0) => [x + lx * c + lz * s, y, z - lx * s + lz * c];
   for (let k = 0; k < 14; k++) {
     const a = (k / 14) * Math.PI * 2, r = 1.55;
-    put(W, GEO.box(), cols[k % 2], ...at(Math.cos(a) * r, 1.85 + Math.sin(a) * r), { sx: 0.62, sy: 0.62, sz: 0.5, ry, rz: a });
+    // each stone bevelled, and a slimmer band of the other colour set into its face
+    putL(W, GEO.bevel(0.09), cols[k % 2], ...at(Math.cos(a) * r, 1.85 + Math.sin(a) * r), { sx: 0.66, sy: 0.66, sz: 0.5, ry, rz: a });
+    putL(W, GEO.box(), cols[(k + 1) % 2], ...at(Math.cos(a) * r, 1.85 + Math.sin(a) * r), { sx: 0.2, sy: 0.4, sz: 0.53, ry, rz: a });
   }
-  put(W, GEO.box(), cols[1], ...at(0, 1.85 + 1.62), { sx: 0.82, sy: 0.7, sz: 0.62, ry });
+  putL(W, GEO.bevel(0.09), cols[1], ...at(0, 1.85 + 1.62), { sx: 0.86, sy: 0.72, sz: 0.64, ry });
+  // a foot under each side of the ring
+  for (const side of [-1, 1]) putL(W, GEO.bevel(0.08), cols[0], ...at(side * 1.55, 0.36), { sx: 0.86, sy: 0.5, sz: 0.66, ry });
   // gems on both faces (you see the portal from either side)
   for (const f of [-1, 1]) {
     put(W, GEO.octa(), light, ...at(0, 1.85 + 1.62, f * 0.33), { sx: 0.2, sy: 0.3, sz: 0.1, ry, kind: 'glow' });
@@ -1470,8 +1495,7 @@ function gate(W) {
   // lamps in the world's colour where the bridge lands
   for (const s of [-1, 1]) {
     const [x, z] = at(-R + 1.2, s * 1.75);
-    put(W, GEO.cyl(6), 0x5c5c6a, x, 1.0, z, { sx: 0.08, sy: 2.0, sz: 0.08 });
-    put(W, GEO.box(), T.pedestal[2], x, 2.1, z, { sx: 0.3, sy: 0.34, sz: 0.3, kind: 'glow' });
+    lampPost(W, x, z, 1.9, T.pedestal[2]);
     W.box(x - 0.15, 0, z - 0.15, x + 0.15, 2.3, z + 0.15);
     W.obstacles.push({ x, z, r: 0.8 });
   }

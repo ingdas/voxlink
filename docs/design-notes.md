@@ -637,3 +637,16 @@ thing, not more realism. Detail that is added draws from a random source of its 
   lands, the rain lands in little rings that open and fade on the ground, and the storm ball's cloud bands come in
   a few flat tones like everything else. **Clouds** (every world) are fuller: a flat shaded base, a row of big
   puffs on it, smaller ones riding on top and at the ends.
+- **Meadow Isles.** The **pond** has stones round its rim, a deeper middle, notched lily pads with proper
+  flowers and cattails with leaves; its **bridge** stands on piles and has braces under the rails. **Flower
+  beds** are tilled soil behind a white picket fence. **Hay bales** show rings of straw on their ends and two
+  bands of twine. The **cottage** has a stone footing, corner posts, rows of roof tiles, bargeboards, a framed
+  door with a step, windows with frames, sills and shutters, a flower box under each and a chimney. **Bushes**
+  are a few leafy lumps. Landmarks: the **well** is a ring of dressed stones in two courses with a windlass,
+  crank and bucket under a shingled gable; the **stone circle**'s stones taper and lean, moss on top, its altar a
+  slab on two feet; the **toadstools** have ringed stems, rolled rims, gills and little ones at the foot; the
+  **ancient oak** has roots, a hollow, boughs and a swing (snow on bare boughs in winter worlds); the
+  **colonnade**'s columns are drums on bases with capitals, on a stepped plinth. The **portal's island** is paved
+  in rings of flagstones, its lamps are lanterns, the portal ring's stones are bevelled with an inlaid band.
+  **Bridges** have planks of uneven length, pointed posts and proper flower pots; **stones lie in the shallows**
+  along every low shore.

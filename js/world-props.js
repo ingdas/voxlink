@@ -177,8 +177,8 @@ export function tree(W, kind, x, z, s, y = W.floorAt(x, z) ?? 0) {
     const roots = 3 + Math.floor(d() * 2), r0 = d() * 6;
     for (let k = 0; k < roots; k++) {
       const ra = r0 + (k / roots) * Math.PI * 2 + (d() - 0.5) * 0.5;
-      E.set(0, -ra, -1.95 - d() * 0.15, 'YXZ');
-      putQ(W, GEO.cone(5), shade(T.trunk, 0.8), V.set(x + Math.cos(ra) * 0.3 * s, y + 0.16 * s, z + Math.sin(ra) * 0.3 * s), Q.setFromEuler(E), new THREE.Vector3(0.14 * s, 0.6 * s, 0.14 * s));
+      E.set(0, -ra, -2.05 - d() * 0.15, 'YXZ');
+      putQ(W, GEO.cone(5), shade(T.trunk, 0.88), V.set(x + Math.cos(ra) * 0.24 * s, y + 0.15 * s, z + Math.sin(ra) * 0.24 * s), Q.setFromEuler(E), new THREE.Vector3(0.2 * s, 0.5 * s, 0.2 * s));
     }
     for (let k = 0; k < (bent ? 1 : 2); k++) {
       const ba = d() * 6.283, c = at(1.75 + k * 0.35);
@@ -335,8 +335,9 @@ export function tower(W, x, z, w, d, h, base, ox, oz, steps, { body, cap, step =
 // ---------- houses ----------
 // a little house: walls on a stone footing, a gable roof along its width with eaves and rows of tiles, a framed door
 // with a step, two windows with frames and shutters facing `ry`, a window in each side wall; chimney: its colour
+// box: [half size, height] of a square collider (else the walls' own footprint); clear: how far loose blocks keep off
 export function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wall, roof, door = 0x7a4e32, glass = 0x7ec8f0, trim = null, chimney = null, shutters = null, footing = 0xb9b0a0,
-  y = W.floorAt(x, z) ?? 0 }) {
+  box = null, clear = null, y = W.floorAt(x, z) ?? 0 }) {
   const fwd = [Math.sin(ry), Math.cos(ry)], side = [Math.cos(ry), -Math.sin(ry)];
   // local (across, up, out) → the world
   const at = (a, up, o) => [x + side[0] * a + fwd[0] * o, y + up, z + side[1] * a + fwd[1] * o];
@@ -386,9 +387,9 @@ export function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wal
     block(W, chimney, p[0], p[1], p[2], 0.42, 1.1, 0.42, { b: 0.04, ry, tint: footTint(0.88, 1.02) });
     block(W, shade(chimney, 0.8), p[0], p[1] + 0.58, p[2], 0.54, 0.12, 0.54, { b: 0.03, ry });
   }
-  const turned = Math.abs(Math.sin(ry)) > 0.5, ex = (turned ? d : w) / 2 + 0.05, ez = (turned ? w : d) / 2 + 0.05;
-  W.box(x - ex, y, z - ez, x + ex, y + h + roofH, z + ez, { sound: 'wood' });
-  W.obstacles.push({ x, z, r: Math.max(w, d) * 0.8 });
+  const turned = Math.abs(Math.sin(ry)) > 0.5, ex = box ? box[0] : (turned ? d : w) / 2 + 0.05, ez = box ? box[0] : (turned ? w : d) / 2 + 0.05;
+  W.box(x - ex, y, z - ez, x + ex, y + (box ? box[1] : h + roofH), z + ez, { sound: 'wood' });
+  W.obstacles.push({ x, z, r: clear ?? Math.max(w, d) * 0.8 });
   W.skirts.push({ x, z, y, r: Math.max(w, d) * 0.62 });
   return { at, fwd, side };
 }
@@ -448,4 +449,131 @@ export function lintel(W, ax, az, bx, bz, y, h, d, { stone, dark = shade(stone, 
     // a tuft hanging off the edge
     if (r() < 0.6) { const sg = r() < 0.5 ? -1 : 1, nx = Math.cos(ry + Math.PI / 2) * 0, o = d / 2 + 0.015; block(W, moss, ax + (bx - ax) * t + Math.sin(ry) * sg * o + nx, y + h / 2 - 0.12, az + (bz - az) * t + Math.cos(ry) * sg * o, ml * 0.6, 0.3, 0.05, { b: 0.02, ry }); }
   }
+}
+
+// ---------- garden and farm ----------
+let _picket = null;
+// one fence picket: a slat with a pointed top, 1 tall, standing on its foot
+const picketGeo = () => _picket || (_picket = (() => {
+  const w = 0.5, t = 0.5, pos = [];
+  const pts = [[-w, 0], [w, 0], [w, 0.78], [0, 1], [-w, 0.78]];
+  for (const sz of [-1, 1]) for (const [a, b, c] of [[0, 1, 2], [0, 2, 4], [4, 2, 3]]) {
+    const tri = [pts[a], pts[b], pts[c]];
+    if (sz < 0) tri.reverse();
+    for (const p of tri) pos.push(p[0], p[1], sz * t);
+  }
+  for (let i = 0; i < 5; i++) {
+    const a = pts[i], b = pts[(i + 1) % 5];
+    pos.push(a[0], a[1], t, a[0], a[1], -t, b[0], b[1], -t, a[0], a[1], t, b[0], b[1], -t, b[0], b[1], t);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  g.userData.shared = true;
+  return g;
+})());
+// a picket fence from a to b with a collider: square posts with a cap, two rails, pointed pickets between
+export function picketFence(W, ax, az, bx, bz, { color = 0xf8efdc, post = 0xf3e6cf, y = 0, h = 0.8 } = {}) {
+  const L = Math.hypot(bx - ax, bz - az), ry = Math.atan2(bx - ax, bz - az) - Math.PI / 2, n = Math.max(1, Math.round(L / 1.15)), r = W.drng;
+  const ux = (bx - ax) / L, uz = (bz - az) / L;
+  for (let k = 0; k <= n; k++) {
+    const px = ax + (bx - ax) * k / n, pz = az + (bz - az) * k / n;
+    put(W, GEO.box(), post, px, y + h / 2 + 0.02, pz, { sx: 0.13, sy: h + 0.04, sz: 0.13, ry, tint: footTint(0.86, 1.03) });
+    put(W, GEO.cone(4), post, px, y + h + 0.1, pz, { sx: 0.12, sy: 0.12, sz: 0.12, ry: ry + Math.PI / 4 });
+  }
+  for (const ry0 of [0.24, 0.58]) put(W, GEO.box(), shade(color, 0.92), (ax + bx) / 2, y + ry0 * h / 0.8, (az + bz) / 2, { sx: L, sy: 0.06, sz: 0.045, ry });
+  const m = Math.max(2, Math.round(L / 0.29));
+  for (let k = 0; k < m; k++) {
+    const t = (k + 0.5) / m, px = ax + (bx - ax) * t, pz = az + (bz - az) * t;
+    // (not where a post stands)
+    if (Math.abs(((t * n + 0.5) % 1) - 0.5) * (L / n) < 0.13) continue;
+    put(W, picketGeo(), k % 3 ? color : shade(color, 0.95), px - uz * 0.035, y + 0.04, pz + ux * 0.035, { sx: 0.19, sy: (h - 0.1) * (0.96 + r() * 0.08), sz: 0.04, ry });
+  }
+  W.box(Math.min(ax, bx) - 0.07, y, Math.min(az, bz) - 0.07, Math.max(ax, bx) + 0.07, y + h, Math.max(az, bz) + 0.07, { sound: 'wood' });
+}
+
+// a round bale of hay lying along x (alongX) or z, resting on y: rings of straw on its ends, two bands of twine,
+// loose straw round its foot. It is something to stand on.
+export function bale(W, x, y, z, r, L, alongX = true, { straw = 0xf2cf6b, dark = 0xe0b752, loose = true } = {}) {
+  const d = W.drng, turn = { rz: alongX ? Math.PI / 2 : 0, rx: alongX ? 0 : Math.PI / 2 };
+  const ax = alongX ? 1 : 0, az = alongX ? 0 : 1;
+  put(W, GEO.cyl(12), straw, x, y + r, z, { sx: r, sy: L, sz: r, ...turn, tint: footTint(0.84, 1.05) });
+  put(W, GEO.cyl(12), dark, x, y + r, z, { sx: r * 0.78, sy: L + 0.02, sz: r * 0.78, ...turn });
+  put(W, GEO.cyl(10), straw, x, y + r, z, { sx: r * 0.5, sy: L + 0.035, sz: r * 0.5, ...turn });
+  put(W, GEO.cyl(8), shade(dark, 0.86), x, y + r, z, { sx: r * 0.2, sy: L + 0.05, sz: r * 0.2, ...turn });
+  for (const s of [-1, 1]) put(W, GEO.cyl(12), 0xb07a3c, x + ax * s * L * 0.27, y + r, z + az * s * L * 0.27, { sx: r + 0.012, sy: 0.05, sz: r + 0.012, ...turn });
+  if (loose) for (let k = 0; k < 5; k++) {
+    const t = (d() - 0.5) * L, o = (d() < 0.5 ? -1 : 1) * (r * 0.9 + d() * 0.25);
+    put(W, GEO.box(), k % 2 ? straw : dark, x + ax * t + az * o, y + 0.02, z + az * t + ax * o, { sx: 0.3 + d() * 0.25, sy: 0.025, sz: 0.035, ry: d() * 3, kind: 'fx' });
+  }
+  W.box(x - (alongX ? L / 2 : r), y, z - (alongX ? r : L / 2), x + (alongX ? L / 2 : r), y + r * 2, z + (alongX ? r : L / 2), { top: true, sound: 'grass' });
+}
+
+// a bush: a few leafy lumps in shades of its colour (flowers or berries are the caller's)
+export function bush(W, x, y, z, s, color, ry = 0) {
+  const d = W.drng, tone = k => C1.set(color).offsetHSL(0, 0, k).getHex();
+  put(W, GEO.lump(0), color, x, y + s * 0.55, z, { sx: s * 1.2, sy: s, sz: s, ry, tint: leafTint() });
+  const n = 2 + (d() < 0.5 ? 1 : 0), a0 = d() * 6.283;
+  for (let k = 0; k < n; k++) {
+    const a = a0 + (k / n) * 6.283 + (d() - 0.5), ss = s * (0.5 + d() * 0.2);
+    put(W, GEO.lump(k + 1), tone((k % 2 ? 1 : -1) * 0.035), x + Math.cos(a) * s * 0.75, y + ss * 0.6, z + Math.sin(a) * s * 0.75, { sx: ss * 1.15, sy: ss, sz: ss, ry: d() * 6, tint: leafTint() });
+  }
+  W.skirts.push({ x, z, y, r: s * 1.25 });
+}
+
+// ---------- the shore ----------
+// stones in the shallows along an island's shore, in twos and threes, wet and dark at the waterline
+export function shoreRocks(W, coast) {
+  const d = W.drng, T = W.T, n = Math.round(W.bound * 0.9), dry = mix(T.rock, 0xffffff, 0.12);
+  for (let i = 0, k = 0; i < n * 8 && k < n; i++) {
+    const a = d() * 6.283, r = W.bound * (0.55 + d() * 0.6), x = Math.cos(a) * r, z = Math.sin(a) * r, sd = coast(x, z);
+    if (sd < 0.3 || sd > 1.5) continue;
+    k++;
+    const s0 = 0.3 + d() * 0.4;
+    for (let j = 0; j < 1 + Math.floor(d() * 3); j++) {
+      const ss = j ? s0 * (0.4 + d() * 0.3) : s0, ja = d() * 6.283, jr = j ? s0 * (1 + d() * 0.5) : 0;
+      const px = x + Math.cos(ja) * jr, pz = z + Math.sin(ja) * jr;
+      if (coast(px, pz) < 0.2) continue;
+      put(W, GEO.rock(), shade(T.rock, 0.86 + d() * 0.12), px, W.seaY + ss * 0.1, pz, { sx: ss * 1.3, sy: ss * 0.72, sz: ss, rx: d() * 0.6, ry: d() * 6, rz: d() * 0.6, tint: capTint(dry, 0.5, 0.7) });
+    }
+  }
+}
+
+// a standing stone: a block that narrows towards its top and leans a little, its edges cut
+export function stoneGeo(w, h, d, { top = 0.74, b = 0.07, lean = 0, skew = 0 } = {}) {
+  const g = bevelBox(w, h, d, b), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const k = (p.getY(i) + h / 2) / h, t = 1 + (top - 1) * k;
+    p.setXYZ(i, p.getX(i) * t + lean * k * h, p.getY(i) + h / 2 - skew * p.getX(i) * k, p.getZ(i) * t);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+// ---------- paving and lamps ----------
+// a round plaza of flagstones: rings of stones round a middle one, a shade apart, the ground showing in the joints
+export function plaza(W, cx, cz, R, [c1, c2], { y = 0.012, inner = 0.9 } = {}) {
+  const d = W.drng, c3 = mix(c1, c2, 0.5);
+  W.B.own(new THREE.CircleGeometry(inner - 0.05, 10).rotateX(-Math.PI / 2).translate(cx, y, cz), c2, null, 'fx');
+  const rings = Math.max(1, Math.round((R - inner) / 1.15)), dr = (R - inner) / rings;
+  for (let k = 0; k < rings; k++) {
+    const r0 = inner + k * dr, r1 = r0 + dr - 0.07, n = Math.round((2 * Math.PI * (r0 + dr / 2)) / 1.25), a0 = d() * 6.283;
+    for (let i = 0; i < n; i++) {
+      // (a stone missing here and there on the outer rings, where grass has taken over)
+      if (k === rings - 1 && d() < 0.22) continue;
+      const da = (Math.PI * 2) / n, gap = 0.07 / (r0 + dr / 2);
+      W.B.own(new THREE.RingGeometry(r0, r1 - (d() < 0.3 ? 0.06 : 0), 3, 1, a0 + i * da + gap / 2, da - gap).rotateX(-Math.PI / 2).translate(cx, y, cz), [c1, c2, c3][Math.floor(d() * 3)], null, 'fx');
+    }
+  }
+}
+// a lamp post: a slim pole on a foot, an arm, and a lantern with a little roof (its light in `light`)
+export function lampPost(W, x, z, h, light, { metal = 0x5c5c6a, y = 0 } = {}) {
+  put(W, GEO.taper(8, 0.6), shade(metal, 0.85), x, y + 0.11, z, { sx: 0.17, sy: 0.22, sz: 0.17 });
+  put(W, GEO.taper(6, 0.7), metal, x, y + h / 2, z, { sx: 0.06, sy: h, sz: 0.06, tint: footTint(0.8, 1.05) });
+  put(W, GEO.cyl(6), shade(metal, 0.85), x, y + h * 0.62, z, { sx: 0.085, sy: 0.05, sz: 0.085 });
+  put(W, GEO.box(), shade(metal, 0.8), x, y + h + 0.03, z, { sx: 0.3, sy: 0.05, sz: 0.3 });
+  put(W, GEO.box(), light, x, y + h + 0.22, z, { sx: 0.24, sy: 0.34, sz: 0.24, kind: 'glow' });
+  for (const [ax, az] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) put(W, GEO.box(), shade(metal, 0.8), x + ax * 0.125, y + h + 0.22, z + az * 0.125, { sx: 0.03, sy: 0.36, sz: 0.03 });
+  put(W, GEO.cone(4), shade(metal, 0.8), x, y + h + 0.5, z, { sx: 0.27, sy: 0.22, sz: 0.27, ry: Math.PI / 4 });
+  put(W, GEO.ico(), metal, x, y + h + 0.64, z, { sx: 0.04, sy: 0.04, sz: 0.04 });
 }
