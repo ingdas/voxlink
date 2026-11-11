@@ -7,7 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
-import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin, snowman, stump, rowboat, shipwreck, starfish, crate, barrel, clam, crab, parasol, sandcastle } from './world-props.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin, snowman, stump, rowboat, shipwreck, starfish, crate, barrel, clam, crab, parasol, sandcastle, rover } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -623,11 +623,25 @@ function starfall(W) {
   const islets = [];
   const fits = (x, z, r) => !islets.some(s => Math.hypot(s.x - x, s.z - z) < s.r + r + 1.4) && main(x, z) > r + 0.6;
   const islet = (x, z, r, top, deco = true) => {
-    const cap = [T.cap, 0x9be0c0, 0x7fd0b0][islets.length % 3];
-    put(W, GEO.cyl(8), cap, x, top - 0.17, z, { sx: r, sy: 0.34, sz: r, ry: Math.PI / 8 });
-    put(W, GEO.cyl(8), T.cliff, x, top - 0.8, z, { sx: r * 0.93, sy: 0.95, sz: r * 0.93, ry: Math.PI / 8 });
-    put(W, GEO.cone(8), T.dirt, x, top - 1.27 - r * 0.7, z, { sx: r * 0.93, sy: r * 1.4, sz: r * 0.93, rx: Math.PI, ry: Math.PI / 8 });
-    if (deco) put(W, GEO.octa(), T.leaves[islets.length % 3], x + r * 0.3, top - 1.6 - r * 0.9, z - r * 0.2, { sx: 0.28, sy: 0.9, sz: 0.28, kind: 'glow' });
+    const cap = [T.cap, 0x9be0c0, 0x7fd0b0][islets.length % 3], d = W.drng;
+    // a slab of turf with a lip, a band of rock narrowing downwards, a point underneath with smaller ones beside it
+    put(W, GEO.cyl(8), cap, x, top - 0.11, z, { sx: r, sy: 0.22, sz: r, ry: Math.PI / 8 });
+    put(W, GEO.cyl(8), shade(cap, 0.84), x, top - 0.28, z, { sx: r * 1.02, sy: 0.14, sz: r * 1.02, ry: Math.PI / 8 });
+    put(W, GEO.taper(8, 1.12), T.cliff, x, top - 0.8, z, { sx: r * 0.84, sy: 0.95, sz: r * 0.84, ry: Math.PI / 8, tint: footTint(0.84, 1.06) });
+    put(W, GEO.cone(8), T.dirt, x, top - 1.27 - r * 0.7, z, { sx: r * 0.93, sy: r * 1.4, sz: r * 0.93, rx: Math.PI, ry: Math.PI / 8, tint: footTint(0.78, 1.04) });
+    for (let k = 0; k < 3; k++) {
+      const a = d() * 6.283, rr = r * (0.45 + d() * 0.3), hh = r * (0.5 + d() * 0.5);
+      put(W, GEO.cone(6), shade(T.dirt, 0.92), x + Math.cos(a) * rr, top - 1.25 - hh / 2, z + Math.sin(a) * rr, { sx: r * 0.26, sy: hh, sz: r * 0.26, rx: Math.PI, ry: a });
+    }
+    // turf hanging over the edge, a few glowing buds on the rim
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * 6.283 + d(), dh = 0.2 + d() * 0.3;
+      putL(W, GEO.box(), cap, x + Math.cos(a) * r * 0.955, top - 0.3 - dh / 2, z + Math.sin(a) * r * 0.955, { sx: 0.06, sy: dh, sz: 0.3 + d() * 0.3, ry: -a });
+    }
+    if (deco) {
+      put(W, GEO.shard(), T.leaves[islets.length % 3], x + r * 0.3, top - 1.5 - r * 0.9, z - r * 0.2, { sx: 0.22, sy: 0.75, sz: 0.22, rx: Math.PI, kind: 'glow' });
+      put(W, GEO.shard(), T.leaves[(islets.length + 1) % 3], x - r * 0.35, top - 1.45 - r * 0.5, z + r * 0.25, { sx: 0.14, sy: 0.5, sz: 0.14, rx: Math.PI, kind: 'glow' });
+    }
     for (const [hx, hz] of [[0.92, 0.38], [0.38, 0.92]]) W.box(x - hx * r, top - 1.3, z - hz * r, x + hx * r, top, z + hz * r, { sound: 'crystal' });
     W.box(x - 0.68 * r, top - 1.3, z - 0.68 * r, x + 0.68 * r, top, z + 0.68 * r, { top: true, sound: 'crystal' });
     islets.push({ x, z, r, top });
@@ -656,8 +670,13 @@ function starfall(W) {
   const pad = (x, y, z, to) => {
     const { vel, t } = launchVel({ x, y, z }, to);
     W.pads.push({ x, y, z, r: 0.85, vel, t });
-    put(W, GEO.cyl(14), 0x3a2f6a, x, y + 0.03, z, { sx: 1.05, sy: 0.06, sz: 1.05 });
+    // a ring of dark stone set with glowing studs round a disc of light, a paler star in its middle
+    put(W, GEO.cyl(14), 0x3a2f6a, x, y + 0.03, z, { sx: 1.08, sy: 0.07, sz: 1.08 });
+    put(W, GEO.cyl(14), 0x4f4290, x, y + 0.05, z, { sx: 0.96, sy: 0.08, sz: 0.96 });
     put(W, GEO.cyl(14), 0xff7ae0, x, y + 0.06, z, { sx: 0.8, sy: 0.08, sz: 0.8, kind: 'glow' });
+    put(W, GEO.cyl(5), 0xffc2f2, x, y + 0.07, z, { sx: 0.42, sy: 0.08, sz: 0.42, kind: 'glow' });
+    put(W, GEO.cyl(5), 0xffc2f2, x, y + 0.07, z, { sx: 0.42, sy: 0.08, sz: 0.42, ry: Math.PI / 5, kind: 'glow' });
+    for (let k = 0; k < 7; k++) { const a = (k / 7) * 6.283; put(W, GEO.octa(), 0x6ee7ff, x + Math.cos(a) * 1.01, y + 0.1, z + Math.sin(a) * 1.01, { sx: 0.07, sy: 0.07, sz: 0.07, kind: 'glow' }); }
     W.obstacles.push({ x, z, r: 1.5 });
     padRings.push({ x, y, z });
   };
@@ -705,8 +724,12 @@ function starfall(W) {
   // tall crystal spires at the rim
   scatterProps(W, 3, (x, z) => main(x, z) < -1.2 && main(x, z) > -3.5 && okTree(W, x, z, 1.2), (x, z) => {
     const c = T.leaves[Math.floor(rng() * 3)], h = 4 + rng() * 3;
-    put(W, GEO.octa(), c, x, h * 0.5, z, { sx: 0.7, sy: h * 0.75, sz: 0.7, ry: rng() * 3, kind: 'glow' });
-    put(W, GEO.octa(), c, x + 0.7, h * 0.3, z + 0.3, { sx: 0.4, sy: h * 0.4, sz: 0.4, rz: 0.3, kind: 'glow' });
+    const turn = rng() * 3, d = W.drng;
+    put(W, GEO.shard(), c, x, -0.1, z, { sx: 0.62, sy: h * 0.72, sz: 0.62, ry: turn, kind: 'glow', tint: footTint(0.7, 1.18) });
+    put(W, GEO.shard(), c, x + 0.7, -0.05, z + 0.3, { sx: 0.34, sy: h * 0.36, sz: 0.34, rz: -0.3, kind: 'glow', tint: footTint(0.75, 1.15) });
+    put(W, GEO.shard(), 0xffffff, x - 0.5, -0.05, z - 0.45, { sx: 0.2, sy: h * 0.2, sz: 0.2, rz: 0.35, rx: 0.2, kind: 'glow' });
+    for (let k = 0; k < 4; k++) { const a = d() * 6.283; put(W, GEO.rock(), shade(T.rock, 0.9), x + Math.cos(a) * 0.95, 0.1, z + Math.sin(a) * 0.95, { sx: 0.3, sy: 0.2, sz: 0.26, ry: a }); }
+    W.skirts.push({ x, z, y: 0, r: 1.1 });
     W.box(x - 0.6, 0, z - 0.6, x + 0.6, h, z + 0.6, { sound: 'crystal' });
     W.obstacles.push({ x, z, r: 1.4 });
   }, 12);
@@ -716,8 +739,9 @@ function starfall(W) {
     const a = rng() * Math.PI * 2, d = W.bound + 10 + rng() * 45, r = 1 + rng() * 3.5;
     const x = Math.cos(a) * d, z = Math.sin(a) * d, y = -14 + rng() * 30;
     put(W, GEO.cyl(7), T.cap, x, y, z, { sx: r, sy: 0.4, sz: r });
-    put(W, GEO.cone(7), T.dirt, x, y - 0.2 - r * 0.75, z, { sx: r * 0.9, sy: r * 1.5, sz: r * 0.9, rx: Math.PI });
-    if (rng() < 0.5) put(W, GEO.octa(), T.leaves[i % 3], x, y + 0.8, z, { sx: 0.35, sy: 1.2, sz: 0.35, kind: 'glow' });
+    put(W, GEO.cyl(7), shade(T.cliff, 0.96), x, y - 0.32, z, { sx: r * 0.95, sy: 0.3, sz: r * 0.95 });
+    put(W, GEO.cone(7), T.dirt, x, y - 0.4 - r * 0.75, z, { sx: r * 0.9, sy: r * 1.5, sz: r * 0.9, rx: Math.PI, tint: footTint(0.78, 1.04) });
+    if (rng() < 0.5) put(W, GEO.shard(), T.leaves[i % 3], x, y + 0.15, z, { sx: 0.32, sy: 1.1, sz: 0.32, kind: 'glow' });
   }
   Object.assign(W, SKIES.starfall);
 }
@@ -1354,7 +1378,19 @@ function moon(W) {
   for (const c of craters) {
     const b = c.rc + 1.2;
     W.ground(c.sd, { y: RIM, top: T.cap, side: T.dirt, depth: RIM + 0.02, lip: 0.08, lipDepth: 0.1, rect: [c.x - b, c.z - b, c.x + b, c.z + b], cliffKind: 'solid', step: 0.25 });
+    // the floor: darker towards the middle, a little peak there; rays of pale dust thrown out past the rim; rubble on it
+    const d = W.drng;
     put(W, GEO.cyl(16), 0xa9a5ba, c.x, 0.012, c.z, { sx: c.rc - 0.5, sy: 0.02, sz: c.rc - 0.5, kind: 'fx' });
+    put(W, GEO.cyl(14), 0x9a96ad, c.x + 0.1, 0.018, c.z - 0.08, { sx: (c.rc - 0.5) * 0.66, sy: 0.02, sz: (c.rc - 0.5) * 0.62, kind: 'fx' });
+    put(W, GEO.cyl(12), 0x8a869e, c.x + 0.16, 0.024, c.z - 0.12, { sx: (c.rc - 0.5) * 0.34, sy: 0.02, sz: (c.rc - 0.5) * 0.3, kind: 'fx' });
+    if (c.rc > 2.4) put(W, GEO.rock(), T.cliff, c.x + 0.1, 0.1, c.z - 0.1, { sx: 0.3, sy: 0.22, sz: 0.26, ry: d() * 6 });
+    for (let k = 0; k < 9; k++) {
+      const a = (k / 9) * 6.283 + d() * 0.5, l = 0.7 + d() * 1.3, rr = c.rc + 0.75 + l / 2;
+      const rx = c.x + Math.cos(a) * rr, rz = c.z + Math.sin(a) * rr;
+      if (main(rx + Math.cos(a) * l / 2, rz + Math.sin(a) * l / 2) > -0.5 || craters.some(o => o !== c && Math.hypot(o.x - rx, o.z - rz) < o.rc + 1.2) || W.spawnPath(rx, rz, 0.3) || W.nearCentre(rx, rz, 0)) continue;
+      put(W, GEO.box(), T.cap, rx, 0.012, rz, { sx: l, sy: 0.02, sz: 0.11 + d() * 0.12, ry: -a, kind: 'fx' });
+    }
+    for (let k = 0; k < 5; k++) { const a = d() * 6.283; put(W, GEO.rock(), shade(T.rock, 0.9 + d() * 0.15), c.x + Math.cos(a) * c.rc, RIM + 0.06, c.z + Math.sin(a) * c.rc, { sx: 0.14 + d() * 0.1, sy: 0.1, sz: 0.13, ry: a }); }
   }
 
   // the moon base: two domes joined by a tunnel, a landing pad, solar panels and a dish
@@ -1362,27 +1398,66 @@ function moon(W) {
     && W.flatAt(x, z, 3.6, 0.01) !== null && !W.blocked(x, z, 3.8, 0, 3), 400);
   if (base) {
     const { x, z } = base, a = Math.atan2(-x, -z) + Math.PI / 2, ux = Math.sin(a), uz = Math.cos(a);
+    const d = W.drng, hull = 0xf2f4fa, seam = 0xc9cede, fx = Math.sin(a - Math.PI / 2), fz = Math.cos(a - Math.PI / 2);
     for (const [s, r] of [[-1, 1.9], [1, 1.4]]) {
       const dx = x + ux * s * 2.1, dz = z + uz * s * 2.1;
-      put(W, GEO.dome(), 0xf2f4fa, dx, 0, dz, { sx: r, sy: r * 0.85, sz: r });
-      put(W, GEO.cyl(16), 0x4cc9f0, dx, r * 0.42, dz, { sx: r + 0.02, sy: 0.14, sz: r + 0.02, kind: 'glow' });
+      // a dome of panels on a ring wall: seams down and round it, a band of light, portholes, a cap with a vent
+      put(W, GEO.cyl(16), 0xd9dce6, dx, 0.14, dz, { sx: r + 0.06, sy: 0.28, sz: r + 0.06 });
+      put(W, GEO.dome(), hull, dx, 0, dz, { sx: r, sy: r * 0.85, sz: r, tint: footTint(0.9, 1.04) });
+      put(W, GEO.cyl(16), 0x4cc9f0, dx, r * 0.42, dz, { sx: r * 0.915, sy: 0.12, sz: r * 0.915, kind: 'glow' });
+      for (let k = 0; k < 8; k++) {
+        const sa = (k / 8) * 6.283;
+        for (const [t0, t1] of [[0.04, 0.42], [0.5, 0.86]]) {
+          const y0 = r * 0.85 * t0, y1 = r * 0.85 * t1, r0 = r * Math.sqrt(1 - t0 * t0) + 0.01, r1 = r * Math.sqrt(1 - t1 * t1) + 0.01;
+          putL(W, GEO.box(), seam, dx + Math.sin(sa) * (r0 + r1) / 2, (y0 + y1) / 2, dz + Math.cos(sa) * (r0 + r1) / 2, { sx: 0.05, sy: Math.hypot(y1 - y0, r0 - r1), sz: 0.03, ry: sa, rx: -Math.atan2(r0 - r1, y1 - y0) });
+        }
+        if (k % 2) put(W, GEO.cyl(8), 0x9fe0ff, dx + Math.sin(sa + 0.39) * r * 0.985, r * 0.2, dz + Math.cos(sa + 0.39) * r * 0.985, { sx: 0.13, sy: 0.05, sz: 0.13, rx: Math.PI / 2, ry: sa + 0.39, kind: 'glow' });
+      }
+      put(W, GEO.cyl(10), seam, dx, r * 0.85, dz, { sx: r * 0.2, sy: 0.08, sz: r * 0.2 });
       W.box(dx - r * 0.75, 0, dz - r * 0.75, dx + r * 0.75, r * 0.82, dz + r * 0.75, { sound: 'stone' });
     }
+    // the tunnel between them, ribbed; an airlock on the big dome facing the pedestal, with a light over it
     putQ(W, GEO.cyl(10), 0xd9dce6, V.set(x, 0.5, z), Q.setFromEuler(E.set(Math.PI / 2, a, 0, 'YXZ')), new THREE.Vector3(0.5, 2.2, 0.5));
+    for (const t of [-0.5, 0, 0.5]) putQ(W, GEO.cyl(10), seam, V.set(x + ux * t, 0.5, z + uz * t), Q.setFromEuler(E.set(Math.PI / 2, a, 0, 'YXZ')), new THREE.Vector3(0.54, 0.1, 0.54));
+    const ax = x - ux * 2.1 + fx * 1.75, az = z - uz * 2.1 + fz * 1.75, ary = a - Math.PI / 2;
+    putL(W, GEO.bevel(0.08), 0xd9dce6, ax, 0.6, az, { sx: 1.1, sy: 1.2, sz: 0.7, ry: ary });
+    putL(W, GEO.box(), 0x3a4a6a, ax + fx * 0.36, 0.52, az + fz * 0.36, { sx: 0.6, sy: 0.92, sz: 0.04, ry: ary });
+    putL(W, GEO.box(), 0xffd23f, ax + fx * 0.37, 1.08, az + fz * 0.37, { sx: 0.7, sy: 0.07, sz: 0.04, ry: ary });
+    put(W, GEO.ico(), 0xff6b6b, ax + fx * 0.3, 1.28, az + fz * 0.3, { sx: 0.07, sy: 0.07, sz: 0.07, kind: 'glow' });
+    // an aerial on the small dome
+    const mx = x + ux * 2.1, mz = z + uz * 2.1;
+    put(W, GEO.cyl(5), 0xa9a5ba, mx, 1.19 + 0.6, mz, { sx: 0.025, sy: 1.2, sz: 0.025 });
+    put(W, GEO.ico(), 0xff6b6b, mx, 2.42, mz, { sx: 0.06, sy: 0.06, sz: 0.06, kind: 'glow' });
+    for (const h of [1.6, 1.95]) put(W, GEO.box(), 0xa9a5ba, mx, h, mz, { sx: 0.4 - (h - 1.6) * 0.5, sy: 0.02, sz: 0.02, ry: a });
     W.obstacles.push({ x, z, r: 4.2 });
-    // solar panels behind it
+    // solar panels behind it: a frame, cells in a grid, on a stand
     const bx = x - Math.sin(a - Math.PI / 2) * 3.2, bz = z - Math.cos(a - Math.PI / 2) * 3.2;
     if (!W.blocked(bx, bz, 1.4, 0, 2)) for (const s of [-1, 1]) {
       const px = bx + ux * s * 1.1, pz = bz + uz * s * 1.1;
       put(W, GEO.cyl(6), 0x8f8aa3, px, 0.45, pz, { sx: 0.06, sy: 0.9, sz: 0.06 });
-      put(W, GEO.box(), 0x2d3f9e, px, 0.95, pz, { sx: 0.9, sy: 0.05, sz: 1.3, ry: a, rx: 0.5 });
+      put(W, GEO.cyl(8), 0x6f6a85, px, 0.04, pz, { sx: 0.2, sy: 0.08, sz: 0.2 });
+      putL(W, GEO.box(), 0xcfcbe0, px, 0.94, pz, { sx: 0.98, sy: 0.04, sz: 1.38, ry: a, rx: 0.5 });
+      putL(W, GEO.box(), 0x2d3f9e, px, 0.96, pz, { sx: 0.9, sy: 0.05, sz: 1.3, ry: a, rx: 0.5 });
+      for (const t of [-0.325, 0, 0.325]) putL(W, GEO.box(), 0x6f86e0, px + Math.sin(a) * Math.cos(0.5) * t, 0.965 - Math.sin(0.5) * t, pz + Math.cos(a) * Math.cos(0.5) * t, { sx: 0.9, sy: 0.055, sz: 0.025, ry: a, rx: 0.5 });
+      putL(W, GEO.box(), 0x6f86e0, px, 0.965, pz, { sx: 0.025, sy: 0.055, sz: 1.3, ry: a, rx: 0.5 });
     }
+    // a rover parked in front of the tunnel (inside the base's own clearing; nothing collides with it)
+    rover(W, x + fx * 1.9, z + fz * 1.9, a + 0.4);
   }
   const pad = W.sample((x, z) => !W.nearCentre(x, z, 4) && !W.spawnPath(x, z, 2.5) && main(x, z) < -4 && !onRim(x, z) && !craters.some(c => Math.hypot(c.x - x, c.z - z) < c.rc + 3)
     && W.flatAt(x, z, 2.4, 0.01) !== null && !W.blocked(x, z, 2.4, 0, 2) && !W.crowded(x, z, 2.6), 150);
   if (pad) {
     const { x, z } = pad;
     put(W, GEO.cyl(8), 0x5a5670, x, 0.03, z, { sx: 2.1, sy: 0.06, sz: 2.1, ry: Math.PI / 8, kind: 'fx' });
+    // a ring painted round it, a light at each corner, a hazard stripe along each edge
+    W.B.own(new THREE.RingGeometry(1.45, 1.56, 24).rotateX(-Math.PI / 2).translate(x, 0.066, z), 0xffd23f, null, 'fx');
+    for (let k = 0; k < 8; k++) {
+      const a0 = (k / 8) * 6.283 + Math.PI / 8;
+      put(W, GEO.cyl(6), 0x3a3850, x + Math.sin(a0) * 2.05, 0.06, z + Math.cos(a0) * 2.05, { sx: 0.1, sy: 0.12, sz: 0.1 });
+      put(W, GEO.dome(), k % 2 ? 0x4cc9f0 : 0xff6b6b, x + Math.sin(a0) * 2.05, 0.12, z + Math.cos(a0) * 2.05, { sx: 0.075, sy: 0.085, sz: 0.075, kind: 'glow' });
+      const am = a0 + Math.PI / 8;
+      for (let j = -2; j <= 2; j++) putL(W, GEO.box(), j % 2 ? 0x2a2438 : 0xffd23f, x + Math.sin(am) * 1.86 + Math.cos(am) * j * 0.29, 0.067, z + Math.cos(am) * 1.86 - Math.sin(am) * j * 0.29, { sx: 0.29, sy: 0.02, sz: 0.1, ry: am, kind: 'fx' });
+    }
     put(W, GEO.box(), 0xffd23f, x - 0.45, 0.07, z, { sx: 0.18, sy: 0.02, sz: 1.3, kind: 'fx' });
     put(W, GEO.box(), 0xffd23f, x + 0.45, 0.07, z, { sx: 0.18, sy: 0.02, sz: 1.3, kind: 'fx' });
     put(W, GEO.box(), 0xffd23f, x, 0.07, z, { sx: 0.9, sy: 0.02, sz: 0.18, kind: 'fx' });
@@ -1398,7 +1473,9 @@ function moon(W) {
   scatterProps(W, W.more('rocks', Math.round(R * 0.6)), (x, z) => okTree(W, x, z, 1) && !onRim(x, z), (x, z) => rock(W, x, z, 0.25 + rng() * 0.55, 0));
   scatterProps(W, 4, (x, z) => okTree(W, x, z, 1.4) && !onRim(x, z), (x, z) => {
     const c = [0x6ee7ff, 0xb693f5][Math.floor(rng() * 2)], h = 0.8 + rng() * 0.8;
-    put(W, GEO.octa(), c, x, h * 0.45, z, { sx: 0.25, sy: h * 0.6, sz: 0.25, ry: rng() * 3, kind: 'glow' });
+    put(W, GEO.shard(), c, x, -0.04, z, { sx: 0.24, sy: h * 0.62, sz: 0.24, ry: rng() * 3, kind: 'glow', tint: footTint(0.72, 1.18) });
+    put(W, GEO.shard(), 0xffffff, x + 0.22, -0.03, z + 0.1, { sx: 0.1, sy: h * 0.28, sz: 0.1, rz: -0.4, kind: 'glow' });
+    for (let k = 0; k < 3; k++) { const a = W.drng() * 6.283; put(W, GEO.rock(), shade(T.rock, 0.9), x + Math.cos(a) * 0.32, 0.05, z + Math.sin(a) * 0.32, { sx: 0.13, sy: 0.09, sz: 0.11, ry: a }); }
     W.box(x - 0.25, 0, z - 0.25, x + 0.25, h * 0.8, z + 0.25, { sound: 'crystal' });
     W.obstacles.push({ x, z, r: 0.8 });
   });
@@ -1406,9 +1483,16 @@ function moon(W) {
   {
     const p = W.sample((x, z) => okTree(W, x, z, 2) && !onRim(x, z), 80);
     if (p) {
-      put(W, GEO.cyl(6), 0xd9dce6, p.x, 1.1, p.z, { sx: 0.05, sy: 2.2, sz: 0.05 });
-      put(W, GEO.box(), 0xffc93c, p.x + 0.45, 1.95, p.z, { sx: 0.9, sy: 0.55, sz: 0.03 });
-      put(W, GEO.box(), 0x2a1f3d, p.x + 0.45, 1.95, p.z + 0.02, { sx: 0.3, sy: 0.3, sz: 0.03 });
+      // a flag held out on a rod (there is no wind to fly it), rippled; stones round the pole's foot, bootprints
+      const d = W.drng;
+      put(W, GEO.cyl(6), 0xd9dce6, p.x, 1.1, p.z, { sx: 0.035, sy: 2.2, sz: 0.035 });
+      put(W, GEO.cyl(5), 0xd9dce6, p.x + 0.46, 2.2, p.z, { sx: 0.018, sy: 0.95, sz: 0.018, rz: Math.PI / 2 });
+      put(W, GEO.ico(), 0xffd23f, p.x, 2.24, p.z, { sx: 0.05, sy: 0.05, sz: 0.05 });
+      for (let k = 0; k < 3; k++) put(W, GEO.box(), k === 1 ? 0xffd45a : 0xffc93c, p.x + 0.16 + k * 0.3, 1.92, p.z + (k === 1 ? 0.03 : -0.01), { sx: 0.31, sy: 0.55, sz: 0.025, ry: k === 1 ? 0 : (k ? -0.22 : 0.22) });
+      put(W, GEO.bevel(0.2), 0x2a1f3d, p.x + 0.46, 1.92, p.z + 0.045, { sx: 0.26, sy: 0.26, sz: 0.02 });
+      for (const e of [-1, 1]) put(W, GEO.ico(), 0xffffff, p.x + 0.46 + e * 0.055, 1.95, p.z + 0.06, { sx: 0.022, sy: 0.03, sz: 0.01 });
+      for (let k = 0; k < 4; k++) { const a = d() * 6.283; put(W, GEO.rock(), shade(T.rock, 0.92), p.x + Math.cos(a) * 0.2, 0.06, p.z + Math.sin(a) * 0.2, { sx: 0.13, sy: 0.09, sz: 0.11, ry: a }); }
+      for (let k = 0; k < 6; k++) put(W, GEO.cyl(6), T.dirt, p.x + 0.5 + k * 0.42, 0.011, p.z + 0.75 + (k % 2) * 0.24, { sx: 0.09, sy: 0.02, sz: 0.15, ry: 0.5, kind: 'fx' });
       W.box(p.x - 0.1, 0, p.z - 0.1, p.x + 0.1, 2.2, p.z + 0.1);
     }
   }

@@ -690,3 +690,15 @@ thing, not more realism. Detail that is added draws from a random source of its 
   faces in a frame with a brace, **barrels** bulge between iron hoops; **tide pools** sit in a ring of wet sand
   with pebbles, a starfish and sometimes a little **crab**; the sea stacks have a second spike and rocks at the
   waterline. Sand wears a little less dune grass.
+- **Starfall.** **Islets** are a slab of turf with a lip that hangs over the edge, a band of rock narrowing
+  downwards and a point underneath with smaller ones beside it, glowing shards hanging below. **Jump pads** are a
+  ring of dark stone set with glowing studs round a disc of light with a paler star in it. The rim's spires are
+  shards in a nest of stones.
+- **Moon Isle.** Nothing grows on the Moon: its cover is **pebbles**, not stalks (`cover: 'pebbles'` on the
+  theme). **Craters** are darker towards the middle, with a little peak, rays of pale dust past the rim and rubble
+  on it. The **base**'s domes are panelled (seams, a band of light, portholes, a vent) on a ring wall, joined by
+  a ribbed tunnel, with an airlock, an aerial, framed solar panels and a **rover** parked outside. The **landing
+  pad** has a painted ring, a light on each corner and hazard stripes; the **flag** is held out on a rod, with
+  bootprints leading to it. Landmarks: the **lander** has foil panels, a cabin with a window, thrusters, a dish, an
+  engine bell, braced legs with footpads and a ladder; the **radio dish** stands on a braced mount with a cabinet
+  of lights at its foot.

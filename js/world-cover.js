@@ -89,16 +89,31 @@ const STYLE = {
   // dry stalks through the snow, in sparse tufts
   snow: { density: 1.3, h: 1.05, flowers: 0.08, thin: 0.04, w: 0.7, blades: 5, blend: 0.15, rim: 0.25 },
   // dune grass: thin bunches, wide apart
+  // loose stones on bare dust: no blades, no flowers
+  pebbles: { density: 1.5, h: 1, flowers: 0, thin: 0.12, blend: 0.3, rim: 0.2 },
   sand: { density: 1.1, h: 1.6, flowers: 0.06, thin: 0.03, w: 0.7, lean: 0.85, blend: 0.25 },
 };
+
+// a pebble: a squat, slightly lopsided stone (the Moon's cover: nothing grows there)
+function pebbleGeo() {
+  const g = new THREE.DodecahedronGeometry(0.075, 0).toNonIndexed();
+  g.scale(1.25, 0.6, 1);
+  g.translate(0, 0.03, 0);
+  g.computeVertexNormals();
+  const n = g.attributes.position.count, col = new Float32Array(n * 3).fill(1);
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
 
 // W: the island builder (see buildWorld); swayU: the wind's uniforms, shared with whatever else sways
 export function addGroundCover(W, { group, updaters, walkSd, floorAt, quality, swayU }) {
   const { T, seed } = W;
   const rnd = seeded(seed * 7919 + 23);
   const low = quality === 'low';
-  const St = STYLE[T.step] || STYLE.grass;
-  const scale = W.tuftScale ?? 1;
+  // (a theme may name its cover outright: the Moon's is pebbles)
+  const pebbles = T.cover === 'pebbles';
+  const St = pebbles ? STYLE.pebbles : STYLE[T.step] || STYLE.grass;
+  const scale = pebbles ? 1 : W.tuftScale ?? 1;
   const lush = patches(seed);
 
   const swayMat = (tinted = false) => {
@@ -140,8 +155,8 @@ export function addGroundCover(W, { group, updaters, walkSd, floorAt, quality, s
   // and round the foot of trees and rocks, where no block ever lies, it stands tall.
   const area = Math.PI * W.bound * W.bound;
   const want = Math.round(area * St.density * (low ? 0.34 : 1) * scale);
-  const geo = clumpGeo(seeded(seed + 5), { blades: low ? 5 : St.blades ?? 6, h: 0.3, w: 0.034 * (St.w ?? 1), spread: 0.08, lean: St.lean ?? 0.6 });
-  const grass = new THREE.InstancedMesh(geo, swayMat(), Math.max(1, want));
+  const geo = pebbles ? pebbleGeo() : clumpGeo(seeded(seed + 5), { blades: low ? 5 : St.blades ?? 6, h: 0.3, w: 0.034 * (St.w ?? 1), spread: 0.08, lean: St.lean ?? 0.6 });
+  const grass = new THREE.InstancedMesh(geo, pebbles ? toon(0xffffff, { vertexColors: true }) : swayMat(), Math.max(1, want));
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const col = new THREE.Color();
   // the blades' tips come out close to the ground's own colour, their feet darker: thick grass reads as the ground
@@ -151,7 +166,8 @@ export function addGroundCover(W, { group, updaters, walkSd, floorAt, quality, s
   const clump = (x, z, f, s, tall) => {
     if (n >= want) return;
     q.setFromAxisAngle(up, rnd() * 6.283);
-    m.compose(p.set(x, f - 0.01, z), q, sc.set(s, s * (tall ? 1.0 + rnd() * 0.5 : 0.42 + rnd() * 0.25) * St.h, s));
+    if (pebbles) { const ps = 0.5 + rnd() * rnd() * 2.2; m.compose(p.set(x, f - 0.005, z), q, sc.set(ps, ps * (0.7 + rnd() * 0.6), ps)); }
+    else m.compose(p.set(x, f - 0.01, z), q, sc.set(s, s * (tall ? 1.0 + rnd() * 0.5 : 0.42 + rnd() * 0.25) * St.h, s));
     grass.setMatrixAt(n, m);
     // each clump its own shade of the world's grass: a little lighter and yellower, or darker and bluer
     const k = rnd() - 0.5;

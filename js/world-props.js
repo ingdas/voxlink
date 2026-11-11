@@ -961,3 +961,24 @@ export function sandcastle(W, x, y, z, s = 1, sand = 0xf0d08a) {
   put(W, GEO.cyl(4), 0x8a5a3c, x, y + 0.62 * s, z, { sx: 0.01 * s, sy: 0.3 * s, sz: 0.01 * s });
   put(W, GEO.box(), 0xff6b6b, x + 0.06 * s, y + 0.72 * s, z, { sx: 0.12 * s, sy: 0.07 * s, sz: 0.01 });
 }
+
+// ---------- the Moon ----------
+// a little rover: a body on six wheels, a mast with a camera, a dish, a solar deck (no collider: park it where
+// nothing else goes)
+export function rover(W, x, z, ry, y = 0, s = 1) {
+  const fx = Math.sin(ry), fz = Math.cos(ry), sx = Math.cos(ry), sz = -Math.sin(ry);
+  const at = (a, up, f) => [x + sx * a * s + fx * f * s, y + up * s, z + sz * a * s + fz * f * s];
+  putL(W, GEO.bevel(0.12), 0xf2f4fa, ...at(0, 0.36, 0), { sx: 0.62 * s, sy: 0.22 * s, sz: 0.95 * s, ry, tint: footTint(0.86, 1.03) });
+  putL(W, GEO.box(), 0x2d3f9e, ...at(0, 0.485, -0.08), { sx: 0.56 * s, sy: 0.03 * s, sz: 0.7 * s, ry });
+  putL(W, GEO.box(), 0xffd23f, ...at(0, 0.36, 0.48), { sx: 0.64 * s, sy: 0.06 * s, sz: 0.03 * s, ry });
+  for (const e of [-1, 1]) for (const f of [-0.36, 0, 0.36]) {
+    putL(W, GEO.cyl(8), 0x3a3850, ...at(e * 0.38, 0.14, f), { sx: 0.14 * s, sy: 0.1 * s, sz: 0.14 * s, ry, rz: Math.PI / 2 });
+    putL(W, GEO.cyl(6), 0xa9a5ba, ...at(e * 0.435, 0.14, f), { sx: 0.06 * s, sy: 0.02 * s, sz: 0.06 * s, ry, rz: Math.PI / 2 });
+    putL(W, GEO.box(), 0x8f8aa3, ...at(e * 0.33, 0.24, f), { sx: 0.04 * s, sy: 0.16 * s, sz: 0.04 * s, ry });
+  }
+  put(W, GEO.cyl(5), 0xa9a5ba, ...at(0.15, 0.72, 0.3), { sx: 0.022 * s, sy: 0.5 * s, sz: 0.022 * s });
+  putL(W, GEO.bevel(0.15), 0xf2f4fa, ...at(0.15, 1.0, 0.3), { sx: 0.2 * s, sy: 0.11 * s, sz: 0.13 * s, ry });
+  for (const e of [-1, 1]) put(W, GEO.ico(), 0x2a2438, ...at(0.15 + e * 0.05, 1.0, 0.37), { sx: 0.03 * s, sy: 0.03 * s, sz: 0.02 * s });
+  putL(W, GEO.dome(), 0xcfcbe0, ...at(-0.16, 0.66, -0.3), { sx: 0.17 * s, sy: 0.07 * s, sz: 0.17 * s, ry, rx: Math.PI - 0.5 });
+  put(W, GEO.cyl(5), 0xa9a5ba, ...at(-0.16, 0.56, -0.3), { sx: 0.018 * s, sy: 0.18 * s, sz: 0.018 * s });
+}

@@ -512,31 +512,77 @@ const BUILD = {
     });
   },
 
-  // a moon lander on four legs, with a flag
+  // a moon lander: a foil-wrapped descent stage on four legs with footpads and a ladder, the engine bell under it,
+  // a cabin on top with a window, a hatch, thrusters and a dish; a flag planted beside it
   lander(W, L) {
-    L.p(GEO.cyl(8), 0xffd23f, 0, 1.15, 0, { sx: 0.9, sy: 0.8, sz: 0.9 });
-    L.p(GEO.box(), 0xf4f4f8, 0, 1.9, 0, { sx: 1.0, sy: 0.7, sz: 1.0, ry: Math.PI / 8 });
-    L.p(GEO.box(), 0x2a3a5a, 0, 1.95, 0.51, { sx: 0.4, sy: 0.3, sz: 0.03, ry: Math.PI / 8 });
-    L.p(GEO.cyl(5), 0xcfcbe0, 0.3, 2.6, 0, { sx: 0.03, sy: 0.7, sz: 0.03 });
-    L.p(GEO.dome(), 0xcfcbe0, 0.3, 2.9, 0, { sx: 0.25, sy: 0.1, sz: 0.25, rx: Math.PI });
+    const gold = 0xffd23f, foil = 0xe8b62c, white = 0xf4f4f8, grey = 0xa9a5ba, d = W.drng;
+    L.p(GEO.cyl(8), gold, 0, 1.15, 0, { sx: 0.92, sy: 0.8, sz: 0.92, ry: Math.PI / 8, tint: footTint(0.86, 1.05) });
+    // foil panels: every other side a shade darker, a rib between them
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * 6.283;
+      if (k % 2) L.p(GEO.box(), foil, Math.sin(a) * 0.852, 1.15, Math.cos(a) * 0.852, { sx: 0.6, sy: 0.7, sz: 0.02, ry: a });
+      L.p(GEO.box(), grey, Math.sin(a + 0.393) * 0.925, 1.15, Math.cos(a + 0.393) * 0.925, { sx: 0.04, sy: 0.8, sz: 0.04, ry: a + 0.393 });
+    }
+    L.p(GEO.cyl(8), grey, 0, 1.57, 0, { sx: 0.96, sy: 0.06, sz: 0.96, ry: Math.PI / 8 });
+    L.p(GEO.taper(10, 0.55), 0x5a5670, 0, 0.56, 0, { sx: 0.42, sy: 0.4, sz: 0.42 });
+    // the cabin
+    L.block(white, 0, 1.94, 0, 1.0, 0.68, 1.0, { b: 0.12, ry: Math.PI / 8, tint: footTint(0.9, 1.03) });
+    L.p(GEO.box(), 0x2a3a5a, Math.sin(Math.PI / 8) * 0.51, 1.98, Math.cos(Math.PI / 8) * 0.51, { sx: 0.42, sy: 0.3, sz: 0.03, ry: Math.PI / 8 });
+    L.p(GEO.box(), 0x9fe0ff, Math.sin(Math.PI / 8) * 0.515 + 0.06, 2.03, Math.cos(Math.PI / 8) * 0.515, { sx: 0.12, sy: 0.08, sz: 0.03, ry: Math.PI / 8 });
+    L.p(GEO.cyl(8), grey, 0, 2.31, 0, { sx: 0.3, sy: 0.08, sz: 0.3 });
+    for (const [lx, lz] of [[0.52, 0.52], [-0.52, 0.52], [0.52, -0.52], [-0.52, -0.52]]) {
+      L.p(GEO.box(), grey, lx, 2.1, lz, { sx: 0.1, sy: 0.1, sz: 0.1 });
+      L.p(GEO.cone(5), 0x5a5670, lx * 1.16, 2.1, lz * 1.16, { sx: 0.05, sy: 0.1, sz: 0.05, rz: lx > 0 ? -Math.PI / 2 : Math.PI / 2 });
+    }
+    L.p(GEO.cyl(5), 0xcfcbe0, 0.3, 2.62, 0, { sx: 0.025, sy: 0.6, sz: 0.025 });
+    L.p(GEO.dome(), 0xcfcbe0, 0.3, 2.92, 0, { sx: 0.27, sy: 0.1, sz: 0.27, rx: Math.PI - 0.3 });
+    L.p(GEO.ico(), 0xff6b6b, -0.32, 2.4, -0.2, { sx: 0.05, sy: 0.05, sz: 0.05, kind: 'glow' });
+    // legs: a strut down to a round pad, a brace to the body
     for (let k = 0; k < 4; k++) {
       const a = k * Math.PI / 2 + Math.PI / 4, lx = Math.sin(a), lz = Math.cos(a);
-      L.p(GEO.cyl(5), 0xa9a5ba, lx * 0.95, 0.55, lz * 0.95, { sx: 0.05, sy: 1.2, sz: 0.05, rx: lz * 0.5, rz: -lx * 0.5 });
-      L.p(GEO.cyl(8), 0xa9a5ba, lx * 1.25, 0.04, lz * 1.25, { sx: 0.22, sy: 0.08, sz: 0.22 });
+      L.p(GEO.cyl(5), grey, lx * 1.0, 0.6, lz * 1.0, { sx: 0.05, sy: 1.25, sz: 0.05, ry: a, rx: 0.5 });
+      L.p(GEO.cyl(5), grey, lx * 0.92, 0.95, lz * 0.92, { sx: 0.03, sy: 0.7, sz: 0.03, ry: a, rx: 1.25 });
+      L.p(GEO.cyl(10), foil, lx * 1.3, 0.04, lz * 1.3, { sx: 0.24, sy: 0.08, sz: 0.24 });
+      L.p(GEO.cyl(8), grey, lx * 1.3, 0.1, lz * 1.3, { sx: 0.1, sy: 0.08, sz: 0.1 });
     }
+    // the ladder down the leg that faces the pedestal
+    const la = Math.PI / 4, lx = Math.sin(la), lz = Math.cos(la);
+    for (const e of [-1, 1]) L.p(GEO.box(), white, lx * 1.06 + lz * e * 0.11, 0.72, lz * 1.06 - lx * e * 0.11, { sx: 0.025, sy: 1.25, sz: 0.025, ry: la, rx: 0.5 });
+    for (let k = 0; k < 5; k++) L.p(GEO.box(), white, lx * (0.78 + k * 0.13), 1.2 - k * 0.24, lz * (0.78 + k * 0.13), { sx: 0.24, sy: 0.025, sz: 0.025, ry: la });
     L.box(0, 0, 0.9, 0.9, 0.7, 2.25, { sound: 'stone' });
-    L.p(GEO.cyl(5), 0xf4f4f8, 1.7, 0.9, 1.2, { sx: 0.03, sy: 1.8, sz: 0.03 });
-    L.p(GEO.box(), 0xff6b6b, 2.05, 1.55, 1.2, { sx: 0.7, sy: 0.45, sz: 0.02 });
-    L.p(GEO.box(), 0xffffff, 1.93, 1.62, 1.21, { sx: 0.24, sy: 0.18, sz: 0.02 });
+    // the flag, held out on a rod, and bootprints from the ladder to it
+    L.p(GEO.cyl(5), white, 1.7, 0.9, 1.2, { sx: 0.025, sy: 1.8, sz: 0.025 });
+    L.p(GEO.cyl(5), white, 2.05, 1.78, 1.2, { sx: 0.014, sy: 0.72, sz: 0.014, rz: Math.PI / 2 });
+    for (let k = 0; k < 3; k++) L.p(GEO.box(), k === 1 ? 0xff8080 : 0xff6b6b, 1.83 + k * 0.23, 1.55, 1.2 + (k === 1 ? 0.025 : 0), { sx: 0.24, sy: 0.45, sz: 0.02, ry: k === 1 ? 0 : (k ? -0.2 : 0.2) });
+    L.p(GEO.box(), 0xffffff, 1.9, 1.63, 1.215, { sx: 0.2, sy: 0.16, sz: 0.02 });
+    for (let k = 0; k < 5; k++) L.p(GEO.cyl(6), W.T.dirt, 1.0 + k * 0.16, 0.011, 1.05 + k * 0.03 + (k % 2) * 0.2, { sx: 0.08, sy: 0.02, sz: 0.14, ry: 1.3, kind: 'fx' });
+    for (let k = 0; k < 3; k++) { const a = d() * 6.283; L.p(GEO.rock(), W.T.rock, 1.7 + Math.sin(a) * 0.2, 0.05, 1.2 + Math.cos(a) * 0.2, { sx: 0.12, sy: 0.08, sz: 0.1, ry: a }); }
   },
 
-  // a radio dish turned to the sky, its tip blinking
+  // a radio dish turned to the sky on a braced mount, its feed on three struts with a blinking tip, a cabinet with
+  // lights at its foot and a cable to it
   dish(W, L) {
-    L.p(GEO.cyl(8), 0xa9a5ba, 0, 0.6, 0, { sx: 0.25, sy: 1.2, sz: 0.25 });
-    L.p(GEO.box(), 0x8f8aa3, 0, 0.15, 0, { sx: 1.2, sy: 0.3, sz: 1.2 });
-    L.p(GEO.dome(), 0xf4f4f8, 0, 1.6, 0, { sx: 1.5, sy: 0.5, sz: 1.5, rx: Math.PI + 0.6 });
-    L.p(GEO.cyl(5), 0xcfcbe0, 0, 2.0, 0.35, { sx: 0.04, sy: 1.1, sz: 0.04, rx: -0.6 });
-    L.p(GEO.ico(), 0xff6b6b, 0, 2.45, 0.68, { sx: 0.12, sy: 0.12, sz: 0.12, kind: 'glow' });
+    const grey = 0xa9a5ba, dark = 0x8f8aa3, white = 0xf4f4f8;
+    L.block(dark, 0, 0.15, 0, 1.25, 0.3, 1.25, { b: 0.05, tint: footTint(0.86, 1.03) });
+    for (const [lx, lz] of [[0.5, 0.5], [-0.5, 0.5], [0.5, -0.5], [-0.5, -0.5]]) L.p(GEO.cyl(6), grey, lx, 0.32, lz, { sx: 0.06, sy: 0.05, sz: 0.06 });
+    L.p(GEO.taper(8, 0.7), grey, 0, 0.75, 0, { sx: 0.27, sy: 0.9, sz: 0.27, tint: footTint(0.86, 1.03) });
+    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; L.p(GEO.box(), dark, Math.sin(a) * 0.36, 0.62, Math.cos(a) * 0.36, { sx: 0.05, sy: 0.75, sz: 0.05, ry: a, rx: -0.55 }); }
+    L.p(GEO.cyl(8), dark, 0, 1.28, 0, { sx: 0.2, sy: 0.3, sz: 0.2, rz: Math.PI / 2 });
+    // the dish: a bowl with a paler inside, tipped back
+    const tilt = Math.PI + 0.6;
+    L.p(GEO.dome(), white, 0, 1.6, 0, { sx: 1.5, sy: 0.5, sz: 1.5, rx: tilt, tint: footTint(0.9, 1.04) });
+    L.p(GEO.dome(), 0xd9dce6, 0, 1.62, 0.012, { sx: 1.44, sy: 0.46, sz: 1.44, rx: tilt });
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * 6.283 + 0.5, ex = Math.cos(a) * 0.9, ey = Math.sin(a) * 0.9;
+      L.p(GEO.cyl(4), 0xcfcbe0, ex * 0.5, 1.6 + ey * 0.5 * Math.cos(0.6) + 0.45, 0.42 - ey * 0.5 * Math.sin(0.6), { sx: 0.02, sy: 1.25, sz: 0.02, rx: -0.6 - ey * 0.4, rz: ex * 0.42 });
+    }
+    L.p(GEO.cyl(6), dark, 0, 2.38, 0.6, { sx: 0.09, sy: 0.16, sz: 0.09, rx: -0.6 });
+    L.p(GEO.ico(), 0xff6b6b, 0, 2.47, 0.67, { sx: 0.1, sy: 0.1, sz: 0.1, kind: 'glow' });
+    // the cabinet
+    L.block(white, 1.25, 0.35, 0.6, 0.6, 0.7, 0.45, { b: 0.05, tint: footTint(0.88, 1.03) });
+    for (let k = 0; k < 3; k++) L.p(GEO.ico(), [0x3ddc97, 0xffd23f, 0xff6b6b][k], 1.1 + k * 0.15, 0.52, 0.83, { sx: 0.035, sy: 0.035, sz: 0.02, kind: 'glow' });
+    L.p(GEO.box(), 0x2a3a5a, 1.25, 0.28, 0.83, { sx: 0.4, sy: 0.22, sz: 0.02 });
+    L.p(GEO.cyl(5), 0x3a3850, 0.75, 0.03, 0.4, { sx: 0.03, sy: 0.8, sz: 0.03, rz: Math.PI / 2, ry: -0.35 });
     L.box(0, 0, 0.6, 0.6, 0, 1.4, { sound: 'stone' });
   },
 

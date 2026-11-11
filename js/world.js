@@ -95,7 +95,7 @@ export const THEMES = {
     sky: { earth: true, sunDir: [0.7, 0.45, 0.55], sunSize: 0.0012, sunGlow: 0.25, sunCol: 0xffffff },
     sun: [0xffffff, 2.2], sunPos: [18, 16, 14], hemi: [0xb8c0ff, 0x4a4560, 1.3],
     trees: 'crystal', leaves: [0x6ee7ff, 0xb693f5, 0xffe066], trunk: 0x6f6a85,
-    rock: 0xa9a5ba, rockShape: 'rock', tuft: 0x9a96ad, flowers: [0xb8c0ff],
+    rock: 0xa9a5ba, rockShape: 'rock', tuft: 0x9a96ad, flowers: [0xb8c0ff], cover: 'pebbles',
     pedestal: [0x8f8aa3, 0xcfcbe0, 0x4cc9f0], particles: null, stars: true, clouds: 0xffffff, step: 'sand',
   },
   cliffs: {
