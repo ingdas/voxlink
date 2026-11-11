@@ -719,3 +719,245 @@ export function stump(W, x, z, y = 0, { r = 0.35, h = 0.5, bark = 0x8a5a3c } = {
   if (snowy) put(W, GEO.dome(), 0xfafcff, x + r * 0.15, y + h + 0.01, z - r * 0.1, { sx: r * 0.78, sy: 0.13, sz: r * 0.7, ry: d() * 3 });
   W.skirts.push({ x, z, y, r: r + 0.1 });
 }
+
+// ---------- boats ----------
+// A boat's hull, bow towards +x, keel on y = 0: planks (strakes) running from stern to bow in alternating shades (the
+// shades ride in the geometry's own colours), an inside you can look into, a rail round the top, a flat stern.
+// L, B, D: length, beam, depth; hole(i, j, side): leave that plank piece out (a stove-in side); deck: close it over
+export function hullGeo({ L = 5, B = 1.8, D = 0.9, stations = 12, strakes = 5, hole = null, deck = false, sheer = 0.3 } = {}) {
+  const pos = [], col = [];
+  const tri = (a, b, c, k) => { pos.push(...a, ...b, ...c); for (let i = 0; i < 3; i++) col.push(k, k, k); };
+  const quad = (a, b, c, d, k) => { tri(a, b, c, k); tri(a, c, d, k); };
+  const half = t => (t > 0 ? Math.pow(Math.max(0, 1 - Math.pow(t, 2.1)), 0.55) : 0.62 + 0.38 * (1 - t * t)) * B / 2;
+  const top = t => D * (1 + sheer * t * t + (t > 0.4 ? 0.5 * sheer * (t - 0.4) : 0));
+  const keel = t => (t > 0.55 ? D * 0.75 * Math.pow((t - 0.55) / 0.45, 1.6) : 0);
+  // the point of strake edge j (0 keel … strakes: the rail) at station i, on side sg; k < 1: the inside skin
+  const P = (i, j, sg, k = 1) => {
+    const t = -1 + (2 * i) / stations, s = j / strakes, a = (s * Math.PI) / 2;
+    const y0 = keel(t), y1 = top(t);
+    return [t * L / 2 * (k < 1 ? 0.985 : 1), y0 + (y1 - y0) * (1 - Math.cos(a)) + (k < 1 ? 0.05 * (1 - s) : 0), sg * half(t) * Math.pow(Math.sin(a), 0.75) * k];
+  };
+  const shades = [0.86, 1.0, 0.9, 1.04, 0.94, 1.0];
+  for (const sg of [-1, 1]) for (let i = 0; i < stations; i++) for (let j = 0; j < strakes; j++) {
+    if (hole?.(i, j, sg)) continue;
+    const a = P(i, j, sg), b = P(i + 1, j, sg), c = P(i + 1, j + 1, sg), d = P(i, j + 1, sg), sh = shades[j % shades.length] * (i % 4 === 3 ? 0.95 : 1);
+    if (sg > 0) quad(a, b, c, d, sh); else quad(a, d, c, b, sh);
+    const a2 = P(i, j, sg, 0.9), b2 = P(i + 1, j, sg, 0.9), c2 = P(i + 1, j + 1, sg, 0.9), d2 = P(i, j + 1, sg, 0.9);
+    if (sg > 0) quad(a2, d2, c2, b2, j % 2 ? 0.74 : 0.68); else quad(a2, b2, c2, d2, j % 2 ? 0.74 : 0.68);
+  }
+  // the rail, the stern board, and (deck) planks across the top
+  for (const sg of [-1, 1]) for (let i = 0; i < stations; i++) {
+    const a = P(i, strakes, sg), b = P(i + 1, strakes, sg), c = P(i + 1, strakes, sg, 0.9), d = P(i, strakes, sg, 0.9);
+    if (sg > 0) quad(a, b, c, d, 1.1); else quad(a, d, c, b, 1.1);
+  }
+  for (let j = 0; j < strakes; j++) {
+    quad(P(0, j, -1), P(0, j, 1), P(0, j + 1, 1), P(0, j + 1, -1), 0.8);
+    quad(P(0, j, -1, 0.9), P(0, j + 1, -1, 0.9), P(0, j + 1, 1, 0.9), P(0, j, 1, 0.9), 0.6);
+  }
+  if (deck) for (let i = 0; i < stations; i++) {
+    const a = P(i, strakes, -1, 0.9), b = P(i, strakes, 1, 0.9), c = P(i + 1, strakes, 1, 0.9), d = P(i + 1, strakes, -1, 0.9);
+    for (const p of [a, b, c, d]) p[1] -= D * 0.12;
+    quad(a, b, c, d, i % 2 ? 1.02 : 0.92);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  g.userData.frame = { half, top, keel };
+  return g;
+}
+
+// a boat built at a place: M places the hull's own frame (bow +x) in the world. Returns put-ers in that frame.
+function boatFrame(W, M0) {
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), p = new THREE.Vector3();
+  return {
+    add(geo, color, kind = 'solid', tint = null) { W.B.own(geo, color, M0, kind, tint); },
+    // a shape at hull coordinates, turned (rx, ry, rz) in the hull's frame
+    p(geo, color, x, y, z, { sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0, kind = 'solid', tint = null } = {}) {
+      m.compose(p.set(x, y, z), q.setFromEuler(e.set(rx, ry, rz, 'YXZ')), sc.set(sx, sy, sz)).premultiply(M0);
+      W.B.add(geo, color, m, kind, tint);
+    },
+  };
+}
+
+// a rowing boat: hull, two thwarts, ribs, oars shipped along the thwarts. M0 places it.
+export function rowboat(W, M0, { L = 2.8, wood = 0xb07a50, trim = 0xfff1dc, paint = null } = {}) {
+  const B = L * 0.42, D = L * 0.17, F = boatFrame(W, M0), g = hullGeo({ L, B, D, stations: 10, strakes: 4 });
+  const fr = g.userData.frame;
+  F.add(g, paint ?? wood);
+  for (const t of [-0.45, 0.1]) F.p(GEO.box(), shade(wood, 1.12), t * L / 2, D * 0.72, 0, { sx: L * 0.08, sy: 0.04, sz: fr.half(t) * 1.75 });
+  for (const t of [-0.7, -0.2, 0.35]) for (const sg of [-1, 1]) F.p(GEO.box(), shade(wood, 0.7), t * L / 2, D * 0.5, sg * fr.half(t) * 0.8, { sx: 0.04, sy: D * 0.9, sz: 0.04, rx: sg * -0.5 });
+  for (const sg of [-1, 1]) {
+    F.p(GEO.cyl(6), 0xd9c49a, -L * 0.05, D * 0.82, sg * B * 0.22, { sx: 0.03, sy: L * 0.62, sz: 0.03, rz: Math.PI / 2 });
+    F.p(GEO.box(), trim, L * 0.29, D * 0.82, sg * B * 0.22, { sx: L * 0.14, sy: 0.02, sz: 0.11 });
+  }
+  F.p(GEO.box(), trim, L * 0.49, fr.top(0.98) + 0.02, 0, { sx: 0.06, sy: 0.14, sz: 0.06 });
+}
+
+// a wrecked sailing boat lying on its side: a stove-in hull with its ribs showing through the hole, deck beams, a
+// broken mast with a rag of sail and a yard, a rudder, planks and a barrel lying about. M0 places the hull;
+// big: a ship (a stern castle with windows, a bowsprit, a crow's nest, a ragged flag) rather than a boat.
+export function shipwreck(W, M0, { L = 5.2, wood = 0x9a6b4f, dark = 0x6b4a36, sail = 0xf4efe6, big = false } = {}) {
+  const B = L * (big ? 0.3 : 0.36), D = L * (big ? 0.2 : 0.17), N = big ? 16 : 12, K = big ? 6 : 5, d = W.drng, F = boatFrame(W, M0);
+  // the hole: amidships on the upper side, ragged
+  const h0 = Math.round(N * 0.42), hole = (i, j, sg) => sg > 0 && i >= h0 && i < h0 + (big ? 4 : 3) && j >= 1 && j < K - 1 && !(i === h0 && j === 1);
+  const g = hullGeo({ L, B, D, stations: N, strakes: K, hole, deck: big, sheer: big ? 0.5 : 0.3 });
+  const fr = g.userData.frame;
+  F.add(g, wood, 'solid', footTint(0.84, 1.04));
+  // ribs: curved frames inside, standing proud where the planks are gone; beams across the top
+  for (let i = 1; i < N; i += big ? 1 : 1) {
+    const t = -1 + (2 * i) / N, b = fr.half(t), y1 = fr.top(t), inHole = i >= h0 && i <= h0 + (big ? 4 : 3);
+    if (!inHole && i % 2) continue;
+    for (const sg of inHole ? [1] : [-1, 1]) {
+      for (let j = 0; j < 3; j++) {
+        const s0 = j / 3, s1 = (j + 1) / 3, a0 = s0 * Math.PI / 2, a1 = s1 * Math.PI / 2;
+        const p0 = [b * Math.pow(Math.sin(a0), 0.75) * 0.9, (y1 - fr.keel(t)) * (1 - Math.cos(a0)) + fr.keel(t) + 0.04], p1 = [b * Math.pow(Math.sin(a1), 0.75) * 0.9, (y1 - fr.keel(t)) * (1 - Math.cos(a1)) + fr.keel(t) + 0.04];
+        const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]), ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+        F.p(GEO.box(), dark, t * L / 2, (p0[1] + p1[1]) / 2, sg * (p0[0] + p1[0]) / 2, { sx: L * 0.016 + 0.03, sy: L * 0.014 + 0.03, sz: len + 0.03, rx: -sg * ang });
+      }
+    }
+    if (!big && i % 4 === 0) F.p(GEO.box(), shade(wood, 1.08), t * L / 2, y1 * 0.86, 0, { sx: L * 0.03, sy: 0.05, sz: b * 1.75 });
+  }
+  // the keel and stem, a rudder at the stern
+  F.p(GEO.box(), dark, -L * 0.06, -0.02, 0, { sx: L * 0.84, sy: 0.1 * (big ? 2 : 1), sz: 0.09 * (big ? 2 : 1) });
+  F.p(GEO.box(), dark, L * 0.455, D * 0.52, 0, { sx: L * 0.035, sy: D * 1.25, sz: 0.09 * (big ? 2 : 1), rz: -0.5 });
+  F.p(GEO.box(), shade(wood, 0.82), -L * 0.52, D * 0.42, 0, { sx: L * 0.05, sy: D * 0.85, sz: 0.05 * (big ? 2 : 1) });
+  // the mast: snapped a little way up, the top lying across the rail with a rag of sail still on its yard
+  const mx = L * 0.08, mh = L * (big ? 0.5 : 0.3), mr = L * 0.014 + 0.03;
+  F.p(GEO.taper(7, 0.8), shade(wood, 1.12), mx, D * 0.4 + mh / 2, 0, { sx: mr, sy: mh, sz: mr, rz: 0.06 });
+  F.p(GEO.cone(6), shade(wood, 1.2), mx - 0.03, D * 0.4 + mh + mr, 0, { sx: mr * 0.9, sy: mr * 2.4, sz: mr * 0.9, rz: 0.4 });
+  const fall = L * (big ? 0.55 : 0.5);
+  F.p(GEO.taper(7, 0.6), shade(wood, 1.12), mx + fall * 0.42, D * 0.95 + (big ? D * 0.3 : 0), B * 0.2 + fall * 0.22, { sx: mr * 0.85, sy: fall, sz: mr * 0.85, rx: Math.PI / 2 - 0.25, ry: -1.05 });
+  const yardX = mx + fall * 0.62, yardZ = B * 0.2 + fall * 0.34, yardY = D * 1.05 + (big ? D * 0.3 : 0) + fall * 0.06;
+  F.p(GEO.cyl(6), dark, yardX, yardY, yardZ, { sx: mr * 0.6, sy: L * 0.34, sz: mr * 0.6, rz: Math.PI / 2, ry: 0.5 });
+  // (the sail: a ragged sheet hanging from the yard, in strips of uneven length)
+  for (let k = 0; k < 6; k++) {
+    const t = (k - 2.5) * L * 0.052, hl = L * (0.05 + d() * 0.2), wd = L * (0.035 + d() * 0.02);
+    if (k === 3) continue; // (a strip torn away)
+    F.p(GEO.box(), k % 2 ? sail : shade(sail, 0.9), yardX + Math.cos(0.5) * t, yardY - hl / 2 - 0.02, yardZ - Math.sin(0.5) * t, { sx: wd, sy: hl, sz: 0.03, ry: 0.5, rx: 0.1 * (k - 2.5), rz: (d() - 0.5) * 0.16 });
+    // its ragged end
+    F.p(GEO.cone(4), k % 2 ? sail : shade(sail, 0.9), yardX + Math.cos(0.5) * t, yardY - hl - 0.02 - L * 0.012, yardZ - Math.sin(0.5) * t, { sx: wd * 0.5, sy: L * 0.03, sz: 0.02, ry: 0.5, rx: Math.PI });
+  }
+  if (big) {
+    // the stern castle: a raised cabin with a rail and windows across the back, a lantern; a bowsprit; a crow's nest
+    // still on the mast's stump; a ragged flag
+    const sx = -L * 0.36, sw = fr.half(-0.72) * 1.7, sy = fr.top(-0.72);
+    F.p(GEO.bevel(0.05), shade(wood, 0.92), sx, sy + D * 0.2, 0, { sx: L * 0.24, sy: D * 0.62, sz: sw, tint: footTint(0.86, 1.04) });
+    F.p(GEO.box(), shade(wood, 1.1), sx, sy + D * 0.52, 0, { sx: L * 0.26, sy: 0.07, sz: sw + 0.14 });
+    for (const sg of [-1, 1]) for (let k = 0; k < 4; k++) F.p(GEO.box(), dark, sx - L * 0.1 + k * L * 0.065, sy + D * 0.68, sg * (sw / 2 + 0.02), { sx: 0.06, sy: D * 0.3, sz: 0.06 });
+    for (const sg of [-1, 1]) F.p(GEO.box(), shade(wood, 1.1), sx, sy + D * 0.84, sg * (sw / 2 + 0.02), { sx: L * 0.25, sy: 0.06, sz: 0.08 });
+    for (const zz of [-0.3, 0, 0.3]) {
+      F.p(GEO.box(), 0xf2cf6b, sx - L * 0.121, sy + D * 0.22, zz * sw, { sx: 0.04, sy: D * 0.26, sz: sw * 0.2, kind: 'glow' });
+      F.p(GEO.box(), dark, sx - L * 0.124, sy + D * 0.22, zz * sw, { sx: 0.03, sy: D * 0.3, sz: 0.035 });
+    }
+    F.p(GEO.box(), dark, sx + L * 0.121, sy + D * 0.1, 0, { sx: 0.05, sy: D * 0.42, sz: sw * 0.26 });
+    F.p(GEO.taper(6, 0.5), shade(wood, 1.12), L * 0.56, fr.top(1) + D * 0.12, 0, { sx: mr * 0.8, sy: L * 0.24, sz: mr * 0.8, rz: -Math.PI / 2 + 0.3 });
+    F.p(GEO.taper(8, 1.25), shade(wood, 0.9), mx + 0.02, D * 0.4 + mh * 0.82, 0, { sx: mr * 2.6, sy: mr * 2.2, sz: mr * 2.6, rz: 0.06 });
+    F.p(GEO.cyl(8), dark, mx + 0.03, D * 0.4 + mh * 0.82 + mr * 1.2, 0, { sx: mr * 3.4, sy: 0.06, sz: mr * 3.4, rz: 0.06 });
+    // deck fittings: a hatch, the wheel on the stern castle
+    F.p(GEO.box(), dark, L * 0.24, fr.top(0.48) - D * 0.08, 0, { sx: L * 0.1, sy: 0.08, sz: B * 0.36 });
+    for (let k = 0; k < 3; k++) F.p(GEO.box(), shade(wood, 0.8), L * 0.24, fr.top(0.48) - D * 0.03, (k - 1) * B * 0.11, { sx: L * 0.1, sy: 0.03, sz: 0.04 });
+    F.p(GEO.cyl(5), dark, sx + L * 0.06, sy + D * 0.76, 0, { sx: 0.05, sy: D * 0.5, sz: 0.05 });
+    for (let k = 0; k < 4; k++) F.p(GEO.box(), shade(wood, 1.15), sx + L * 0.065, sy + D * 0.98, 0, { sx: 0.035, sy: D * 0.46, sz: 0.035, rx: (k * Math.PI) / 4 });
+    F.p(GEO.cyl(10), dark, sx + L * 0.065, sy + D * 0.98, 0, { sx: D * 0.17, sy: 0.05, sz: D * 0.17, rz: Math.PI / 2 });
+  }
+  return F;
+}
+
+// ---------- the beach ----------
+// a starfish lying on (x, y, z): five tapering arms round a middle
+export function starfish(W, x, y, z, color, turn = 0, s = 1, kind = 'fx') {
+  for (let k = 0; k < 5; k++) {
+    const a = turn + k * 1.2566;
+    putL(W, GEO.cone(4), k % 2 ? color : shade(color, 0.92), x + Math.cos(a) * 0.1 * s, y + 0.012, z - Math.sin(a) * 0.1 * s, { sx: 0.022 * s, sy: 0.2 * s, sz: 0.06 * s, ry: a, rz: -Math.PI / 2, kind });
+  }
+  put(W, GEO.dome(), shade(color, 1.08), x, y, z, { sx: 0.06 * s, sy: 0.035 * s, sz: 0.06 * s, kind });
+}
+// a wooden crate: plank faces in a frame, a brace across each side
+export function crate(W, x, y, z, s, ry, wood = 0xb07a50) {
+  const dark = shade(wood, 0.72), h = s / 2;
+  block(W, wood, x, y + h, z, s - 0.06, s - 0.06, s - 0.06, { b: 0.02, ry, tint: footTint(0.88, 1.04) });
+  // the frame: twelve edges
+  for (const [ax, ay, az] of [[1, 1, 0], [1, -1, 0], [-1, 1, 0], [-1, -1, 0]]) {
+    putL(W, GEO.box(), dark, x + Math.cos(ry) * ax * (h - 0.035), y + h + ay * (h - 0.035), z - Math.sin(ry) * ax * (h - 0.035), { sx: 0.075, sy: 0.075, sz: s, ry });
+    putL(W, GEO.box(), dark, x + Math.sin(ry) * ax * (h - 0.035), y + h + ay * (h - 0.035), z + Math.cos(ry) * ax * (h - 0.035), { sx: s, sy: 0.075, sz: 0.075, ry });
+    putL(W, GEO.box(), dark, x + Math.cos(ry) * ax * (h - 0.035) + Math.sin(ry) * ay * (h - 0.035), y + h, z - Math.sin(ry) * ax * (h - 0.035) + Math.cos(ry) * ay * (h - 0.035), { sx: 0.075, sy: s, sz: 0.075, ry });
+  }
+  // plank joints and a brace on the four sides
+  for (let k = 0; k < 4; k++) {
+    const a = ry + (k * Math.PI) / 2, ox = Math.sin(a) * (h - 0.025), oz = Math.cos(a) * (h - 0.025);
+    for (const t of [-0.17, 0.17]) putL(W, GEO.box(), dark, x + ox, y + h + t * s, z + oz, { sx: s - 0.14, sy: 0.02, sz: 0.012, ry: a });
+    putL(W, GEO.box(), shade(wood, 0.84), x + ox * 1.01, y + h, z + oz * 1.01, { sx: s * 1.18, sy: 0.07, sz: 0.02, ry: a, rz: k % 2 ? 0.785 : -0.785 });
+  }
+}
+// a barrel: staves that bulge in the middle, iron hoops, a lid set in a little
+export function barrel(W, x, y, z, r = 0.38, h = 0.9, wood = 0x9a6b4f) {
+  const iron = 0x5c5c6a;
+  put(W, GEO.taper(12, 0.84), wood, x, y + h * 0.75, z, { sx: r * 1.06, sy: h / 2, sz: r * 1.06, tint: footTint(0.96, 1.05) });
+  put(W, GEO.taper(12, 0.84), wood, x, y + h * 0.25, z, { sx: r * 1.06, sy: h / 2, sz: r * 1.06, rx: Math.PI, tint: footTint(0.84, 0.98) });
+  for (let k = 0; k < 12; k++) { const a = (k / 12) * 6.283; put(W, GEO.box(), shade(wood, 0.78), x + Math.cos(a) * r * 1.0, y + h / 2, z + Math.sin(a) * r * 1.0, { sx: 0.02, sy: h * 0.9, sz: 0.03, ry: -a }); }
+  for (const [t, k] of [[0.12, 0.93], [0.5, 1.075], [0.88, 0.93]]) put(W, GEO.cyl(12), iron, x, y + h * t, z, { sx: r * k, sy: 0.055, sz: r * k });
+  put(W, GEO.cyl(12), shade(wood, 1.12), x, y + h - 0.02, z, { sx: r * 0.8, sy: 0.03, sz: r * 0.8 });
+  put(W, GEO.cyl(6), shade(wood, 0.7), x + r * 0.3, y + h, z, { sx: 0.04, sy: 0.03, sz: 0.04 });
+}
+// a giant clam, its hinge towards `ry`: two fluted shells (one lying, one tilted open), a pearl on a soft tongue
+export function clam(W, x, y, z, ry, { shell = 0xff9eb8, lip = 0xffc2d4 } = {}) {
+  const fx = Math.sin(ry), fz = Math.cos(ry);
+  put(W, GEO.dome(), shell, x, y, z, { sx: 1.0, sy: 0.32, sz: 0.85, ry, tint: footTint(0.86, 1.06) });
+  putL(W, GEO.dome(), lip, x - fx * 0.6, y + 0.18, z - fz * 0.6, { sx: 1.0, sy: 0.32, sz: 0.85, ry, rx: -1.0, tint: footTint(0.9, 1.08) });
+  // flutes: ridges fanning out from the hinge over both shells, a scalloped lip
+  for (let k = -3; k <= 3; k++) {
+    const a = ry + k * 0.3, rx = Math.sin(a), rz = Math.cos(a);
+    putL(W, GEO.taper(5, 0.4), shade(shell, 0.9), x - fx * 0.5 + rx * 0.62, y + 0.2, z - fz * 0.5 + rz * 0.62, { sx: 0.07, sy: 1.0, sz: 0.05, ry: a, rx: Math.PI / 2 - 0.2 });
+    put(W, GEO.blob(), lip, x - fx * 0.42 + rx * 1.22, y + 0.06, z - fz * 0.42 + rz * 1.22, { sx: 0.13, sy: 0.07, sz: 0.13 });
+  }
+  put(W, GEO.dome(), 0xffe0ea, x, y + 0.14, z, { sx: 0.62, sy: 0.14, sz: 0.52, ry });
+  put(W, GEO.blob(), 0xfff8ec, x, y + 0.33, z, { sx: 0.2, sy: 0.2, sz: 0.2, kind: 'glow' });
+}
+// a little crab: a shell, two eyes on stalks, claws up, legs out to the sides
+export function crab(W, x, y, z, ry, s = 1, color = 0xe8553b) {
+  const fx = Math.sin(ry), fz = Math.cos(ry), sx = Math.cos(ry), sz = -Math.sin(ry);
+  put(W, GEO.blob(), color, x, y + 0.07 * s, z, { sx: 0.13 * s, sy: 0.07 * s, sz: 0.1 * s, ry });
+  for (const e of [-1, 1]) {
+    put(W, GEO.cyl(4), color, x + sx * e * 0.05 * s + fx * 0.07 * s, y + 0.15 * s, z + sz * e * 0.05 * s + fz * 0.07 * s, { sx: 0.012 * s, sy: 0.07 * s, sz: 0.012 * s });
+    put(W, GEO.ico(), 0x2a1f3d, x + sx * e * 0.05 * s + fx * 0.07 * s, y + 0.19 * s, z + sz * e * 0.05 * s + fz * 0.07 * s, { sx: 0.022 * s, sy: 0.022 * s, sz: 0.022 * s });
+    put(W, GEO.blob(), shade(color, 1.1), x + sx * e * 0.17 * s + fx * 0.09 * s, y + 0.12 * s, z + sz * e * 0.17 * s + fz * 0.09 * s, { sx: 0.05 * s, sy: 0.04 * s, sz: 0.035 * s });
+    for (let k = 0; k < 3; k++) putL(W, GEO.box(), shade(color, 0.85), x + sx * e * 0.16 * s + fx * (k - 1.2) * 0.05 * s, y + 0.04 * s, z + sz * e * 0.16 * s + fz * (k - 1.2) * 0.05 * s, { sx: 0.11 * s, sy: 0.018 * s, sz: 0.018 * s, ry, rz: -e * 0.5 });
+  }
+}
+// a beach parasol: a pole, a canopy of eight panels in two colours with a rim, a finial
+let _panels = null;
+const panelGeo = () => _panels || (_panels = [0, 1].map(odd => {
+  const pos = [], N = 8;
+  for (let i = odd; i < N; i += 2) {
+    const a0 = (i / N) * 6.283, a1 = ((i + 1) / N) * 6.283;
+    const A = [Math.cos(a0), 0, Math.sin(a0)], B = [Math.cos(a1), 0, Math.sin(a1)], T = [0, 1, 0], lo = p => [p[0] * 1.0, -0.12, p[2] * 1.0];
+    pos.push(...T, ...B, ...A, ...A, ...B, ...lo(B), ...A, ...lo(B), ...lo(A), ...T, ...A, ...B);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  g.userData.shared = true;
+  return g;
+}));
+export function parasol(W, x, y, z, [c0, c1], turn = 0) {
+  put(W, GEO.cyl(6), 0xf5f0e8, x, y + 1.1, z, { sx: 0.045, sy: 2.2, sz: 0.045 });
+  const [even, odd] = panelGeo();
+  put(W, even, c0, x, y + 2.0, z, { sx: 1.42, sy: 0.52, sz: 1.42, ry: turn });
+  put(W, odd, c1, x, y + 2.0, z, { sx: 1.42, sy: 0.52, sz: 1.42, ry: turn });
+  put(W, GEO.ico(), c1, x, y + 2.58, z, { sx: 0.07, sy: 0.09, sz: 0.07 });
+  for (let k = 0; k < 8; k++) { const a = (k / 8) * 6.283 - turn; putL(W, GEO.box(), 0xf5f0e8, x + Math.cos(a) * 0.7, y + 2.2, z + Math.sin(a) * 0.7, { sx: 1.42, sy: 0.02, sz: 0.02, ry: -a, rz: -0.35 }); }
+}
+// a sandcastle: a keep with four corner towers, each with a pointed top, a flag on the keep, a moat ring
+export function sandcastle(W, x, y, z, s = 1, sand = 0xf0d08a) {
+  const dark = shade(sand, 0.86);
+  put(W, GEO.cyl(12), dark, x, y + 0.01, z, { sx: 0.62 * s, sy: 0.02, sz: 0.62 * s, kind: 'fx' });
+  block(W, sand, x, y + 0.15 * s, z, 0.5 * s, 0.3 * s, 0.5 * s, { b: 0.03 * s, tint: footTint(0.88, 1.04) });
+  for (const [ax, az] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+    put(W, GEO.cyl(8), sand, x + ax * 0.26 * s, y + 0.2 * s, z + az * 0.26 * s, { sx: 0.1 * s, sy: 0.4 * s, sz: 0.1 * s, tint: footTint(0.88, 1.04) });
+    put(W, GEO.cone(8), dark, x + ax * 0.26 * s, y + 0.47 * s, z + az * 0.26 * s, { sx: 0.12 * s, sy: 0.16 * s, sz: 0.12 * s });
+  }
+  put(W, GEO.cyl(8), sand, x, y + 0.38 * s, z, { sx: 0.14 * s, sy: 0.2 * s, sz: 0.14 * s });
+  put(W, GEO.cyl(4), 0x8a5a3c, x, y + 0.62 * s, z, { sx: 0.01 * s, sy: 0.3 * s, sz: 0.01 * s });
+  put(W, GEO.box(), 0xff6b6b, x + 0.06 * s, y + 0.72 * s, z, { sx: 0.12 * s, sy: 0.07 * s, sz: 0.01 });
+}

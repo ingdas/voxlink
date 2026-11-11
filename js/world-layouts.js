@@ -7,7 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
-import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin, snowman, stump } from './world-props.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin, snowman, stump, rowboat, shipwreck, starfish, crate, barrel, clam, crab, parasol, sandcastle } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -499,14 +499,17 @@ function reef(W) {
   const pier = (x0, z0, x1, z1, end) => {
     const y = 0.32, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, alongX = Math.abs(x1 - x0) > Math.abs(z1 - z0);
     const L = alongX ? Math.abs(x1 - x0) : Math.abs(z1 - z0), w = 1.8;
+    const d = W.drng;
     put(W, GEO.box(), 0x9a6a46, cx, y - 0.1, cz, { sx: alongX ? L : w, sy: 0.2, sz: alongX ? w : L });
+    // planks of uneven length, a touch askew; piles with a rope band round their heads
     for (let t = 0.2; t < L; t += 0.55) {
-      const px = alongX ? Math.min(x0, x1) + t : cx, pz = alongX ? cz : Math.min(z0, z1) + t;
-      put(W, GEO.box(), Math.round(t / 0.55) % 2 ? 0xc89466 : 0xb98257, px, y + 0.01, pz, { sx: alongX ? 0.46 : w + 0.1, sy: 0.04, sz: alongX ? w + 0.1 : 0.46 });
+      const px = alongX ? Math.min(x0, x1) + t : cx, pz = alongX ? cz : Math.min(z0, z1) + t, len = w + 0.06 + d() * 0.14, skew = (d() - 0.5) * 0.04;
+      put(W, GEO.box(), Math.round(t / 0.55) % 2 ? 0xc89466 : d() < 0.2 ? 0xa97549 : 0xb98257, px, y + 0.01, pz, { sx: alongX ? 0.46 : len, sy: 0.04, sz: alongX ? len : 0.46, ry: skew });
     }
     for (let t = 0.6; t < L; t += 1.6) for (const s of [-1, 1]) {
       const px = alongX ? Math.min(x0, x1) + t : cx + s * (w / 2 + 0.05), pz = alongX ? cz + s * (w / 2 + 0.05) : Math.min(z0, z1) + t;
-      put(W, GEO.cyl(6), 0x7a5236, px, y - 0.4, pz, { sx: 0.13, sy: 1.1, sz: 0.13 });
+      put(W, GEO.taper(7, 0.85), 0x7a5236, px, y - 0.4, pz, { sx: 0.14, sy: 1.1, sz: 0.14, tint: footTint(0.7, 1.05) });
+      put(W, GEO.cyl(7), 0xd9c49a, px, y + 0.05, pz, { sx: 0.14, sy: 0.06, sz: 0.14 });
     }
     W.box(Math.min(x0, x1) - (alongX ? 0 : w / 2), -0.8, Math.min(z0, z1) - (alongX ? w / 2 : 0), Math.max(x0, x1) + (alongX ? 0 : w / 2), y, Math.max(z0, z1) + (alongX ? w / 2 : 0), { sound: 'wood' });
     if (end) {
@@ -514,9 +517,17 @@ function reef(W) {
       put(W, GEO.box(), 0x9a6a46, ex, y - 0.1, ez, { sx: hw * 2, sy: 0.2, sz: hd * 2 });
       put(W, GEO.box(), 0xc89466, ex, y + 0.01, ez, { sx: hw * 2 + 0.1, sy: 0.04, sz: hd * 2 + 0.1 });
       for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-        put(W, GEO.cyl(6), 0x7a5236, ex + sx * hw, y - 0.1, ez + sz * hd, { sx: 0.15, sy: 1.6, sz: 0.15 });
-        put(W, GEO.cyl(6), 0xffffff, ex + sx * hw, y + 0.6, ez + sz * hd, { sx: 0.16, sy: 0.12, sz: 0.16 });
+        put(W, GEO.taper(7, 0.85), 0x7a5236, ex + sx * hw, y - 0.1, ez + sz * hd, { sx: 0.16, sy: 1.6, sz: 0.16, tint: footTint(0.7, 1.05) });
+        put(W, GEO.cyl(7), 0xffffff, ex + sx * hw, y + 0.6, ez + sz * hd, { sx: 0.15, sy: 0.12, sz: 0.15 });
+        put(W, GEO.cyl(7), 0xd9c49a, ex + sx * hw, y + 0.42, ez + sz * hd, { sx: 0.155, sy: 0.07, sz: 0.155 });
       }
+      // a rope slung between the posts on the lagoon side, a coil of rope, and a rowing boat tied up alongside
+      for (const sx of [-1, 1]) for (let k = 0; k < 4; k++) {
+        const t = (k + 0.5) / 4, sag = Math.sin(t * Math.PI) * 0.16;
+        putL(W, GEO.cyl(5), 0xd9c49a, ex + sx * hw, y + 0.5 - sag, ez - hd + t * hd * 2, { sx: 0.022, sy: hd / 2 + 0.03, sz: 0.022, rx: Math.PI / 2 + (0.5 - t) * 0.5 });
+      }
+      for (let k = 0; k < 3; k++) put(W, GEO.cyl(10), k % 2 ? 0xc9b48a : 0xd9c49a, ex + hw * 0.55, y + 0.05 + k * 0.045, ez + hd * 0.5, { sx: 0.22 - k * 0.03, sy: 0.045, sz: 0.22 - k * 0.03 });
+      rowboat(W, new THREE.Matrix4().compose(new THREE.Vector3(ex - hw - 0.75, -0.2, ez - 0.2), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.06, Math.PI / 2 + 0.15, 0.03, 'YXZ')), new THREE.Vector3(1, 1, 1)), { paint: 0x4cc9f0 });
       W.box(ex - hw, -0.8, ez - hd, ex + hw, y, ez + hd, { top: true, sound: 'wood' });
       W.box(ex + hw - 0.15, y, ez + hd - 0.15, ex + hw + 0.15, y + 0.75, ez + hd + 0.15);
       W.box(ex - hw - 0.15, y, ez - hd - 0.15, ex - hw + 0.15, y + 0.75, ez - hd + 0.15);
@@ -541,20 +552,28 @@ function reef(W) {
   W.landmark(); // before the trees and rocks, which grow around it
   scatterProps(W, W.more('trees', Math.round(R * 0.6)), (x, z) => isl(x, z) < -1.8 && lag(x, z) > 1.6 && okTree(W, x, z, 1.6), (x, z) => tree(W, 'palm', x, z, 0.85 + rng() * 0.45, 0), 10);
   scatterProps(W, 3, (x, z) => lag(x, z) > 2.5 && okTree(W, x, z, 3), (x, z) => {
-    const cols = [[0xff6b6b, 0xffffff], [0x4cc9f0, 0xffffff], [0xffd23f, 0xff8fc7]][Math.floor(rng() * 3)];
-    put(W, GEO.cyl(6), 0xf5f0e8, x, 1.1, z, { sx: 0.06, sy: 2.2, sz: 0.06 });
-    put(W, GEO.cone(8), cols[0], x, 2.25, z, { sx: 1.4, sy: 0.55, sz: 1.4 });
-    put(W, GEO.cone(8), cols[1], x, 2.4, z, { sx: 0.75, sy: 0.35, sz: 0.75, ry: Math.PI / 8 });
-    put(W, GEO.box(), cols[0], x + 0.9, 0.06, z + 0.3, { sx: 0.8, sy: 0.04, sz: 1.6, ry: rng() });
+    const cols = [[0xff6b6b, 0xffffff], [0x4cc9f0, 0xffffff], [0xffd23f, 0xff8fc7]][Math.floor(rng() * 3)], d = W.drng;
+    parasol(W, x, 0, z, cols, d() * 3);
+    // a striped towel, a beach ball, a bucket and a sandcastle in its shade
+    const tr = rng(), tc = Math.cos(tr), ts = Math.sin(tr);
+    put(W, GEO.box(), cols[0], x + 0.9, 0.03, z + 0.3, { sx: 0.8, sy: 0.04, sz: 1.6, ry: tr, kind: 'fx' });
+    for (const t of [-0.5, 0, 0.5]) put(W, GEO.box(), cols[1], x + 0.9 + ts * t, 0.035, z + 0.3 + tc * t, { sx: 0.8, sy: 0.04, sz: 0.16, ry: tr, kind: 'fx' });
+    put(W, GEO.blob(), 0xffffff, x - 0.7, 0.2, z + 0.75, { sx: 0.2, sy: 0.2, sz: 0.2 });
+    for (let k = 0; k < 3; k++) put(W, GEO.blob(), [cols[0], 0xffd23f, 0x4cc9f0][k], x - 0.7, 0.2, z + 0.75, { sx: 0.205, sy: 0.205, sz: 0.07, ry: k * 1.05 });
+    put(W, GEO.taper(8, 1.3), 0x4cc9f0, x - 0.2, 0.11, z - 0.85, { sx: 0.1, sy: 0.2, sz: 0.1 });
+    sandcastle(W, x - 0.85, 0, z - 0.45, 1, mix(T.grass, 0xffffff, 0.1));
     W.box(x - 0.12, 0, z - 0.12, x + 0.12, 2.2, z + 0.12);
     W.obstacles.push({ x, z, r: 1.6 });
   });
   scatterProps(W, Math.round(R * 1.6), (x, z) => isl(x, z) < -1 && lag(x, z) > 0.2 && !W.nearCentre(x, z, 0) && !W.crowded(x, z, 0.4), (x, z) => {
     if (rng() < 0.5) {
-      put(W, GEO.dome(), [0xffd6e0, 0xfff1e0, 0xffc9a8][Math.floor(rng() * 3)], x, 0, z, { sx: 0.16, sy: 0.08, sz: 0.13, ry: rng() * 3, kind: 'fx' });
+      // a scallop shell: a low fan with ribs
+      const c = [0xffd6e0, 0xfff1e0, 0xffc9a8][Math.floor(rng() * 3)], ry = rng() * 3;
+      put(W, GEO.dome(), c, x, 0, z, { sx: 0.16, sy: 0.08, sz: 0.13, ry, kind: 'fx' });
+      for (let k = -1; k <= 1; k++) putL(W, GEO.box(), shade(c, 0.86), x, 0.05, z, { sx: 0.012, sy: 0.05, sz: 0.24, ry: ry + k * 0.5, kind: 'fx' });
     } else {
       const c = [0xff7a6b, 0xffa94d, 0xff8fc7][Math.floor(rng() * 3)], ry = rng() * 3;
-      for (let k = 0; k < 5; k++) put(W, GEO.box(), c, x + Math.cos(ry + k * 1.2566) * 0.09, 0.015, z + Math.sin(ry + k * 1.2566) * 0.09, { sx: 0.2, sy: 0.03, sz: 0.06, ry: -(ry + k * 1.2566), kind: 'fx' });
+      starfish(W, x, 0.005, z, c, ry);
     }
   }, 3);
   // coral and seaweed on the lagoon floor
@@ -566,10 +585,12 @@ function reef(W) {
     const cols = [0xc98a5e, 0xd8a070, 0xb87a52];
     for (let k = 0; y < h; k++) {
       const hh = 1.2 + rng() * 1.2;
-      put(W, GEO.box(), cols[k % 3], x + (rng() - 0.5) * 0.4, y + hh / 2, z + (rng() - 0.5) * 0.4, { sx: s, sy: hh, sz: s * 0.9, ry: rng() });
+      // each layer a dressed block of rock, a ledge where one sits on the next
+      block(W, cols[k % 3], x + (rng() - 0.5) * 0.4, y + hh / 2, z + (rng() - 0.5) * 0.4, s, hh, s * 0.9, { b: 0.12, ry: rng(), tint: footTint(0.86, 1.04) });
       y += hh; s *= 0.88;
     }
-    put(W, GEO.box(), 0x9edb6a, x, y + 0.12, z, { sx: s * 1.1, sy: 0.25, sz: s, ry: rng() });
+    block(W, 0x9edb6a, x, y + 0.12, z, s * 1.1, 0.25, s, { b: 0.06, ry: rng() });
+    for (let k = 0; k < 3; k++) { const a = W.drng() * 6.283; put(W, GEO.rock(), cols[k % 3], x + Math.cos(a) * s * 1.1, W.seaY + 0.05, z + Math.sin(a) * s * 1.1, { sx: 0.5, sy: 0.35, sz: 0.42, ry: a }); }
     if (rng() < 0.5) { tree(W, 'palm', x, z, 0.6, y + 0.2); W.colliders.pop(); W.obstacles.pop(); }
   }, 6);
   Object.assign(W, SKIES.reef);
@@ -1240,50 +1261,66 @@ function cove(W) {
     W.obstacles.push({ x, z, r: 1.8 });
     const ry = Math.atan2(x, z);
     bouncePad(W, x - (x / d) * 3.3, 0, z - (z / d) * 3.3, { x, y: h, z }, 1, (bx, by, bz) => {
-      put(W, GEO.dome(), 0xff9eb8, bx, 0, bz, { sx: 1.0, sy: 0.32, sz: 0.85, ry });
-      put(W, GEO.dome(), 0xffc2d4, bx - Math.sin(ry) * 0.6, 0.18, bz - Math.cos(ry) * 0.6, { sx: 1.0, sy: 0.32, sz: 0.85, ry, rx: -1.0 });
-      put(W, GEO.blob(), 0xfff8ec, bx, 0.2, bz, { sx: 0.2, sy: 0.2, sz: 0.2 });
+      clam(W, bx, 0, bz, ry);
     });
   }, 40);
 
   // the old shipwreck, half sunk in the bay
   {
     const wx = bR * 0.15, wz = bz - bR * 0.2, ry = 0.5 + rng() * 0.4;
-    const hull = 0x6b4a36, plank = 0x8a5a3c;
-    putQ(W, GEO.box(), hull, V.set(wx, W.seaY + 0.6, wz), Q.setFromEuler(E.set(0.12, ry, 0.35)), new THREE.Vector3(2.4, 1.6, 6.4));
-    putQ(W, GEO.box(), plank, V.set(wx, W.seaY + 1.45, wz), Q.setFromEuler(E.set(0.12, ry, 0.35)), new THREE.Vector3(2.2, 0.12, 6.0));
-    putQ(W, GEO.cone(4), hull, V.set(wx + Math.sin(ry) * 3.6, W.seaY + 0.75, wz + Math.cos(ry) * 3.6), Q.setFromEuler(E.set(Math.PI / 2, ry, 0.35, 'YXZ')), new THREE.Vector3(1.2, 1.6, 0.8));
-    putQ(W, GEO.cyl(6), 0x5c3a28, V.set(wx - 0.6, W.seaY + 3.4, wz), Q.setFromEuler(E.set(0.15, ry, 0.55)), new THREE.Vector3(0.14, 5, 0.14));
-    putQ(W, GEO.box(), 0xe9dfcf, V.set(wx - 1.2, W.seaY + 3.6, wz + 0.2), Q.setFromEuler(E.set(0.15, ry, 0.55)), new THREE.Vector3(0.05, 1.8, 1.6));
-    for (let k = 0; k < 6; k++) put(W, GEO.box(), plank, wx + (rng() - 0.5) * bR, W.seaY + 0.05, wz + (rng() - 0.5) * bR * 1.5, { sx: 0.25, sy: 0.06, sz: 1 + rng(), ry: rng() * 3, kind: 'fx' });
+    const plank = 0x8a5a3c, d = W.drng;
+    // a ship lying over in the shallows, bow towards the open sea, half under water
+    const M0 = new THREE.Matrix4().compose(new THREE.Vector3(wx, W.seaY - 0.55, wz), new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.42, ry - Math.PI / 2, 0.07, 'YXZ')), new THREE.Vector3(1, 1, 1));
+    shipwreck(W, M0, { L: 9, wood: 0x8a5a3c, dark: 0x5c3a28, sail: 0xe9dfcf, big: true });
+    // flotsam: planks, a barrel bobbing, a crate
+    for (let k = 0; k < 6; k++) put(W, GEO.box(), k % 2 ? plank : 0x9a6b4f, wx + (rng() - 0.5) * bR, W.seaY + 0.05, wz + (rng() - 0.5) * bR * 1.5, { sx: 0.25, sy: 0.06, sz: 1 + rng(), ry: rng() * 3, kind: 'fx' });
+    for (let k = 0; k < 2; k++) {
+      const a = d() * 6.283, r = 4.5 + d() * 2, fx = wx + Math.cos(a) * r, fz = wz + Math.sin(a) * r;
+      if (land(fx, fz) < 0.6) continue;
+      putL(W, GEO.cyl(10), 0x9a6b4f, fx, W.seaY + 0.08, fz, { sx: 0.3, sy: 0.75, sz: 0.3, ry: a, rx: Math.PI / 2 - 0.2 });
+      for (const t of [-0.25, 0.25]) putL(W, GEO.cyl(10), 0x5c5c6a, fx + Math.sin(a) * t, W.seaY + 0.08 + t * 0.2, fz + Math.cos(a) * t, { sx: 0.315, sy: 0.05, sz: 0.315, ry: a, rx: Math.PI / 2 - 0.2 });
+    }
   }
 
   // crates, barrels and lanterns along the beach
   scatterProps(W, Math.round(R * 0.3), (x, z) => land(x, z) < -1.5 && okTree(W, x, z, 1.5), (x, z) => {
     if (rng() < 0.5) {
-      put(W, GEO.box(), 0xb07a50, x, 0.4, z, { sx: 0.8, sy: 0.8, sz: 0.8, ry: rng() });
+      crate(W, x, 0, z, 0.8, rng());
       W.box(x - 0.45, 0, z - 0.45, x + 0.45, 0.8, z + 0.45, { top: true, sound: 'wood' });
     } else {
-      put(W, GEO.cyl(10), 0x9a6b4f, x, 0.45, z, { sx: 0.38, sy: 0.9, sz: 0.38 });
-      for (const h of [0.2, 0.7]) put(W, GEO.cyl(10), 0x5c5c6a, x, h, z, { sx: 0.4, sy: 0.06, sz: 0.4 });
+      barrel(W, x, 0, z);
       W.box(x - 0.38, 0, z - 0.38, x + 0.38, 0.9, z + 0.38, { sound: 'wood' });
     }
+    W.skirts.push({ x, z, y: 0, r: 0.6 });
     W.obstacles.push({ x, z, r: 0.9 });
   });
   plateauField(W, Math.round(2 + R * 0.12), { body: T.cliff, cap: T.cap, step: T.dirt, sound: 'stone' }, (x, z, ext) => land(x, z) < -(ext + 2.2));
   W.landmark(); // before the trees and rocks, which grow around it
   scatterProps(W, W.more('trees', Math.round(R * 0.4)), (x, z) => okTree(W, x, z, 1.6), (x, z) => tree(W, 'palm', x, z, 0.8 + rng() * 0.4, 0), 10);
   scatterProps(W, W.more('rocks', Math.round(R * 0.45)), (x, z) => okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.35 + rng() * 0.55, 0));
-  // tide pools with starfish
+  // tide pools with starfish (no grass grows in them)
+  const pools = [];
+  W.noTuft = (x, z) => pools.some(p => Math.hypot(p.x - x, p.z - z) < 1.15);
   scatterProps(W, Math.round(R * 0.25), (x, z) => land(x, z) < -1.5 && okTree(W, x, z, 1) && W.flatAt(x, z, 0.9, 0.01) !== null, (x, z) => {
-    put(W, GEO.cyl(10), 0x3fc9d4, x, 0.015, z, { sx: 0.7 + rng() * 0.3, sy: 0.02, sz: 0.55 + rng() * 0.3, ry: rng() * 3, kind: 'fx' });
+    // a pool in a ring of wet sand, paler in the middle, pebbles on its rim; a starfish in it, sometimes a crab by it
+    const px = 0.7 + rng() * 0.3, pz = 0.55 + rng() * 0.3, pry = rng() * 3, d = W.drng;
+    pools.push({ x, z });
+    put(W, GEO.cyl(12), shade(T.grass, 0.84), x, 0.008, z, { sx: px + 0.16, sy: 0.02, sz: pz + 0.16, ry: pry, kind: 'fx' });
+    put(W, GEO.cyl(12), 0x3fc9d4, x, 0.015, z, { sx: px, sy: 0.02, sz: pz, ry: pry, kind: 'fx' });
+    put(W, GEO.cyl(10), 0x7fe3e6, x + 0.05, 0.02, z - 0.04, { sx: px * 0.55, sy: 0.02, sz: pz * 0.5, ry: pry, kind: 'fx' });
+    for (let k = 0; k < 5; k++) { const a = d() * 6.283; put(W, GEO.rock(), shade(T.rock, 0.9 + d() * 0.2), x + Math.cos(a) * (px + 0.1), 0.03, z + Math.sin(a) * (pz + 0.1), { sx: 0.08 + d() * 0.05, sy: 0.05, sz: 0.07, ry: d() * 6 }); }
     const ry = rng() * 3, c = [0xff7a6b, 0xffa94d][Math.floor(rng() * 2)];
-    for (let k = 0; k < 5; k++) put(W, GEO.box(), c, x + Math.cos(ry + k * 1.2566) * 0.09, 0.03, z + Math.sin(ry + k * 1.2566) * 0.09, { sx: 0.2, sy: 0.03, sz: 0.06, ry: -(ry + k * 1.2566), kind: 'fx' });
+    starfish(W, x, 0.022, z, c, ry, 1.1);
+    if (d() < 0.5) crab(W, x + px + 0.3, 0, z + 0.2, d() * 6.283, 1.2);
   });
   // sea stacks out in the water
   scatterProps(W, 8, (x, z) => isl(x, z) > 4 && isl(x, z) < 24, (x, z) => {
     const h = 3 + rng() * 5, s = 1.4 + rng() * 1.6;
-    put(W, GEO.cone(6), T.cliff, x, W.seaY + h / 2, z, { sx: s, sy: h, sz: s, ry: rng() * 3 });
+    put(W, GEO.cone(6), T.cliff, x, W.seaY + h / 2, z, { sx: s, sy: h, sz: s, ry: rng() * 3, tint: footTint(0.74, 1.12) });
+    // a smaller spike beside it and rocks at the waterline
+    const a = W.drng() * 6.283;
+    put(W, GEO.cone(5), shade(T.cliff, 0.92), x + Math.cos(a) * s * 0.8, W.seaY + h * 0.22, z + Math.sin(a) * s * 0.8, { sx: s * 0.45, sy: h * 0.5, sz: s * 0.45, ry: a, tint: footTint(0.74, 1.1) });
+    for (let k = 0; k < 3; k++) { const b = W.drng() * 6.283; put(W, GEO.rock(), T.cliff, x + Math.cos(b) * s * 1.05, W.seaY + 0.08, z + Math.sin(b) * s * 1.05, { sx: 0.6, sy: 0.4, sz: 0.5, ry: b }); }
   }, 6);
   Object.assign(W, SKIES.cove);
 }

@@ -673,3 +673,20 @@ thing, not more realism. Detail that is added draws from a random source of its 
   door. Both stand inside the cabin's own clearing and are added last, so nothing else moves. **Stumps** flare at
   the foot and show their rings under the snow; snow is heaped along the stream's banks. (The Meadow's cottage
   smokes too.)
+- **Boats** (`hullGeo`, `shipwreck`, `rowboat` in `js/world-props.js`). A hull is now a real shape: planks running
+  from a flat stern to a pointed bow in alternating shades, an inside you can look into, a rail. The **beached
+  wreck** (the landmark on reef, cove and storm islands, which was a brown lump) is such a hull lying open
+  towards the pedestal, stove in amidships with its ribs standing in the hole, a keel and stem, a rudder, a
+  snapped mast whose top lies across the rail with a rag of sail on its yard, and planks, an oar and a barrel in
+  the sand around it. The **ship in Shipwreck Cove's bay** (a box with a stick) is a 9 m hull heeled over in the
+  shallows with a deck, a hatch, a stern castle with a rail, lit windows and the wheel, a crow's nest on the
+  mast's stump, a bowsprit and tattered sail, flotsam drifting round it.
+- **Sunset Reef.** Piers have planks of uneven length, piles with rope bands, a slung rope, a coil of rope and a
+  **rowing boat** tied up alongside. Under each **parasol** (eight panels in two colours) lie a striped towel, a
+  beach ball, a bucket and a **sandcastle**. Starfish have five tapering arms, shells are ribbed; coral forks and
+  ends in knobs; the sea stacks are dressed blocks with rocks at the waterline. The **totems** have brows, round
+  eyes, noses, mouths of teeth, painted bands and a crown of feathers.
+- **Shipwreck Cove.** **Giant clams** are fluted with a scalloped lip and a glowing pearl; **crates** have plank
+  faces in a frame with a brace, **barrels** bulge between iron hoops; **tide pools** sit in a ring of wet sand
+  with pebbles, a starfish and sometimes a little **crab**; the sea stacks have a second spike and rocks at the
+  waterline. Sand wears a little less dune grass.

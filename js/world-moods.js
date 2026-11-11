@@ -4,7 +4,7 @@
 // The layout calls W.landmark() before its trees and rocks, so they grow around the landmark.
 import * as THREE from 'three';
 import { GEO, bevelBox } from './world-kit.js';
-import { shade, mix, footTint, capTint, leafTint, capOf, stoneGeo, igloo as buildIgloo } from './world-props.js';
+import { shade, mix, footTint, capTint, leafTint, capOf, stoneGeo, igloo as buildIgloo, shipwreck, barrel } from './world-props.js';
 
 // tint: theme colour overrides; trees / rocks: multipliers on the layout's counts; fruit: colour of fruit in
 // round trees; o: options for the landmark
@@ -463,35 +463,51 @@ const BUILD = {
     L.box(0, -1.9, 0.85, 0.85, 0, 1.4, { sound: 'wood' });
   },
 
-  // a little boat washed up on its side, half sunk in the sand: hull, ribs, a broken mast and a torn sail
+  // a sailing boat washed up on its side: a planked hull stove in amidships with its ribs showing, a snapped mast
+  // with a rag of sail on its yard, planks, an oar and a barrel lying about it in the sand
   wreck(W, L) {
-    const wood = 0x9a6b4f, dark = 0x6b4a36, tilt = 0.45, head = 0.5;
-    // the hull: a long lump sunk in the sand, a plank stripe and the ribs of a stove-in side
-    L.p(GEO.blob(), wood, 0, 0.25, 0, { sx: 1.15, sy: 0.85, sz: 2.6, rz: tilt, ry: head });
-    L.p(GEO.blob(), 0xb07a50, 0.08, 0.32, 0, { sx: 1.18, sy: 0.12, sz: 2.55, rz: tilt, ry: head });
-    for (const t of [-1.2, -0.6, 0, 0.6]) {
-      const w = Math.sqrt(1 - (t / 2.6) ** 2);
-      L.p(GEO.box(), dark, -0.55 + Math.sin(head) * t, 0.95 * w, Math.cos(head) * t, { sx: 0.1, sy: 0.9 * w, sz: 0.12, rz: -0.35, ry: head });
-    }
-    L.p(GEO.cyl(7), 0xb07a50, -0.25, 1.3, 0.2, { sx: 0.12, sy: 1.3, sz: 0.12, rz: tilt + 0.15 });
-    L.p(GEO.cyl(7), 0xb07a50, -1.9, 0.12, 1.2, { sx: 0.11, sy: 2.4, sz: 0.11, rz: Math.PI / 2, ry: -0.6 });
-    L.p(GEO.box(), 0xf4efe6, -2.0, 0.08, 1.9, { sx: 1.6, sy: 0.04, sz: 1.1, ry: -0.6, rz: 0.06, kind: 'fx' });
-    L.p(GEO.cyl(8), dark, 1.6, 0.25, -1.2, { sx: 0.3, sy: 0.5, sz: 0.3 });
-    L.p(GEO.cyl(8), 0x5a4a3c, 1.6, 0.25, -1.2, { sx: 0.32, sy: 0.06, sz: 0.32 });
+    const d = W.drng, k = L.k, head = 0.5;
+    const M0 = new THREE.Matrix4().compose(new THREE.Vector3(L.x, L.y + 0.22 * k, L.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.66, L.ry + head, 0.05, 'YXZ')), new THREE.Vector3(k, k, k));
+    // (it lies with its open side towards the pedestal: you look into it)
+    shipwreck(W, M0, { L: 5.2 });
+    // sand banked up along the low side, and what fell out
+    for (let i = 0; i < 5; i++) L.p(GEO.dome(), W.T.grass, Math.cos(head) * (i - 2) * 0.9 + Math.sin(head) * 0.75, -0.03, -Math.sin(head) * (i - 2) * 0.9 + Math.cos(head) * 0.75, { sx: 0.7, sy: 0.22, sz: 0.5, ry: head, kind: 'ground' });
+    for (let i = 0; i < 4; i++) { const a = d() * 6.283, r = 2.4 + d() * 0.8; L.p(GEO.box(), i % 2 ? 0x9a6b4f : 0xb07a50, Math.sin(a) * r, 0.03, Math.cos(a) * r, { sx: 0.2, sy: 0.05, sz: 0.9 + d() * 0.6, ry: d() * 3, kind: 'fx' }); }
+    L.p(GEO.cyl(6), 0xd9c49a, -1.9, 0.05, 2.0, { sx: 0.035, sy: 1.9, sz: 0.035, rx: Math.PI / 2, ry: -0.6 });
+    L.p(GEO.box(), 0xb07a50, -2.42, 0.05, 2.75, { sx: 0.2, sy: 0.03, sz: 0.5, ry: -0.6 });
+    const [bx, bz] = L.at(1.75, -1.35);
+    barrel(W, bx, L.y, bz, 0.3 * k, 0.72 * k);
+    L.skirt(0, 0, 2.3);
     L.box(0, 0, 1.3, 1.3, 0, 1.2, { sound: 'wood' });
   },
 
-  // carved tiki totems
+  // carved tiki totems: each block a face with a heavy brow, round eyes, a nose and a mouth of teeth, painted bands
+  // between them, the top one crowned with feathers
   totems(W, L) {
-    const cols = [0xb07a50, 0xd08a58, 0x8a5a3c, 0xe7a46a];
-    [[-1.2, 0, 3], [0, -0.8, 4], [1.2, 0, 2]].forEach(([lx, lz, n]) => {
+    const cols = [0xb07a50, 0xd08a58, 0x8a5a3c, 0xe7a46a], paint = [0xff6b6b, 0x4cc9f0, 0xffd23f, 0x3ddc97], d = W.drng;
+    [[-1.2, 0, 3], [0, -0.8, 4], [1.2, 0, 2]].forEach(([lx, lz, n], ti) => {
+      L.block(0x6b4a36, lx, 0.04, lz, 0.9, 0.1, 0.8, { b: 0.03 });
       for (let k = 0; k < n; k++) {
-        const y = 0.45 + k * 0.85;
-        L.p(GEO.box(), cols[(k + n) % 4], lx, y, lz, { sx: 0.7, sy: 0.8, sz: 0.6 });
-        for (const s of [-1, 1]) L.p(GEO.box(), 0xfff6e8, lx + s * 0.17, y + 0.12, lz + 0.31, { sx: 0.16, sy: 0.12, sz: 0.04 });
-        L.p(GEO.box(), 0x3a2a24, lx, y - 0.18, lz + 0.31, { sx: 0.36, sy: 0.1, sz: 0.04 });
+        const y = 0.45 + k * 0.85, c = cols[(k + n) % 4], wide = (k + ti) % 2;
+        L.block(c, lx, y, lz, 0.7 + wide * 0.08, 0.78, 0.6, { b: 0.07, tint: footTint(0.86, 1.04) });
+        L.p(GEO.box(), paint[(k + ti) % 4], lx, y - 0.4, lz, { sx: 0.74, sy: 0.07, sz: 0.64 });
+        // brow, eyes, nose, mouth
+        L.p(GEO.box(), shade(c, 0.72), lx, y + 0.24, lz + 0.31, { sx: 0.62, sy: 0.1, sz: 0.1, rz: (k % 2 ? 1 : -1) * 0.04 });
+        for (const s of [-1, 1]) {
+          L.p(GEO.cyl(8), 0xfff6e8, lx + s * 0.17, y + 0.11, lz + 0.305, { sx: 0.09, sy: 0.04, sz: 0.09, rx: Math.PI / 2 });
+          L.p(GEO.cyl(6), 0x3a2a24, lx + s * 0.17, y + 0.1, lz + 0.33, { sx: 0.04, sy: 0.02, sz: 0.04, rx: Math.PI / 2 });
+        }
+        L.p(GEO.taper(4, 0.5), shade(c, 0.88), lx, y + 0.0, lz + 0.35, { sx: 0.1, sy: 0.26, sz: 0.1, ry: Math.PI / 4 });
+        L.p(GEO.box(), 0x3a2a24, lx, y - 0.2, lz + 0.305, { sx: 0.42, sy: 0.13, sz: 0.04 });
+        for (let j = 0; j < 4; j++) L.p(GEO.box(), 0xfff6e8, lx - 0.15 + j * 0.1, y - 0.17, lz + 0.325, { sx: 0.07, sy: 0.07, sz: 0.02 });
+        if (wide) for (const s of [-1, 1]) L.p(GEO.box(), shade(c, 0.8), lx + s * 0.45, y + 0.05, lz, { sx: 0.12, sy: 0.4, sz: 0.3, rz: -s * 0.25 });
       }
-      for (let f = 0; f < 5; f++) L.p(GEO.blob(), 0x4fbf5a, lx, 0.2 + n * 0.85 + 0.1, lz, { sx: 0.7, sy: 0.08, sz: 0.2, ry: f * 0.63, rz: 0.3 });
+      // feathers
+      for (let f = 0; f < 7; f++) {
+        const a = (f - 3) * 0.32;
+        L.p(GEO.cone(4), f % 2 ? 0x4fbf5a : paint[(f + ti) % 4], lx + Math.sin(a) * 0.3, 0.15 + n * 0.85 + 0.3 * Math.cos(a), lz - 0.05, { sx: 0.1, sy: 0.62, sz: 0.03, rz: -a });
+      }
+      L.skirt(lx, lz, 0.5);
       L.box(lx, lz, 0.38, 0.33, 0, n * 0.85 + 0.1, { sound: 'wood' });
     });
   },

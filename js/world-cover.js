@@ -89,7 +89,7 @@ const STYLE = {
   // dry stalks through the snow, in sparse tufts
   snow: { density: 1.3, h: 1.05, flowers: 0.08, thin: 0.04, w: 0.7, blades: 5, blend: 0.15, rim: 0.25 },
   // dune grass: thin bunches, wide apart
-  sand: { density: 1.4, h: 1.8, flowers: 0.06, thin: 0.03, w: 0.7, lean: 0.85, blend: 0.25 },
+  sand: { density: 1.1, h: 1.6, flowers: 0.06, thin: 0.03, w: 0.7, lean: 0.85, blend: 0.25 },
 };
 
 // W: the island builder (see buildWorld); swayU: the wind's uniforms, shared with whatever else sways
