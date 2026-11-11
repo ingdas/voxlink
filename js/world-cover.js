@@ -87,7 +87,7 @@ const STYLE = {
   grass: { density: 7, h: 1, flowers: 0.42, thin: 0.25 },
   stone: { density: 6, h: 1.05, flowers: 0.18, thin: 0.25 },
   // dry stalks through the snow, in sparse tufts
-  snow: { density: 1.6, h: 1.5, flowers: 0.08, thin: 0.04, w: 0.7, blades: 5, blend: 0.15 },
+  snow: { density: 1.3, h: 1.05, flowers: 0.08, thin: 0.04, w: 0.7, blades: 5, blend: 0.15, rim: 0.25 },
   // dune grass: thin bunches, wide apart
   sand: { density: 1.4, h: 1.8, flowers: 0.06, thin: 0.03, w: 0.7, lean: 0.85, blend: 0.25 },
 };
@@ -167,7 +167,7 @@ export function addGroundCover(W, { group, updaters, walkSd, floorAt, quality, s
     if (f === null) continue;
     const v = lush(x * 0.17, z * 0.17), sd = walkSd(x, z), edge = sd > -1.5;
     // thick in the patches, thin between them, always some along the shore
-    if (rnd() > St.thin + (1 - St.thin) * smooth(0.38, 0.62, v) && !(edge && rnd() < 0.6)) continue;
+    if (rnd() > St.thin + (1 - St.thin) * smooth(0.38, 0.62, v) && !(edge && rnd() < (St.rim ?? 0.6))) continue;
     // the rim's grass leans out over the edge, taller the closer to it
     if (edge) clump(x, z, f, 0.95 + rnd() * 0.45, true);
     else clump(x, z, f, (0.7 + rnd() * 0.3) * (0.85 + v * 0.35), false);

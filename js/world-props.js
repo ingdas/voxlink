@@ -317,6 +317,11 @@ export function tower(W, x, z, w, d, h, base, ox, oz, steps, { body, cap, step =
       const px = alongX ? bx + t * bw : bx + sg * (bw / 2 + 0.05), pz = alongX ? bz + sg * (bd / 2 + 0.05) : bz + t * bd;
       block(W, cap, px, base + bh - 0.2 - dh / 2 + 0.02, pz, alongX ? dw : 0.07, dh, alongX ? 0.07 : dw, { b: 0.025 });
     }
+    // in the snow worlds icicles hang from its edge
+    if (W.T.step === 'snow' && bh > 1.2) for (let k = 0; k < 7; k++) {
+      const side = Math.floor(r() * 4), t = (r() - 0.5) * 0.9, il = 0.18 + r() * 0.34, alongX = side < 2, sg = side % 2 ? 1 : -1;
+      put(W, GEO.cone(5), 0xdff4ff, alongX ? bx + t * bw : bx + sg * (bw / 2 + 0.05), base + bh - 0.2 - il / 2, alongX ? bz + sg * (bd / 2 + 0.05) : bz + t * bd, { sx: 0.05, sy: il, sz: 0.05, rx: Math.PI });
+    }
     W.box(bx - bw / 2 - 0.08, base, bz - bd / 2 - 0.08, bx + bw / 2 + 0.08, base + bh, bz + bd / 2 + 0.08, { top: isTop, sound });
   };
   part(x, z, w, d, h, body, true);
@@ -595,4 +600,55 @@ export function sheep(W, x, z, ry, y = 0) {
   for (const [a, b] of [[0.25, 0.35], [-0.25, 0.35], [0.25, -0.35], [-0.25, -0.35]]) put(W, GEO.box(), face, ...at(a, 0.15, b), { sx: 0.09, sy: 0.3, sz: 0.09, ry });
   put(W, GEO.lump(3), wool, ...at(0, 0.6, -0.72), { sx: 0.1, sy: 0.1, sz: 0.1 });
   W.skirts.push({ x, z, y, r: 0.5 });
+}
+
+// ---------- snow ----------
+// an igloo of snow blocks: courses of blocks leaning in to the top, an arched tunnel facing `ry`, a dark doorway,
+// snow banked up round its foot. R: its radius, H: its height, k: scales its details; tunnel: how far the tunnel's
+// mouth stands out from the middle
+export function igloo(W, x, z, ry, { R = 2, H = 1.6, y = 0, k = 1, tunnel = 2.4, snow = 0xfafcff, shadeC = 0xdbe8f8 } = {}) {
+  const d = W.drng, fx = Math.sin(ry), fz = Math.cos(ry);
+  put(W, GEO.dome(), snow, x, y, z, { sx: R * 0.985, sy: H * 0.985, sz: R * 0.985 });
+  const courses = 5;
+  for (let c = 0; c < courses - 1; c++) {
+    const t0 = c / courses, t1 = (c + 1) / courses, hc = H * (t0 + t1) / 2, rc = R * Math.sqrt(1 - ((t0 + t1) / 2) ** 2);
+    const n = Math.max(5, Math.round((2 * Math.PI * rc) / (0.62 * k))), lean = Math.asin((t0 + t1) / 2), a0 = c * 0.37;
+    for (let i = 0; i < n; i++) {
+      const a = a0 + (i / n) * Math.PI * 2;
+      // (the doorway stays open through the lower courses)
+      let da = Math.abs(((a - ry + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      if (c < 2 && da < 0.42 / (rc / R)) continue;
+      putL(W, GEO.bevel(0.1), (i + c) % 2 ? snow : shadeC, x + Math.sin(a) * rc * 1.0, y + hc, z + Math.cos(a) * rc * 1.0, { sx: (2 * Math.PI * rc) / n - 0.02 * k, sy: H / courses - 0.015, sz: 0.17 * k, ry: a, rx: -lean });
+    }
+  }
+  put(W, GEO.dome(), snow, x, y + H * 0.8, z, { sx: R * 0.62, sy: H * 0.2, sz: R * 0.62 });
+  put(W, GEO.cyl(8), 0x55688c, x - fx * R * 0.2, y + H * 0.985, z - fz * R * 0.2, { sx: 0.09 * k, sy: 0.05, sz: 0.09 * k });
+  // the tunnel: a low vault with an arch of blocks round its mouth
+  const tl = tunnel - R * 0.8, tx = x + fx * (R * 0.8 + tl / 2), tz = z + fz * (R * 0.8 + tl / 2), tr = 0.66 * k;
+  putL(W, GEO.cyl(10), snow, tx, y + 0.42 * k, tz, { sx: tr, sy: tl, sz: tr * 1.12, ry, rx: Math.PI / 2 });
+  const mx = x + fx * tunnel, mz = z + fz * tunnel;
+  for (let i = 0; i < 7; i++) {
+    const a = -1.45 + (i / 6) * 2.9, ax = Math.sin(a) * tr * 1.02, ay = Math.cos(a) * tr * 1.14;
+    putL(W, GEO.bevel(0.1), i % 2 ? shadeC : snow, mx + fz * ax, y + 0.42 * k + ay, mz - fx * ax, { sx: 0.36 * k, sy: 0.24 * k, sz: 0.3 * k, ry, rz: -a });
+  }
+  putL(W, GEO.cyl(10), 0x3a4a6a, mx + fx * 0.02, y + 0.4 * k, mz + fz * 0.02, { sx: tr * 0.7, sy: 0.3 * k, sz: tr * 0.8, ry, rx: Math.PI / 2 });
+  // snow banked up round its foot
+  for (let i = 0; i < 7; i++) {
+    const a = ry + 0.7 + (i / 7) * (Math.PI * 2 - 1.4) + (d() - 0.5) * 0.3, ss = (0.5 + d() * 0.4) * k;
+    put(W, GEO.dome(), snow, x + Math.sin(a) * (R + 0.1), y - 0.02, z + Math.cos(a) * (R + 0.1), { sx: ss, sy: ss * 0.42, sz: ss * 0.8, ry: a });
+  }
+}
+
+// a penguin: an upright dark body with a white belly, a beak, two orange feet, little wings
+export function penguin(W, x, y, z, ry, s = 1) {
+  const fx = Math.sin(ry), fz = Math.cos(ry), sx = Math.cos(ry), sz = -Math.sin(ry), dark = 0x2f3550;
+  put(W, GEO.lump(1), dark, x, y + 0.3 * s, z, { sx: 0.2 * s, sy: 0.3 * s, sz: 0.18 * s, ry });
+  put(W, GEO.blob(), 0xfafcff, x + fx * 0.06 * s, y + 0.27 * s, z + fz * 0.06 * s, { sx: 0.15 * s, sy: 0.24 * s, sz: 0.14 * s, ry });
+  put(W, GEO.blob(), dark, x, y + 0.6 * s, z, { sx: 0.14 * s, sy: 0.13 * s, sz: 0.14 * s });
+  putL(W, GEO.cone(4), 0xffa94d, x + fx * 0.15 * s, y + 0.59 * s, z + fz * 0.15 * s, { sx: 0.04 * s, sy: 0.1 * s, sz: 0.04 * s, ry, rx: Math.PI / 2 });
+  for (const e of [-1, 1]) {
+    put(W, GEO.ico(), 0xffffff, x + fx * 0.11 * s + sx * e * 0.06 * s, y + 0.63 * s, z + fz * 0.11 * s + sz * e * 0.06 * s, { sx: 0.025 * s, sy: 0.025 * s, sz: 0.025 * s });
+    putL(W, GEO.box(), dark, x + sx * e * 0.2 * s, y + 0.32 * s, z + sz * e * 0.2 * s, { sx: 0.04 * s, sy: 0.26 * s, sz: 0.1 * s, ry, rz: e * 0.3 });
+    put(W, GEO.box(), 0xffa94d, x + sx * e * 0.08 * s + fx * 0.07 * s, y + 0.02 * s, z + sz * e * 0.08 * s + fz * 0.07 * s, { sx: 0.08 * s, sy: 0.035 * s, sz: 0.13 * s, ry });
+  }
 }

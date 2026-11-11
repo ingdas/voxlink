@@ -659,3 +659,10 @@ thing, not more realism. Detail that is added draws from a random source of its 
   dark face, ears, eyes and a tail. Landmarks: the **pumpkin patch** has ribbed pumpkins on a trailing vine and a
   scarecrow with a sack head, straw cuffs and a crow on its arm; the **campfire** has leaning logs, flames in
   three colours, log seats with their rings showing and a pegged ridge tent with its flap open.
+- **Frost Isles.** **Igloos** (the one on the islet and the landmark) are courses of snow blocks leaning in to
+  the top, with an arched tunnel, a dark doorway and snow banked round the foot; a sledge leans on one, snowshoes
+  stand by the other. **Ice towers** have icicles under their snowy caps. The **ice** has cracks that zigzag and
+  fork and streaks of shine, with little heaps of snow where it meets the shore; **drifts** are a long mound with
+  smaller ones riding on it; **floes** are slabs with a paler rim under a cap of snow, and **penguins** stand on
+  the bigger ones. The **great crystal** has a bright heart, slivers between its shards and a nest of stones.
+  Snow wears fewer, shorter stalks than other ground.

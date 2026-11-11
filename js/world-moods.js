@@ -4,7 +4,7 @@
 // The layout calls W.landmark() before its trees and rocks, so they grow around the landmark.
 import * as THREE from 'three';
 import { GEO, bevelBox } from './world-kit.js';
-import { shade, mix, footTint, capTint, leafTint, capOf, stoneGeo } from './world-props.js';
+import { shade, mix, footTint, capTint, leafTint, capOf, stoneGeo, igloo as buildIgloo } from './world-props.js';
 
 // tint: theme colour overrides; trees / rocks: multipliers on the layout's counts; fruit: colour of fruit in
 // round trees; o: options for the landmark
@@ -128,7 +128,7 @@ function local(W, x, y, z, ry, k = 1) {
   const at = (lx, lz) => [x + lx * c + lz * s, z - lx * s + lz * c];
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), P = new THREE.Vector3(), S = new THREE.Vector3();
   return {
-    W, x, y, z, ry, at,
+    W, x, y, z, ry, at, k,
     p(geo, color, lx, ly, lz, { sx = 1, sy = 1, sz = 1, rx = 0, ry: r2 = 0, rz = 0, kind = 'solid', tint = null } = {}) {
       const [wx, wz] = at(lx, lz);
       Q.setFromEuler(E.set(rx, ry + r2, rz, 'YXZ'));
@@ -354,24 +354,33 @@ const BUILD = {
     L.box(0.3, 1.9, 1.1, 0.35, 0, 0.9, { top: true, sound: 'stone' });
   },
 
-  // a tall glowing crystal with smaller ones around it
+  // a tall glowing crystal: a great shard with a bright heart, a ring of smaller ones leaning out round it, slivers
+  // between them, all standing in a nest of stones
   crystal(W, L, o) {
-    const c = o.glow ?? pick(W, W.T.leaves);
-    L.p(GEO.octa(), c, 0, 2.8, 0, { sx: 0.8, sy: 3.4, sz: 0.8, ry: W.rng() * 3, kind: 'glow' });
+    const c = o.glow ?? pick(W, W.T.leaves), d = W.drng, pale = new THREE.Color(c).lerp(new THREE.Color(0xffffff), 0.55).getHex();
+    const turn = W.rng() * 3;
+    L.p(GEO.shard(), c, 0, -0.1, 0, { sx: 0.82, sy: 3.75, sz: 0.82, ry: turn, kind: 'glow', tint: footTint(0.7, 1.2) });
+    L.p(GEO.shard(), pale, 0, 0.4, 0, { sx: 0.3, sy: 3.0, sz: 0.3, ry: turn + 0.6, kind: 'glow' });
     for (let k = 0; k < 6; k++) {
-      const a = k * 1.05 + W.rng() * 0.4, d = 1 + W.rng() * 0.6, h = 0.6 + W.rng() * 1.2;
-      L.p(GEO.octa(), k % 2 ? c : 0xffffff, Math.sin(a) * d, h * 0.6, Math.cos(a) * d, { sx: 0.3, sy: h, sz: 0.3, rx: Math.cos(a) * 0.35, rz: -Math.sin(a) * 0.35, kind: 'glow' });
+      const a = k * 1.05 + W.rng() * 0.4, dd = 1 + W.rng() * 0.6, h = 0.6 + W.rng() * 1.2;
+      L.p(GEO.shard(), k % 2 ? c : 0xffffff, Math.sin(a) * dd, -0.05, Math.cos(a) * dd, { sx: 0.28, sy: h * 1.05, sz: 0.28, ry: a, rx: 0.35, kind: 'glow', tint: footTint(0.75, 1.15) });
+      // a sliver beside it
+      const b = a + 0.5, bd = dd * (0.7 + d() * 0.5);
+      L.p(GEO.shard(), k % 2 ? pale : c, Math.sin(b) * bd, -0.03, Math.cos(b) * bd, { sx: 0.12, sy: 0.35 + d() * 0.4, sz: 0.12, ry: b, rx: 0.5 + d() * 0.3, kind: 'glow' });
     }
-    for (let k = 0; k < 4; k++) L.p(GEO.rock(), stoneOf(W, {}), Math.sin(k * 1.6) * 0.9, 0.15, Math.cos(k * 1.6) * 0.9, { sx: 0.5, sy: 0.35, sz: 0.45, ry: k });
+    const cap = capOf(W.T), st = stoneOf(W, {});
+    for (let k = 0; k < 7; k++) {
+      const a = k * 0.9 + d() * 0.4, r = 0.75 + d() * 0.7;
+      L.p(GEO.rock(), shade(st, 0.88 + d() * 0.14), Math.sin(a) * r, 0.13, Math.cos(a) * r, { sx: 0.34 + d() * 0.2, sy: 0.26, sz: 0.3, ry: d() * 6, tint: capTint(cap.color, cap.from, 0.85) });
+    }
+    L.skirt(0, 0, 1.7);
     L.box(0, 0, 0.7, 0.7, 0, 6, { sound: 'crystal' });
   },
 
-  // a snow-block igloo with its tunnel facing the pedestal
+  // a snow-block igloo with its tunnel facing the pedestal, a pair of snowshoes stuck in the snow beside it
   igloo(W, L) {
-    L.p(GEO.dome(), 0xfafcff, 0, 0, 0, { sx: 1.7, sy: 1.5, sz: 1.7 });
-    for (const [h, r] of [[0.45, 1.66], [0.9, 1.45], [1.25, 1.0]]) L.p(GEO.cyl(16), 0xdfe8f6, 0, h, 0, { sx: r, sy: 0.04, sz: r, kind: 'fx' });
-    L.p(GEO.box(), 0xfafcff, 0, 0.5, 1.75, { sx: 1.1, sy: 1.0, sz: 1.0 });
-    L.p(GEO.box(), 0x3a4a6a, 0, 0.42, 2.26, { sx: 0.6, sy: 0.75, sz: 0.04 });
+    buildIgloo(W, L.x, L.z, L.ry, { R: 1.7 * L.k, H: 1.5 * L.k, y: L.y, k: L.k, tunnel: 2.26 * L.k });
+    for (const e of [0, 1]) L.p(GEO.cyl(8), 0xb07a50, 2.0 + e * 0.3, 0.42, 0.9, { sx: 0.13, sy: 0.03, sz: 0.4, rx: Math.PI / 2 - 0.25, rz: 0.1 + e * 0.2 });
     L.box(0, 0, 1.3, 1.3, 0, 1.4, { sound: 'snow' });
     L.box(0, 1.75, 0.55, 0.5, 0, 1.0, { sound: 'snow' });
   },

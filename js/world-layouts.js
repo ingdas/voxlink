@@ -7,7 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
-import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep } from './world-props.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -329,6 +329,23 @@ function butterflies(W) {
   });
 }
 
+// a mark on the ice at (x, z): a crack that zigzags and forks, or a streak of shine with a shorter one beside it
+function iceMark(W, x, z, y, len, ry) {
+  const d = W.drng, c = Math.cos(ry), s = Math.sin(ry);
+  if (d() < 0.55) {
+    let px = x - c * len / 2, pz = z + s * len / 2, a = ry;
+    for (let k = 0; k < 3; k++) {
+      const l = len / 3, na = ry + (d() - 0.5) * 0.9, ex = px + Math.cos(na) * l, ez = pz - Math.sin(na) * l;
+      put(W, GEO.box(), 0xf0fbff, (px + ex) / 2, y, (pz + ez) / 2, { sx: l + 0.03, sy: 0.01, sz: 0.045, ry: na, kind: 'fx' });
+      if (k === 1) put(W, GEO.box(), 0xf0fbff, px + Math.cos(na + 0.9) * l * 0.3, y, pz - Math.sin(na + 0.9) * l * 0.3, { sx: l * 0.6, sy: 0.01, sz: 0.035, ry: na + 0.9, kind: 'fx' });
+      px = ex; pz = ez; a = na;
+    }
+  } else {
+    put(W, GEO.box(), 0xdff4ff, x, y, z, { sx: len, sy: 0.01, sz: 0.13, ry, kind: 'fx' });
+    put(W, GEO.box(), 0xdff4ff, x + s * 0.3 + c * 0.2, y, z + c * 0.3 - s * 0.2, { sx: len * 0.45, sy: 0.01, sz: 0.07, ry, kind: 'fx' });
+  }
+}
+
 // ---------- frost: an archipelago of snowy islets joined by a frozen lake and ice bridges ----------
 function frost(W) {
   const { R, T, seed, rng, clearR } = W;
@@ -372,9 +389,15 @@ function frost(W) {
   W.ground(islands, { top: T.grass, side: T.cliff, depth: 5, hole: rink, holeDepth: 0 });
   W.ground(ice, { y: -0.05, top: T.ice, side: T.iceSide, depth: 0.9, lip: 0 });
   // cracks and frosty streaks on the ice
-  scatterProps(W, 26, (x, z) => ice(x, z) < -0.8 && (islands(x, z) > 0.3 || (rink && rink(x, z) < -0.3)), (x, z) => {
-    put(W, GEO.box(), 0xf0fbff, x, -0.045, z, { sx: 0.8 + rng() * 1.4, sy: 0.01, sz: 0.05, ry: rng() * 3, kind: 'fx' });
-  });
+  scatterProps(W, 26, (x, z) => ice(x, z) < -0.8 && (islands(x, z) > 0.3 || (rink && rink(x, z) < -0.3)), (x, z) => iceMark(W, x, z, -0.045, 0.8 + rng() * 1.4, rng() * 3));
+  // snow lies in little heaps where the ice meets the shore
+  for (let i = 0, k = 0; i < 400 && k < 36; i++) {
+    const a = W.drng() * 6.283, r = Math.sqrt(W.drng()) * W.bound, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (ice(x, z) > -0.1 || islands(x, z) < 0.05 || islands(x, z) > 0.4) continue;
+    const ss = 0.3 + W.drng() * 0.35;
+    put(W, GEO.dome(), 0xffffff, x, -0.06, z, { sx: ss * 1.3, sy: ss * 0.4, sz: ss, ry: W.drng() * 3, kind: 'fx' });
+    k++;
+  }
 
   plateauField(W, Math.round(3 + R * 0.2), { body: 0x9fd4f2, cap: 0xffffff, step: 0xbfe4f8, sound: 'snow' }, (x, z, ext) => islands(x, z) < -(ext + 2.6) && ice(x, z) > ext + 2);
   // igloo on a satellite
@@ -383,14 +406,11 @@ function frost(W) {
     const p = W.sample((x, z) => ig.sd(x, z) < -3.4 && W.flatAt(x, z, 2.8, 0.01) !== null && !W.blocked(x, z, 2.8, 0, 3), 80);
     if (p) {
       const { x, z } = p, ry = Math.atan2(-x, -z);
-      put(W, GEO.dome(), 0xeaf6ff, x, 0, z, { sx: 2.0, sy: 1.6, sz: 2.0 });
-      for (const h of [0.45, 0.9, 1.3]) {
-        const rr = 2.0 * Math.sqrt(1 - (h / 1.6) ** 2);
-        put(W, GEO.cyl(14), 0xc6e2f6, x, h, z, { sx: rr + 0.02, sy: 0.05, sz: rr + 0.02 });
-      }
-      const fx = Math.sin(ry), fz = Math.cos(ry);
-      put(W, GEO.cyl(10), 0xeaf6ff, x + fx * 1.9, 0.45, z + fz * 1.9, { sx: 0.65, sy: 1.0, sz: 0.65, rx: Math.PI / 2, ry, kind: 'solid' });
-      put(W, GEO.cyl(10), 0x3a4a6a, x + fx * 2.4, 0.42, z + fz * 2.4, { sx: 0.42, sy: 0.05, sz: 0.42, rx: Math.PI / 2, ry });
+      igloo(W, x, z, ry, { R: 2.0, H: 1.6, tunnel: 2.45 });
+      // a sledge leaning on it, and a fishing hole with a rod beside the tunnel
+      const fx = Math.sin(ry), fz = Math.cos(ry), sx0 = Math.cos(ry), sz0 = -Math.sin(ry);
+      for (const e of [-1, 1]) putL(W, GEO.box(), 0x8a5a3c, x + sx0 * 2.2 + fx * (0.4 + e * 0.22), 0.5, z + sz0 * 2.2 + fz * (0.4 + e * 0.22), { sx: 0.06, sy: 1.2, sz: 0.1, ry, rz: 0.35 });
+      for (const t of [-0.3, 0.05, 0.4]) putL(W, GEO.box(), 0xb07a50, x + sx0 * (2.2 - t * 0.36) + fx * 0.4, 0.5 + t, z + sz0 * (2.2 - t * 0.36) + fz * 0.4, { sx: 0.05, sy: 0.07, sz: 0.56, ry, rz: 0.35 });
       W.box(x - 1.45, 0, z - 1.45, x + 1.45, 1.4, z + 1.45, { sound: 'snow' });
       W.box(x - 0.9, 1.4, z - 0.9, x + 0.9, 1.65, z + 0.9, { sound: 'snow' });
       W.obstacles.push({ x, z, r: 2.6 }, { x: x + fx * 2, z: z + fz * 2, r: 0.9 });
@@ -402,15 +422,23 @@ function frost(W) {
     (x, z) => tree(W, 'pine', x, z, 0.8 + rng() * 0.55, 0), 10);
   // snow drifts and ice spikes
   scatterProps(W, Math.round(R * 0.6), (x, z) => islands(x, z) < -0.8 && ice(x, z) > 1 && okTree(W, x, z, 0.8), (x, z) => {
-    const s = 0.8 + rng() * 1.2;
-    put(W, GEO.dome(), 0xfafcff, x, -0.05, z, { sx: s * 1.4, sy: 0.3 + rng() * 0.2, sz: s, ry: rng() * 3, kind: 'solid' });
+    const s = 0.8 + rng() * 1.2, hh = 0.3 + rng() * 0.2, ry = rng() * 3, d = W.drng;
+    // a drift: one long mound with a couple of smaller ones riding on it
+    put(W, GEO.dome(), 0xfafcff, x, -0.05, z, { sx: s * 1.4, sy: hh, sz: s, ry, kind: 'solid' });
+    for (let k = 0; k < 2; k++) {
+      const a = d() * 6.283, ss = s * (0.4 + d() * 0.25);
+      put(W, GEO.dome(), k ? 0xffffff : 0xf0f6ff, x + Math.cos(a) * s * 0.6, -0.04, z + Math.sin(a) * s * 0.5, { sx: ss * 1.3, sy: hh * (0.7 + d() * 0.5), sz: ss, ry: d() * 3 });
+    }
     W.obstacles.push({ x, z, r: s + 0.3 });
   });
   scatterProps(W, W.more('rocks', Math.round(R * 0.3)), (x, z) => islands(x, z) < -1 && ice(x, z) > 1 && okTree(W, x, z, 1), (x, z) => rock(W, x, z, 0.5 + rng() * 0.6, 0, 'ice'));
   // ice floes drifting on the dark water
   scatterProps(W, 30, (x, z) => coast(x, z) > 2 && coast(x, z) < 16, (x, z) => {
-    const s = 0.6 + rng() * 1.6;
-    put(W, GEO.cyl(6), 0xf3f9ff, x, W.seaY + 0.06, z, { sx: s, sy: 0.12, sz: s * (0.6 + rng() * 0.5), ry: rng() * 3, kind: 'fx' });
+    const s = 0.6 + rng() * 1.6, sq = 0.6 + rng() * 0.5, ry = rng() * 3, d = W.drng;
+    // a floe: a slab of ice with a paler rim under a cap of snow; a penguin or two stand on the bigger ones
+    put(W, GEO.cyl(d() < 0.5 ? 6 : 7), 0xbfe4fa, x, W.seaY + 0.05, z, { sx: s, sy: 0.16, sz: s * sq, ry, kind: 'fx' });
+    put(W, GEO.cyl(6), 0xf8fcff, x, W.seaY + 0.14, z, { sx: s * 0.86, sy: 0.06, sz: s * sq * 0.86, ry: ry + 0.2, kind: 'fx' });
+    if (s > 1.5 && d() < 0.55) for (let k = 0; k < 1 + (d() < 0.4 ? 1 : 0); k++) penguin(W, x + (d() - 0.5) * s * 0.7, W.seaY + 0.17, z + (d() - 0.5) * s * sq * 0.7, Math.atan2(-x, -z) + (d() - 0.5), 0.9 + d() * 0.3);
   }, 4);
   Object.assign(W, SKIES.frost);
 }
@@ -1111,9 +1139,7 @@ function frostwood(W) {
     }
   }
   // ice cracks
-  scatterProps(W, 14, (x, z) => stream(x, z) < -0.5 && isl(x, z) < -0.5, (x, z) => {
-    put(W, GEO.box(), 0xf0fbff, x, -0.03, z, { sx: 0.6 + rng() * 0.9, sy: 0.01, sz: 0.05, ry: rng() * 3, kind: 'fx' });
-  });
+  scatterProps(W, 14, (x, z) => stream(x, z) < -0.5 && isl(x, z) < -0.5, (x, z) => iceMark(W, x, z, -0.03, 0.6 + rng() * 0.9, rng() * 3));
 
   // the log cabin, lights on
   const cab = W.sample((x, z) => !W.nearCentre(x, z, 5) && !W.spawnPath(x, z, 4) && isl(x, z) < -5 && stream(x, z) > 4 && !inDrift(x, z)
