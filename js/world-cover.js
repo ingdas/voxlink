@@ -208,7 +208,7 @@ export function addGroundCover(W, { group, updaters, walkSd, floorAt, quality, s
       const f = groundOk(x, z);
       if (f === null) continue;
       // now and then one of another colour among them
-      flower(im, x, f, z, 0.95 + rnd() * 0.55, rnd() < 0.12 ? T.flowers[Math.floor(rnd() * T.flowers.length)] : c);
+      flower(im, x, f, z, (im === kinds[1] ? 0.8 : 0.95) + rnd() * 0.5, rnd() < 0.12 ? T.flowers[Math.floor(rnd() * T.flowers.length)] : c);
       made++;
     }
   }

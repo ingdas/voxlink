@@ -619,3 +619,17 @@ thing, not more realism. Detail that is added draws from a random source of its 
   colour. Snow wears sparse dry stalks, sand thin dune grass. The ways across an island are mown (the planks
   show), an island you're not on draws less of its cover the farther away it is, and phones get about a third.
   The ground itself gained painted patches with a crisp edge (`js/looks.js`).
+- **The shared models** (`js/world-props.js`). The **pedestal** is dressed stone: bevelled steps on a footing
+  course, joints between the stones, an inlaid line round the top, a stud of the world's accent on each side and
+  turned corner posts (same size, same colliders). **Round and wind-bent trees** have a tapering trunk with roots
+  and boughs and a crown of leafy lumps in shades of the tree's colour, lighter where they face the sky; **pines**
+  are four tiers of boughs with a zigzag hem and snow lying on them; **palms** have a ringed trunk and broad
+  fronds cut into leaflets, young ones standing up in the middle; **crystals** are pointed shards in a nest of
+  stones. **Rocks** carry moss, snow or sun-bleach on what faces up and have smaller stones against them; the
+  climbable **towers** are bevelled blocks, darker at the foot, with their cap spilling over the edge and loose
+  stones at their feet. Grass gathers round the foot of all of them.
+- **Ruins** (Eye of the Storm, the opening's first shot): columns are stacks of dressed stones a shade apart and a
+  touch out of true, whole ones with a capital, stumps ending in a broken course; lintels are big stones with a
+  keystone; moss lies on top and creeps up from the foot in strands; fallen columns are drums lying apart.
+- **Cliffs** show layers: an island's flank is cut into bands of earth and rock, each a shade of the cliff's
+  colour, the lines between them rising and falling as they run round the island (`wallGeometry`'s `strata`).

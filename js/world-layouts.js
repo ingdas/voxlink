@@ -7,6 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -27,103 +28,7 @@ const SKIES = {
   storm: { clouds: 26, cloudR: 45, cloudY: 24, cloudSpin: 0.045, cloudScale: 1.3 },
 };
 
-// ---------- shared props ----------
-function put(W, geo, color, x, y, z, o = {}) { W.B.put(geo, color, x, y, z, o); }
-function putQ(W, geo, color, pos, q, scale, kind = 'solid') { M.compose(pos, q, scale); W.B.add(geo, color, M, kind); }
-
-function tree(W, kind, x, z, s, y = W.floorAt(x, z) ?? 0) {
-  const { T, rng } = W;
-  const leaf = () => T.leaves[Math.floor(rng() * T.leaves.length)];
-  if (kind === 'round' || kind === 'bent') {
-    // bent: storm trees lean away from the prevailing wind
-    const a = kind === 'bent' ? (W.windDir ?? 0) + (rng() - 0.5) * 0.6 : 0;
-    const tilt = kind === 'bent' ? 0.22 + rng() * 0.12 : 0;
-    const dx = Math.cos(a), dz = Math.sin(a);
-    const q = new THREE.Quaternion().setFromAxisAngle(V.set(dz, 0, -dx).normalize(), tilt);
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
-    putQ(W, GEO.cyl(7), T.trunk, new THREE.Vector3(x, y, z).addScaledVector(up, 1.1 * s), q, new THREE.Vector3(0.22 * s, 2.2 * s, 0.22 * s));
-    const lc = leaf();
-    const blobs = kind === 'bent' ? 2 : 2 + Math.floor(rng() * 2);
-    for (let i = 0; i < blobs; i++) {
-      const bs = (1.25 - i * 0.28) * s * (kind === 'bent' ? 0.85 : 1);
-      const c = new THREE.Vector3(x, y, z).addScaledVector(up, (2.4 + i * 0.95) * s);
-      c.x += (rng() - 0.5) * 0.4 * s + dx * i * 0.35 * s; c.z += (rng() - 0.5) * 0.4 * s + dz * i * 0.35 * s;
-      put(W, GEO.blob(), lc, c.x, c.y, c.z, { sx: bs * (kind === 'bent' ? 1.25 : 1), sy: bs * 0.9, sz: bs, rx: rng() * 3, ry: rng() * 3, rz: rng() * 3 });
-      // an orchard island's trees carry fruit
-      if (W.mood?.fruit && kind === 'round') for (let f = 0; f < 3; f++) { const a = rng() * 6.3; put(W, GEO.ico(), W.mood.fruit, c.x + Math.cos(a) * bs * 0.9, c.y - bs * 0.3, c.z + Math.sin(a) * bs * 0.9, { sx: 0.13, sy: 0.13, sz: 0.13 }); }
-    }
-  } else if (kind === 'pine') {
-    put(W, GEO.cyl(7), T.trunk, x, y + 0.8 * s, z, { sx: 0.22 * s, sy: 2.2 * s, sz: 0.22 * s });
-    const lc = leaf();
-    for (let i = 0; i < 3; i++) {
-      const r = (1.5 - i * 0.38) * s, h = (1.6 - i * 0.2) * s, ry = rng() * 3, cy = y + (1.6 + i * 0.95) * s;
-      put(W, GEO.cone(7), lc, x, cy, z, { sx: r, sy: h, sz: r, ry });
-      put(W, GEO.cone(7), 0xffffff, x, cy + h * 0.3, z, { sx: r * 0.55, sy: h * 0.42, sz: r * 0.55, ry });
-    }
-  } else if (kind === 'palm') {
-    const dir = rng() * Math.PI * 2, lean = (0.9 + rng() * 0.6) * s, h = 3.6 * s;
-    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(x, y, z), new THREE.Vector3(x, y + h * 0.6, z), new THREE.Vector3(x + Math.cos(dir) * lean, y + h, z + Math.sin(dir) * lean));
-    const tube = new THREE.TubeGeometry(curve, 8, 0.17 * s, 6);
-    W.B.add(tube, T.trunk);
-    tube.dispose();
-    const top = new THREE.Vector3(x + Math.cos(dir) * lean, y + h, z + Math.sin(dir) * lean);
-    const lc = leaf();
-    const frond = frondGeo();
-    for (let i = 0; i < 6; i++) {
-      E.set(0, (i / 6) * Math.PI * 2 + rng() * 0.3, -0.45 - rng() * 0.2, 'YZX');
-      putQ(W, frond, lc, top, Q.setFromEuler(E), V.set(s, s, s));
-    }
-    for (let i = 0; i < 3; i++) put(W, GEO.ico(), 0x6b4a36, top.x + Math.cos(i * 2.1) * 0.2, top.y - 0.15, top.z + Math.sin(i * 2.1) * 0.2, { sx: 0.15, sy: 0.15, sz: 0.15 });
-  } else {
-    // crystal cluster
-    const n = 3 + Math.floor(rng() * 3);
-    for (let i = 0; i < n; i++) {
-      const c = T.leaves[Math.floor(rng() * T.leaves.length)];
-      const h = (1.2 + rng() * 1.6) * s;
-      const a = rng() * Math.PI * 2, r = i === 0 ? 0 : 0.35 * s;
-      put(W, GEO.octa(), c, x + Math.cos(a) * r, y + h * 0.75, z + Math.sin(a) * r, { sx: 0.35 * s, sy: h, sz: 0.35 * s, rx: (rng() - 0.5) * 0.5, ry: rng() * 3, rz: (rng() - 0.5) * 0.5, kind: 'glow' });
-    }
-  }
-  W.box(x - 0.3 * s, y, z - 0.3 * s, x + 0.3 * s, y + 3.5 * s, z + 0.3 * s, { sound: 'wood' });
-  W.obstacles.push({ x, z, r: 0.5 });
-}
-let _frond = null;
-const frondGeo = () => _frond || (_frond = (() => { const g = new THREE.IcosahedronGeometry(1, 0); g.scale(1.4, 0.12, 0.42); g.translate(1.2, 0, 0); return g; })());
-
-function rock(W, x, z, s, y = W.floorAt(x, z) ?? 0, shape = W.T.rockShape, collide = true) {
-  const { T, rng } = W;
-  if (shape === 'ice') {
-    for (let i = 0; i < 3; i++) {
-      const h = (1 + rng() * 1.2) * s * 1.6;
-      put(W, GEO.cone(5), T.rock, x + (rng() - 0.5) * s, y + h / 2, z + (rng() - 0.5) * s, { sx: s * 0.5, sy: h, sz: s * 0.5, rx: (rng() - 0.5) * 0.4, ry: rng() * 3, rz: (rng() - 0.5) * 0.4 });
-    }
-  } else if (shape === 'coral') {
-    const cc = [0xff9eb8, 0xff7a6b, 0xffb86b, 0xc98bff][Math.floor(rng() * 4)];
-    for (let i = 0; i < 4; i++) {
-      const h = (0.6 + rng() * 0.9) * s * 1.5;
-      put(W, GEO.cyl(6), cc, x + (rng() - 0.5) * s, y + h / 2, z + (rng() - 0.5) * s, { sx: s * 0.2, sy: h, sz: s * 0.2, rx: (rng() - 0.5) * 0.7, rz: (rng() - 0.5) * 0.7 });
-    }
-  } else {
-    put(W, GEO.rock(), T.rock, x, y + s * 0.35, z, { sx: s * 1.2, sy: s * 0.8, sz: s, rx: rng(), ry: rng() * 6, rz: rng() });
-  }
-  W.obstacles.push({ x, z, r: s + 0.3 });
-  if (collide && s > 0.55) W.box(x - s, y, z - s, x + s, y + s * 0.9, z + s);
-}
-
-// a box tower with a cap; `steps` little boxes wind up one side (each 1.05 lower) so it can be climbed
-function tower(W, x, z, w, d, h, base, ox, oz, steps, { body, cap, step = body, lines = null, sound = 'stone' }) {
-  const block = (bx, bz, bw, bd, bh, color, isTop) => {
-    put(W, GEO.box(), color, bx, base + (bh - 0.2) / 2, bz, { sx: bw, sy: bh - 0.2, sz: bd });
-    put(W, GEO.box(), cap, bx, base + bh - 0.1, bz, { sx: bw + 0.16, sy: 0.2, sz: bd + 0.16 });
-    if (lines) for (let ly = 0.7; ly < bh - 0.4; ly += 0.75) put(W, GEO.box(), lines, bx, base + ly, bz, { sx: bw + 0.04, sy: 0.07, sz: bd + 0.04 });
-    W.box(bx - bw / 2 - 0.08, base, bz - bd / 2 - 0.08, bx + bw / 2 + 0.08, base + bh, bz + bd / 2 + 0.08, { top: isTop, sound });
-  };
-  block(x, z, w, d, h, body, true);
-  const px = -oz, pz = ox;
-  if (steps >= 1) block(x + ox * (w / 2 + 0.7), z + oz * (d / 2 + 0.7), 1.4, 1.4, h - 1.05, step, false);
-  if (steps >= 2) block(x + ox * (w / 2 + 0.7) + px * 1.6, z + oz * (d / 2 + 0.7) + pz * 1.6, 1.4, 1.4, h - 2.1, step, false);
-}
-
+// ---------- shared props: js/world-props.js ----------
 // classic plateaus: 1-3 tiers, stairs facing the pedestal
 function plateauField(W, n, colors, test = () => true) {
   const { rng, clearR, difficulty } = W;
@@ -761,14 +666,12 @@ function storm(W) {
   let gz = spawnZ - 5.5;
   while (gz < spawnZ - 1.6 && Math.hypot(3, gz) <= clearR + 2.2) gz += 0.5;
   if (Math.hypot(3, gz) > clearR + 2.2) {
+    const st = { stone: T.stone, dark: T.stoneDark, moss: T.moss };
     for (const s of [-1, 1]) {
-      put(W, GEO.box(), T.stone, s * 3.0, 2.0, gz, { sx: 0.9, sy: 4.0, sz: 0.9 });
-      put(W, GEO.box(), T.stoneDark, s * 3.0, 0.15, gz, { sx: 1.2, sy: 0.3, sz: 1.2 });
-      put(W, GEO.box(), T.stoneDark, s * 3.0, 3.95, gz, { sx: 1.15, sy: 0.25, sz: 1.15 });
+      column(W, s * 3.0, gz, 0.9, 4.08, st);
       W.box(s * 3.0 - 0.6, 0, gz - 0.6, s * 3.0 + 0.6, 4.1, gz + 0.6);
     }
-    put(W, GEO.box(), T.stone, 0, 4.45, gz, { sx: 7.4, sy: 0.75, sz: 1.2 });
-    put(W, GEO.box(), T.moss, 0.6, 4.86, gz, { sx: 5.2, sy: 0.1, sz: 1.0 });
+    lintel(W, -3.7, gz, 3.7, gz, 4.45, 0.75, 1.2, st);
     W.box(-3.7, 4.05, gz - 0.6, 3.7, 4.85, gz + 0.6);
     W.obstacles.push({ x: -3, z: gz, r: 1 }, { x: 3, z: gz, r: 1 });
   }
@@ -782,13 +685,14 @@ function storm(W) {
       if (W.spawnPath(x, z, 0.8) || rng() < 0.25 || W.blocked(x, z, 0.8, 0, 3)) continue;
       const roll = rng();
       const h = roll < 0.35 ? 0.5 : roll < 0.6 ? 1.05 : 2.4 + rng() * 2.2;
-      put(W, GEO.box(), T.stone, x, h / 2, z, { sx: 0.95, sy: h, sz: 0.95 });
-      put(W, GEO.box(), T.stoneDark, x, 0.12, z, { sx: 1.25, sy: 0.24, sz: 1.25 });
+      // a whole column keeps its capital; a stump ends in a broken course with a loose stone on it
+      column(W, x, z, 0.95, h > 2 ? h + 0.24 : h, { stone: T.stone, dark: T.stoneDark, moss: T.moss, whole: h > 2, plinth: 0.24 });
       if (h > 2) {
-        put(W, GEO.box(), T.stoneDark, x, h + 0.12, z, { sx: 1.2, sy: 0.24, sz: 1.2 });
         W.box(x - 0.62, 0, z - 0.62, x + 0.62, h + 0.24, z + 0.62);
       } else {
-        put(W, GEO.box(), T.stone, x + 0.1, h + 0.12, z - 0.1, { sx: 0.6, sy: 0.24, sz: 0.5, ry: rng() });
+        block(W, T.stone, x + 0.1, h + 0.12, z - 0.1, 0.6, 0.24, 0.5, { b: 0.04, ry: rng(), tint: capTint(T.moss, 0.6, 0.95) });
+        const ra = W.drng() * 6.283;
+        put(W, GEO.rock(), T.stoneDark, x + Math.cos(ra) * 0.95, 0.12, z + Math.sin(ra) * 0.95, { sx: 0.3, sy: 0.2, sz: 0.24, ry: ra });
         W.box(x - 0.62, 0, z - 0.62, x + 0.62, h, z + 0.62, { top: h > 0.9, sound: 'stone' });
       }
       W.obstacles.push({ x, z, r: 0.9 });
@@ -801,17 +705,17 @@ function storm(W) {
     arches.push({ x, z });
     const alongX = rng() < 0.5, ph = 1.75, L = 4.4;
     const ax = alongX ? 1 : 0, az = alongX ? 0 : 1;
+    const st = { stone: T.stone, dark: T.stoneDark, moss: T.moss };
     for (const s of [-1, 1]) {
       const px = x + ax * s * 1.7, pz = z + az * s * 1.7;
-      put(W, GEO.box(), T.stone, px, ph / 2, pz, { sx: 0.9, sy: ph, sz: 0.9 });
+      column(W, px, pz, 0.9, ph, { ...st, whole: false, plinth: 0.22 });
       W.box(px - 0.45, 0, pz - 0.45, px + 0.45, ph, pz + 0.45);
     }
-    put(W, GEO.box(), T.stone, x, ph + 0.2, z, { sx: alongX ? L : 1.0, sy: 0.4, sz: alongX ? 1.0 : L });
-    put(W, GEO.box(), T.moss, x, ph + 0.42, z, { sx: alongX ? L - 0.4 : 0.8, sy: 0.06, sz: alongX ? 0.8 : L - 0.4 });
+    lintel(W, x - ax * L / 2, z - az * L / 2, x + ax * L / 2, z + az * L / 2, ph + 0.2, 0.4, 1.0, st);
     W.box(x - (alongX ? L / 2 : 0.5), ph, z - (alongX ? 0.5 : L / 2), x + (alongX ? L / 2 : 0.5), ph + 0.42, z + (alongX ? 0.5 : L / 2), { top: true, sound: 'stone' });
     // the stump sits off one end of the lintel
     const sx = x + ax * (L / 2 + 0.8), sz = z + az * (L / 2 + 0.8);
-    put(W, GEO.box(), T.stoneDark, sx, 0.55, sz, { sx: 1.1, sy: 1.1, sz: 1.1 });
+    block(W, T.stoneDark, sx, 0.55, sz, 1.1, 1.1, 1.1, { b: 0.07, tint: capTint(T.moss, 0.6, 0.86) });
     W.box(sx - 0.55, 0, sz - 0.55, sx + 0.55, 1.1, sz + 0.55, { top: true, sound: 'stone' });
     W.obstacles.push({ x, z, r: 0.6 }, { x: sx, z: sz, r: 0.8 });
   });
@@ -819,7 +723,14 @@ function storm(W) {
   // fallen columns
   scatterProps(W, Math.round(R * 0.1), (x, z) => okTree(W, x, z, 2.5) && !W.blocked(x, z, 2, 0, 2), (x, z) => {
     const alongX = rng() < 0.5, L = 2.6;
-    put(W, GEO.cyl(8), T.stone, x, 0.42, z, { sx: 0.42, sy: L, sz: 0.42, rx: alongX ? 0 : Math.PI / 2, rz: alongX ? Math.PI / 2 : 0 });
+    // three drums lying end to end, a little apart and each turned its own way, with a band where two meet
+    const d = W.drng, turn = { rx: alongX ? 0 : Math.PI / 2, rz: alongX ? Math.PI / 2 : 0 };
+    for (let k = 0; k < 3; k++) {
+      const t = (k - 1) * (L / 3 + 0.02), dl = L / 3 - 0.03 - (k === 2 ? 0.18 : 0), o = (d() - 0.5) * 0.05;
+      put(W, GEO.cyl(10), k % 2 ? shade(T.stone, 0.94) : T.stone, x + (alongX ? t - (k === 2 ? 0.09 : 0) : o), 0.42, z + (alongX ? o : t - (k === 2 ? 0.09 : 0)), { sx: 0.42, sy: dl, sz: 0.42, ...turn, tint: capTint(T.moss, 0.72, 0.9) });
+      if (k < 2) put(W, GEO.cyl(10), T.stoneDark, x + (alongX ? t + L / 6 : 0), 0.42, z + (alongX ? 0 : t + L / 6), { sx: 0.45, sy: 0.07, sz: 0.45, ...turn });
+    }
+    put(W, GEO.rock(), T.stone, x + (alongX ? L / 2 + 0.25 : 0.2), 0.14, z + (alongX ? 0.2 : L / 2 + 0.25), { sx: 0.3, sy: 0.2, sz: 0.26, ry: d() * 6, tint: capTint(T.moss, 0.6, 0.9) });
     W.box(x - (alongX ? L / 2 : 0.42), 0, z - (alongX ? 0.42 : L / 2), x + (alongX ? L / 2 : 0.42), 0.84, z + (alongX ? 0.42 : L / 2), { sound: 'stone' });
     W.obstacles.push({ x, z, r: 1.6 });
   });
@@ -870,29 +781,6 @@ function bouncePad(W, x, y, z, to, gScale, draw) {
   W.pads.push({ x, y, z, r: 0.85, vel, t });
   draw(x, y, z);
   W.obstacles.push({ x, z, r: 1.5 });
-}
-
-// a little house: walls, a gable roof along its width, door and two windows facing `ry`
-function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wall, roof, door = 0x7a4e32, glass = 0x7ec8f0, trim = null, y = W.floorAt(x, z) ?? 0 }) {
-  const fwd = [Math.sin(ry), Math.cos(ry)], side = [Math.cos(ry), -Math.sin(ry)];
-  put(W, GEO.box(), wall, x, y + h / 2, z, { sx: w, sy: h, sz: d, ry });
-  const rs = (d / 2 + 0.3) / 0.866; // roof prism: tipped onto its side, apex up, ridge along the width
-  putQ(W, GEO.cyl(3), roof, V.set(x, y + h + roofH * 0.5 - 0.05, z), Q.setFromEuler(E.set(-Math.PI / 2, ry + Math.PI / 2, 0, 'YXZ')), new THREE.Vector3(rs, w + 0.3, roofH));
-  const fx = fwd[0] * (d / 2 + 0.01), fz = fwd[1] * (d / 2 + 0.01);
-  put(W, GEO.box(), door, x + fx, y + 0.6, z + fz, { sx: 0.7, sy: 1.2, sz: 0.06, ry });
-  for (const s of [-1, 1]) put(W, GEO.box(), glass, x + fx + side[0] * s * w * 0.3, y + 1.2, z + fz + side[1] * s * w * 0.3, { sx: 0.5, sy: 0.5, sz: 0.06, ry });
-  if (trim) put(W, GEO.box(), trim, x, y + h - 0.06, z, { sx: w + 0.08, sy: 0.12, sz: d + 0.08, ry });
-  const turned = Math.abs(Math.sin(ry)) > 0.5, ex = (turned ? d : w) / 2 + 0.05, ez = (turned ? w : d) / 2 + 0.05;
-  W.box(x - ex, y, z - ez, x + ex, y + h + roofH, z + ez, { sound: 'wood' });
-  W.obstacles.push({ x, z, r: Math.max(w, d) * 0.8 });
-}
-
-// a straight fence (posts + two rails) from a to b with a collider
-function fence(W, ax, az, bx, bz, color = 0xc08a5c) {
-  const L = Math.hypot(bx - ax, bz - az), ry = Math.atan2(bx - ax, bz - az), n = Math.max(1, Math.round(L / 1.1));
-  for (let k = 0; k <= n; k++) put(W, GEO.box(), 0x8a5a3c, ax + (bx - ax) * k / n, 0.4, az + (bz - az) * k / n, { sx: 0.13, sy: 0.8, sz: 0.13 });
-  for (const y of [0.35, 0.65]) put(W, GEO.box(), color, (ax + bx) / 2, y, (az + bz) / 2, { sx: 0.07, sy: 0.09, sz: L, ry });
-  W.box(Math.min(ax, bx) - 0.08, 0, Math.min(az, bz) - 0.08, Math.max(ax, bx) + 0.08, 0.85, Math.max(az, bz) + 0.08, { sound: 'wood' });
 }
 
 function leaves(W) {

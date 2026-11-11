@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { toon, LAYER_FX, LAYER_OVERLAY } from './render.js';
-import { Batch, GEO, contours, topGeometry, wallGeometry, projectInside, sharedDot } from './world-kit.js';
+import { Batch, GEO, contours, topGeometry, wallGeometry, projectInside, sharedDot, seeded } from './world-kit.js';
+import { pedestal as buildPedestal } from './world-props.js';
 import { buildSky } from './world-sky.js';
 import { LAYOUTS } from './world-layouts.js';
 import { placeLandmark } from './world-moods.js';
@@ -154,6 +155,8 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     bound: R + 1, hasSea: true, seaY: seaY ?? -1.7, wind: null, pads: [], gravityScale: 1, voidY: undefined,
     walkSd: null, floorAt: () => 0, surfaceAt: null, coastSd: null,
     cstep: 0.5, mood,
+    // decoration's own random source (a layout's draws stay as they were), and where grass gathers round a foot
+    drng: seeded(seed * 131 + (part ? 7 : 3)), skirts: [],
     // the layout's count of trees or rocks, scaled by the island's mood
     more: (kind, n) => Math.round(n * (mood?.[kind] ?? 1)),
     landmark: () => placeLandmark(W),
@@ -200,13 +203,15 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
     // flat ground region at height y with a cartoon lip and cliff walls; hole cuts ponds/lagoons out of it
     ground(sd, o = {}) {
       const { y = 0, top, side, depth = 6, lip = 0.25, lipDepth = 0.35, hole = null, holeDepth = 0, holeColor = side,
-        taper = 0, jag = 0, rect = null, cliffKind = 'ground', step = W.cstep } = o;
+        taper = 0, jag = 0, rect = null, cliffKind = 'ground', step = W.cstep, strata = null } = o;
       const [x0, z0, x1, z1] = rect || [-W.bound - 3, -W.bound - 3, W.bound + 3, W.bound + 3];
       const C = f => contours(f, x0, z0, x1, z1, step);
       const topSd = hole ? (x, z) => Math.max(sd(x, z) - lip, -hole(x, z)) : (x, z) => sd(x, z) - lip;
       B.add(topGeometry(C(topSd), y), top, null, 'ground');
       if (lip > 0 && lipDepth > 0) B.add(wallGeometry(C((x, z) => sd(x, z) - lip), y, y - lipDepth), top, null, 'ground');
-      if (depth > 0) B.add(wallGeometry(C((x, z) => sd(x, z) + 0.05), y - (lip > 0 ? lipDepth - 0.05 : 0), y - depth, taper, jag, rng), side, null, cliffKind);
+      // (a cliff of any height shows its layers of earth and rock)
+      const layered = strata ?? (depth > 2.5 ? { h: Math.max(1.0, depth / 9), ledge: 0.14, wave: 0.12, shades: [0.9, 1.02, 0.94, 1.06, 0.88, 1.0] } : null);
+      if (depth > 0) B.add(wallGeometry(C((x, z) => sd(x, z) + 0.05), y - (lip > 0 ? lipDepth - 0.05 : 0), y - depth, taper, jag, rng, layered, W.drng), side, null, cliffKind);
       // rim walls only: the hole loops of (land minus hole) run the other way round
       if (hole && holeDepth > 0) B.add(wallGeometry(C((x, z) => Math.max(-hole(x, z), sd(x, z))).filter(l => THREE.ShapeUtils.area(l) > 0), y + 0.001, y - holeDepth), holeColor, null, 'ground');
     },
@@ -247,19 +252,7 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   }
 
   // --- Pedestal ---
-  const [pc1, pc2, pc3] = T.pedestal;
-  if (pedestal) {
-  B.put(GEO.box(), pc1, 0, 0.125, 0, { sx: 5.2, sy: 0.25, sz: 5.2 });
-  B.put(GEO.box(), pc2, 0, 0.375, 0, { sx: 4.2, sy: 0.25, sz: 4.2 });
-  // slim corner posts with a ball on top: squat cubes in the accent colour read as loose blocks to grab
-  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-    B.put(GEO.cyl(10), pc2, sx * 2.35, 0.32, sz * 2.35, { sx: 0.1, sy: 0.64, sz: 0.1 });
-    B.put(GEO.blob(), pc3, sx * 2.35, 0.74, sz * 2.35, { sx: 0.17, sy: 0.17, sz: 0.17 });
-    W.box(sx * 2.35 - 0.17, 0, sz * 2.35 - 0.17, sx * 2.35 + 0.17, 0.9, sz * 2.35 + 0.17);
-  }
-  W.box(-2.6, 0, -2.6, 2.6, 0.25, 2.6, { sound: 'stone' });
-  W.box(-2.1, 0, -2.1, 2.1, 0.5, 2.1, { sound: 'stone' });
-  }
+  if (pedestal) buildPedestal(W, T.pedestal);
 
   // --- Ground cover: clumps of grass and drifts of flowers (instanced, no outlines, swaying in the wind) ---
   const swayU = { uTime: { value: 0 }, uWind: { value: new THREE.Vector2() }, uSway: { value: W.sway ?? 1 } };

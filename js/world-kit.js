@@ -158,8 +158,20 @@ export function topGeometry(loops, y) {
 
 // vertical walls along the loops from y0 (top) down to y1, smooth normals facing outwards.
 // taper > 0 pulls the bottom edge inwards (rock undersides).
-export function wallGeometry(loops, y0, y1, taper = 0, jag = 0, rng = Math.random) {
-  const pos = [], nor = [];
+// strata { h, ledge, shades, wave }: the wall is cut into bands about h tall (layers of earth and rock), each a shade
+// of the wall's colour (carried in the geometry's own colours) and stepping in or out by up to `ledge`; the lines
+// between them rise and fall by `wave` as they run round the island (the bands draw from drng; rng is only ever
+// asked for the jag, once a point, as it always was)
+export function wallGeometry(loops, y0, y1, taper = 0, jag = 0, rng = Math.random, strata = null, drng = rng) {
+  const pos = [], nor = [], col = [];
+  const H = y0 - y1;
+  // the bands, top down: [depth below y0, how far in, shade]
+  const rows = [[0, 0, 1]];
+  if (strata && H > strata.h * 1.4) {
+    const n = Math.max(2, Math.round(H / strata.h));
+    for (let k = 1; k < n; k++) rows.push([(H * (k + (drng() - 0.5) * 0.35)) / n, (drng() - 0.35) * strata.ledge, 1]);
+    rows.forEach((r, k) => { r[2] = strata.shades[k % strata.shades.length] * (0.98 + drng() * 0.04); });
+  }
   for (const l of loops) {
     const n = l.length;
     const nrm = [];
@@ -170,23 +182,37 @@ export function wallGeometry(loops, y0, y1, taper = 0, jag = 0, rng = Math.rando
       const len = Math.hypot(nx, nz) || 1;
       nrm.push([nx / len, nz / len]);
     }
-    const bot = l.map((p, i) => {
-      const j = jag ? (rng() - 0.5) * jag : 0;
-      return [p.x - nrm[i][0] * (taper + j), p.y - nrm[i][1] * (taper + j)];
-    });
-    const ty = taper ? taper / (y0 - y1) : 0; // tilt normals for tapered walls
-    for (let i = 0; i < n; i++) {
-      const k = (i + 1) % n;
-      const a = l[i], b = l[k];
-      const A = [a.x, y0, a.y], B = [b.x, y0, b.y], C = [bot[k][0], y1, bot[k][1]], D = [bot[i][0], y1, bot[i][1]];
-      const na = norm3(nrm[i][0], -ty, nrm[i][1]), nb = norm3(nrm[k][0], -ty, nrm[k][1]);
-      pos.push(...A, ...D, ...B, ...B, ...D, ...C);
-      nor.push(...na, ...na, ...nb, ...nb, ...na, ...nb);
+    const jags = l.map(() => (jag ? (rng() - 0.5) * jag : 0));
+    // ring k: every point of the loop at that band's depth, moved in along its normal
+    const ph = drng() * 6.283, wave = strata?.wave ?? 0;
+    const ring = (k) => {
+      if (k === rows.length) return l.map((p, i) => [p.x - nrm[i][0] * (taper + jags[i]), y1, p.y - nrm[i][1] * (taper + jags[i])]);
+      const [dep, inset] = rows[k];
+      return l.map((p, i) => {
+        const dd = k === 0 ? 0 : Math.min(H * 0.97, dep + Math.sin((i / n) * Math.PI * 2 * Math.max(2, Math.round(n / 14)) + ph + k * 1.7) * wave);
+        const off = k === 0 ? 0 : (taper + jags[i] * 0.6) * (dd / H) + inset;
+        return [p.x - nrm[i][0] * off, y0 - dd, p.y - nrm[i][1] * off];
+      });
+    };
+    const ty = taper ? taper / H : 0; // tilt normals for tapered walls
+    let top = ring(0);
+    for (let k = 0; k < rows.length; k++) {
+      const bot = ring(k + 1), sh = rows[k][2];
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n;
+        const A = top[i], B = top[j], C = bot[j], D = bot[i];
+        const na = norm3(nrm[i][0], -ty, nrm[i][1]), nb = norm3(nrm[j][0], -ty, nrm[j][1]);
+        pos.push(...A, ...D, ...B, ...B, ...D, ...C);
+        nor.push(...na, ...na, ...nb, ...nb, ...na, ...nb);
+        for (let v = 0; v < 6; v++) col.push(sh, sh, sh);
+      }
+      top = bot;
     }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  if (rows.length > 1) g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   return g;
 }
 const norm3 = (x, y, z) => { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; };
@@ -205,6 +231,8 @@ export class Batch {
   // change, starting from `color`; box: the placed shape's bounds), for gradients such as moss on top or a dark foot
   add(geo, color, matrix = null, kind = 'solid', tint = null) {
     let g = geo.index ? geo.toNonIndexed() : geo.clone();
+    // (a shape may bring shades of its own, in its colours: they multiply `color`)
+    const own = g.attributes.color || null;
     for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
     if (matrix) g.applyMatrix4(matrix);
     g.computeBoundingBox();
@@ -213,11 +241,13 @@ export class Batch {
     if (!this.parts.has(key)) this.parts.set(key, { kind, list: [] });
     const base = this._c.set(color).clone();
     let cols = null;
-    if (tint) {
+    if (tint || own) {
       const pa = g.attributes.position, na = g.attributes.normal, p = new THREE.Vector3(), n = new THREE.Vector3(), cc = new THREE.Color();
       cols = new Float32Array(pa.count * 3);
       for (let i = 0; i < pa.count; i++) {
-        tint(p.fromBufferAttribute(pa, i), na ? n.fromBufferAttribute(na, i) : n.set(0, 1, 0), cc.copy(base), g.boundingBox);
+        cc.copy(base);
+        if (own) { cc.r *= own.getX(i); cc.g *= own.getY(i); cc.b *= own.getZ(i); }
+        if (tint) tint(p.fromBufferAttribute(pa, i), na ? n.fromBufferAttribute(na, i) : n.set(0, 1, 0), cc, g.boundingBox);
         cols[i * 3] = cc.r; cols[i * 3 + 1] = cc.g; cols[i * 3 + 2] = cc.b;
       }
     }
