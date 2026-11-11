@@ -28,23 +28,27 @@ await suite('sparks', async t => {
       const g = V.game, w = g.world, spots = g.sparks?.spots || [], missed = [];
       for (const s of spots) {
         let ok = false;
-        // straight at it from all round, or by way of each bounce pad (a trampoline, a clam, a jump pad)
-        const starts = [];
+        // straight at it from all round, by way of each bounce pad (a trampoline, a clam, a jump pad), or up its
+        // breeze ring (walk in, hold jump, float to the top, then over to the spark)
+        const starts = [], ring = s.lift;
         for (const d of [3, 4.5, 2]) for (let k = 0; k < 16; k++) starts.push({ x: s.x + Math.cos((k / 16) * Math.PI * 2) * d, z: s.z + Math.sin((k / 16) * Math.PI * 2) * d });
-        for (const pad of w.pads) for (let k = 0; k < 8; k++) starts.push({ x: pad.x + Math.cos((k / 8) * Math.PI * 2) * 2, z: pad.z + Math.sin((k / 8) * Math.PI * 2) * 2, pad });
+        for (const pad of w.pads) for (let k = 0; k < 8; k++) starts.push({ x: pad.x + Math.cos((k / 8) * Math.PI * 2) * 2, z: pad.z + Math.sin((k / 8) * Math.PI * 2) * 2, via: pad });
+        if (ring) for (let k = 0; k < 8; k++) starts.unshift({ x: ring.x + Math.cos((k / 8) * Math.PI * 2) * 2.5, z: ring.z + Math.sin((k / 8) * Math.PI * 2) * 2.5, via: ring });
         for (const st of starts) {
           const f = w.floorAt(st.x, st.z);
           if (ok || f === null || w.walkSd(st.x, st.z) > -0.4 || w.heightAt(st.x, st.z) > f + 0.05) continue;
           const pl = new Player(), input = { move: { x: 0, y: -1, sprint: true }, jumpHeld: true };
           pl.spawn(st.x, st.z, 0); pl.pos.y = f;
-          for (let n = 0, stuck = 0, flown = !st.pad; n < 540 && !ok; n++) {
-            if (pl.launchT > 0) flown = true;
-            const dx = (flown ? s.x : st.pad.x) - pl.pos.x, dz = (flown ? s.z : st.pad.z) - pl.pos.z, h = Math.hypot(dx, dz), px = pl.pos.x, pz = pl.pos.z;
+          for (let n = 0, stuck = 0, there = !st.via; n < 600 && !ok; n++) {
+            // (thrown by the pad, or floated to the top of the ring: now for the spark)
+            if (pl.launchT > 0 || (st.via === ring && ring && pl.pos.y > ring.top - 0.1)) there = true;
+            const dx = (there ? s.x : st.via.x) - pl.pos.x, dz = (there ? s.z : st.via.z) - pl.pos.z, h = Math.hypot(dx, dz), px = pl.pos.x, pz = pl.pos.z;
             pl.yaw = Math.atan2(-dx, -dz);
             input.move.y = h > 0.15 ? -1 : 0;
             // a jump when something's in the way, or right under a spark that hangs in the air
-            if (pl.onGround && flown && (stuck > 4 || (h < 0.5 && s.y - pl.pos.y > 2.4))) pl.jumpBuffer = 0.14;
-            pl.update(1 / 60, input, { x: 0, y: 0 }, g.colliders, w, null);
+            if (pl.onGround && there && (stuck > 4 || (h < 0.5 && s.y - pl.pos.y > 2.4))) pl.jumpBuffer = 0.14;
+            const inRing = ring && Math.hypot(pl.pos.x - ring.x, pl.pos.z - ring.z) < ring.r;
+            pl.update(1 / 60, input, { x: 0, y: 0 }, g.colliders, w, inRing ? { maxY: ring.top } : null);
             stuck = Math.hypot(pl.pos.x - px, pl.pos.z - pz) < 0.01 && h > 0.15 ? stuck + 1 : 0;
             ok = Math.hypot(pl.pos.x - s.x, pl.pos.z - s.z, s.y - Math.min(Math.max(s.y, pl.pos.y), pl.pos.y + 1.7)) < 0.95;
           }
@@ -61,7 +65,9 @@ await suite('sparks', async t => {
   const kinds = all.flatMap(r => r.kinds);
   const farm = all.slice(5, 10), cove = all.slice(25, 30);
   t.check('the farm\'s and the cove\'s are up on the stacks their trampolines and clams throw you onto', [...farm, ...cove].every(r => r.kinds.filter(k => k === 'high').length === 2), [...farm, ...cove].map(r => r.kinds.join()));
-  t.check('most islands have one up high or in the air', kinds.filter(k => k === 'high').length >= 40 && kinds.filter(k => k === 'leap').length >= 10, { high: kinds.filter(k => k === 'high').length, leap: kinds.filter(k => k === 'leap').length });
+  const lifts = all.filter(r => r.kinds.includes('lift'));
+  t.check('where no jump or pad reaches the tallest thing, a breeze ring floats you up to its spark', lifts.length >= 10 && lifts.every(r => r.kinds.filter(k => k === 'lift').length === 1), lifts.length);
+  t.check('most islands have one up high or in the air', kinds.filter(k => k === 'high').length >= 40 && kinds.filter(k => k === 'leap' || k === 'lift').length >= 10, { high: kinds.filter(k => k === 'high').length, leap: kinds.filter(k => k === 'leap').length });
   // the same spots every time
   const again = await a.evaluate(() => { const V = window.__voxlink, at = i => { V.startLevel(i); return JSON.stringify(V.game.sparks.spots); }; const x = at(7); at(12); return x === at(7); });
   t.check('an island\'s sparks are in the same spots every visit', again);

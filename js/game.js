@@ -170,6 +170,7 @@ export class Game {
     this.pack = [];
     this.active = 0;
     this.comfort = { kick: 1, spin: 1 }; // scaled down by the reduced-motion setting
+    this.rings = []; // breeze rings beside tall things (see load)
   }
 
   // a puff of dust round your feet, in the colour of what you stand on (water has its own splash)
@@ -376,6 +377,12 @@ export class Game {
     if (campaign && this.levelIndex > 0) {
       const found = this.events.sparksFound?.(level) ?? 0;
       this.sparks = new Sparks(this.scene, sparkSpots(this.world, 77 + hashId(level.id), this.footR), { gone: built ? found : this.sparkMask, pale: found });
+      // a spark on a tall thing no jump reaches has a breeze ring beside it: the pedestal's updraft, up to its top
+      this.rings = this.sparks.spots.filter(s => s.lift).map(({ lift: z }) => {
+        const fx = makeLiftFx(this.scene, z.r, z.top - z.y);
+        fx.group.position.set(z.x, z.y, z.z);
+        return { ...z, fx };
+      });
     }
     this.barked = new Set();
     this.figHop = null;
@@ -779,6 +786,8 @@ export class Game {
   unloadPuzzle() {
     this.sparks?.dispose();
     this.sparks = null;
+    for (const z of this.rings || []) z.fx.dispose();
+    this.rings = [];
     if (!this.voxels?.length) return;
     for (const v of this.voxels) { this.scene.remove(v.mesh); v.mesh.geometry.dispose(); v.mat.dispose(); }
     for (const s of [...this.sockets.values()]) this.removeSocket(s);
@@ -1471,12 +1480,15 @@ export class Game {
       else if (a.type === 'cycle') this.cycleSlot(a.d);
     }
     const r = Math.hypot(this.player.pos.x, this.player.pos.z);
-    const lift = this.liftR && r < this.liftR ? { maxY: this.liftTop } : null;
+    let lift = this.liftR && r < this.liftR ? { maxY: this.liftTop } : null;
+    const ring = lift ? null : this.rings.find(z => Math.hypot(this.player.pos.x - z.x, this.player.pos.z - z.z) < z.r);
+    if (ring) lift = { maxY: ring.top };
     if (this.liftR && !this.liftTold && !this.roaming && this.onIsland && (lift || this.islandT > 8)) { this.liftTold = true; this.events.tipOnce?.('lift', t(this.input.mobile ? 'kubo.lift.touch' : 'kubo.lift')); }
     const px = this.player.pos.x, pz = this.player.pos.z;
     this.player.update(dt, this.input, look, this.colliders, this.world, lift);
     if (this.tutorial) this.updateTutorial(dt, look, Math.hypot(this.player.pos.x - px, this.player.pos.z - pz));
-    if (this.liftFx) this.liftFx.update(dt, this.t, !!lift, this.player.floating);
+    if (this.liftFx) this.liftFx.update(dt, this.t, !!lift && !ring, this.player.floating && !ring);
+    for (const z of this.rings) z.fx.update(dt, this.t, z === ring, z === ring && this.player.floating);
     this.sparks?.update(dt, this.t, this.player, k => this.catchSpark(k), q => this.fx.sparkle(q));
     this.player.applyCamera(this.camera);
     // carried along a breeze lane (well over a run): the view widens a touch and wind lines streak past (neither

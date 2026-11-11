@@ -208,6 +208,7 @@ function showGameplay(g, on) {
   if (g.liftFx) g.liftFx.group.visible = on;
   for (const s of g.sockets.values()) s.sprite.visible = on;
   if (g.sparks) g.sparks.group.visible = on;
+  for (const z of g.rings || []) z.fx.group.visible = on;
   if (g.life) g.life.group.visible = on;
 }
 

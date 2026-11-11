@@ -547,11 +547,11 @@ function tickHud(g) {
   }
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
-  // the first spark you come near and can see: Kubo says what it is (once, ever)
-  // (once he's done with the island's own lines)
+  // the first spark you walk up to (within 8 m, in view): Kubo says what it is (once, ever, and once he's done with
+  // the island's own lines: on arrival he has enough to say, and a light across the island needs no words)
   if (g.sparks && !save.seen['tip.sparks'] && !g.tutorial && g.mode === 'play' && g.onIsland && ctx.companion?.quiet() !== false) {
     for (const it of g.sparks.items) {
-      if (!it.live || it.g.position.distanceTo(g.player.pos) > 13) continue;
+      if (!it.live || it.g.position.distanceTo(g.player.pos) > 8) continue;
       sparkView.copy(it.g.position).project(camera);
       if (Math.abs(sparkView.x) < 0.8 && Math.abs(sparkView.y) < 0.8 && sparkView.z < 1) { game.events.tipOnce('sparks', t('kubo.sparks')); break; }
     }

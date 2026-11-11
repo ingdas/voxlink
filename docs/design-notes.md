@@ -557,3 +557,18 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
 - The Keeper's Isle's pill now counts every spark next to every star (`30 / 147`), and the world pill you see
   while walking is wider on phones (with the sparks added, "Windmühlenhof" no longer fitted beside the counts).
 
+## 2026-11-11 · Breeze rings: up to the tallest thing on the island
+
+- Fourteen islands had only one spot up high that a jump or a pad reaches (the Frost Isles' ice towers, the
+  reef's rock blocks, Gale Cliffs' terraces are all too tall), so their third spark hung in the air over open
+  ground: the least interesting of the four kinds. Those islands now get a **breeze ring** on open ground beside
+  their tallest top out of reach, and the spark goes up there. It is the pedestal's updraft again (the same ring
+  and rising sparkles, the same "hold jump to float up" Kubo teaches on the Tulip): walk in, hold jump, float to
+  0.4 m over the top, drift across and let go. Of the 147: 78 up high, 49 on the far side, 14 up a breeze ring,
+  6 in the air.
+- With the lift and the glide it's also a launch pad: float up, let go, jump again and hold.
+- The stand-in player in the test takes the ring the same way (in, hold jump, over to the spark once it's level
+  with the top); all 147 are still caught.
+- Kubo's line about sparks now waits until you walk up to one (8 m, was 13 m: from the bridge that was as you
+  arrived, on top of the island's own three lines).
+

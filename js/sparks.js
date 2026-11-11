@@ -1,8 +1,9 @@
 // Sparks of the Keeper's Lantern: three lights the storm blew onto every figure's island (see docs/design-notes.md,
 // 2026-11-11). Up to two float over high spots you can get onto (a terrace you jump up, a hay stack its trampoline
-// throws you onto, a rock stack), one out on
-// the far side of the island, and where there's only one high spot the third hangs in the air, a jump up. Catching
-// one charges the magnet for this run, and counts towards the island's three for good.
+// throws you onto, a rock stack; failing a second one, the tallest thing on the island, with a breeze ring beside it
+// that floats you up), the rest out on the far side of the island, and where even that leaves only one up high the
+// last hangs in the air, a jump up. Catching one charges the magnet for this run, and counts towards the island's
+// three for good.
 import * as THREE from 'three';
 import { toon, LAYER_OVERLAY } from './render.js';
 import { glows } from './looks.js';
@@ -16,6 +17,7 @@ export const GLIDE_SPARKS = 30; // …and that he carries you after it (a glide 
 const HOVER = 1.05; // metres a spark floats over the ground or the top it's on
 const CATCH = 0.95; // caught within this far of you (anywhere from your feet to your head)
 const BODY = 1.7;
+const RING = 1.25; // radius of a breeze ring
 
 // Where an island's sparks float: the same spots every time (seeded), so the ones you've caught stay caught.
 // `world` is the island's api (an archipelago's answers for its active island, in the scene's coordinates).
@@ -37,8 +39,8 @@ export function sparkSpots(world, seed, footR) {
     return Math.min(t.box.max.x - t.box.min.x, t.box.max.z - t.box.min.z) >= 0.8 && world.heightAt(m.x, m.z) <= t.y + 0.05;
   });
   // the ones you can get up onto: a jump from the ground beside them or from a top you can already reach…
-  const beside = t => {
-    const b = t.box, o = 0.55, pts = [];
+  const beside = (t, o = 0.55) => {
+    const b = t.box, pts = [];
     for (let k = 0; k <= 4; k++) {
       const x = b.min.x + ((b.max.x - b.min.x) * k) / 4, z = b.min.z + ((b.max.z - b.min.z) * k) / 4;
       pts.push([x, b.min.z - o], [x, b.max.z + o], [b.min.x - o, z], [b.max.x + o, z]);
@@ -66,6 +68,25 @@ export function sparkSpots(world, seed, footR) {
     const m = mid(t);
     if (apart(m.x, m.z, 7)) spots.push({ x: m.x, y: t.y + HOVER, z: m.z, kind: 'high' });
   }
+  // an island with fewer than two: a breeze ring (the updraft that floats you up tall figures) on open ground beside
+  // its highest top out of a jump's reach, and a spark up there
+  if (spots.length < SPARKS - 1) {
+    const fits = (x, z) => {
+      const g = ground(x, z);
+      return g !== null && world.isFreeGround(x, z, 0.6) && [[0.8, 0], [-0.8, 0], [0, 0.8], [0, -0.8]].every(([dx, dz]) => { const f = ground(x + dx, z + dz); return f !== null && Math.abs(f - g) < 0.1; });
+    };
+    const tall = tops.filter(t => !up.has(t) && t.y >= 2.2 && Math.min(t.box.max.x - t.box.min.x, t.box.max.z - t.box.min.z) >= 1)
+      .sort((a, b) => b.y - a.y || mid(a).x - mid(b).x || mid(a).z - mid(b).z);
+    for (const t of tall) {
+      const m = mid(t);
+      if (!apart(m.x, m.z, 7)) continue;
+      // (the spot beside it nearest the middle of the island)
+      const at = beside(t, RING + 0.25).filter(([x, z]) => fits(x, z)).sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]))[0];
+      if (!at) continue;
+      spots.push({ x: m.x, y: t.y + HOVER, z: m.z, kind: 'lift', lift: { x: at[0], y: ground(at[0], at[1]), z: at[1], r: RING, top: t.y + 0.4 } });
+      break;
+    }
+  }
   // the rest over open ground, as far from each other and from where you come in as the island allows
   const a0 = Math.PI / 2 - (world.spin || 0), rs = Math.min(R - 3, 9);
   const entry = { x: Math.cos(a0) * rs, z: Math.sin(a0) * rs };
@@ -82,7 +103,7 @@ export function sparkSpots(world, seed, footR) {
     if (!best) break;
     const g = world.groundY(best.x, best.z);
     // the last one, on an island with a single high spot (or none): in the air, a jump up
-    const leap = spots.length === SPARKS - 1 && spots.filter(s => s.kind === 'high').length < 2;
+    const leap = spots.length === SPARKS - 1 && spots.filter(s => s.kind !== 'far').length < 2;
     spots.push({ x: best.x, y: g + (leap ? BODY + CATCH + apex * 0.4 : HOVER), z: best.z, kind: leap ? 'leap' : 'far' });
   }
   return spots;
