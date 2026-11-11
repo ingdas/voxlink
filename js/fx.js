@@ -50,10 +50,13 @@ class ParticlePool {
   }
 }
 
+// How strong the two movement effects are at their fullest (opacity): kept on the quiet side
+const WIND_LINES = 0.55, DUST_RING = 0.45;
+
 // Wind lines that hang in the air ahead of you while a breeze lane carries you along: you fly past them.
 class Streaks {
   constructor(scene, n = 26) {
-    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, 0.045, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, fog: false }), n);
+    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.04, 0.04, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, fog: false }), n);
     this.mesh.layers.set(LAYER_OVERLAY);
     this.mesh.frustumCulled = false;
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -65,7 +68,7 @@ class Streaks {
   // vel: your velocity; amount: 0 (none) to 1 (full speed)
   update(camera, vel, amount) {
     const m = this.mesh;
-    m.material.opacity = amount * 0.7;
+    m.material.opacity = amount * WIND_LINES;
     if (amount < 0.02) { if (m.visible) { m.visible = false; for (const it of this.items) it.live = false; } return; }
     const fresh = !m.visible;
     m.visible = true;
@@ -200,7 +203,7 @@ export class FX {
       r.userData.t += dt / 0.5;
       const k = Math.min(1, r.userData.t), e = 1 - (1 - k) * (1 - k);
       r.scale.setScalar(0.3 + e * r.userData.reach);
-      r.material.opacity = 0.6 * (1 - k * k);
+      r.material.opacity = DUST_RING * (1 - k * k);
       if (k >= 1) r.visible = false;
     }
     if (this.beamTime > 0 && this.beamTarget) {

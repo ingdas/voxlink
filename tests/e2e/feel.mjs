@@ -34,7 +34,7 @@ await suite('feel', async t => {
   const a = await sprint(p);
   t.check('running along a bridge carries you well past a run', a.speed > 16, a);
   t.check('…the view widens a touch', a.fov > a.base * 1.04 && a.fov < a.base * 1.09, a);
-  t.check('…and wind lines streak past', a.lines && a.opacity > 0.4, a);
+  t.check('…and wind lines streak past', a.lines && a.opacity > 0.3, a);
   await p.waitForTimeout(2500);
   const b = await p.evaluate(() => { const V = window.__voxlink, g = V.game; return { rush: g.rush, fov: V.ctx.camera.fov, base: V.ctx.camera.userData.baseFov, lines: g.fx.wind.mesh.visible }; });
   t.check('standing still again: the view is back and the lines are gone', b.rush === 0 && Math.abs(b.fov - b.base) < 0.01 && !b.lines, b);

@@ -521,8 +521,9 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   the same view, the same sounds as a walk. Past about 10 m/s (only a lane gets you there) the view now widens by
   up to 7 % and **wind lines** hang in the air ahead, off to both sides of your way, so you streak past them
   (26 thin boxes in one instanced mesh, recycled as they fall behind). They build over a third of a second and go
-  in half that. The first try (2 cm wide, 40 % white) couldn't be seen against a bright sky: 4.5 cm and 70 %.
-  Neither happens with reduced motion.
+  in half that. The first try (2 cm wide, 40 % white) couldn't be seen against a bright sky; 4.5 cm at 70 % was
+  plain to see, and they settled a little quieter at 4 cm and 55 % (`WIND_LINES` in `js/fx.js`; the dust ring's
+  strength is `DUST_RING` beside it). Neither happens with reduced motion.
 - **Jumps and landings.** Through your own eyes what happens at your feet is out of view (the ground only comes
   into it about 2.5 m ahead), so a puff of dust there showed nothing. A jump and a landing now send a **ring of
   dust over the ground** from your feet, 2.5 m for a jump and 3.5 to 5 m for a landing, in the colour of what
