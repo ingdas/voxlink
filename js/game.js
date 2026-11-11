@@ -12,6 +12,7 @@ import { makeLife, hopPose, HOP_LANDS } from './life.js';
 import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
+const SPARK_GUST = 7; // seconds a caught spark's breeze carries you
 export const PACK_SIZE = 4;
 // tools on big figures: a charge every `every` links (counted while below `max`)
 export const TOOLS = { magnet: { every: 12, max: 3, reach: 10 }, express: { every: 20, max: 2 } };
@@ -171,6 +172,15 @@ export class Game {
     this.active = 0;
     this.comfort = { kick: 1, spin: 1 }; // scaled down by the reduced-motion setting
     this.rings = []; // breeze rings beside tall things (see load)
+  }
+
+  // no longer carried along (a cutscene, the celebration, leaving the world mid-rush through its portal): the wind
+  // lines go and the view is as wide as it was
+  stillAir() {
+    this.rush = 0;
+    this.fx.wind.update(this.camera, this.player.vel, 0);
+    const base = this.camera.userData.baseFov;
+    if (base && this.camera.fov !== base) { this.camera.fov = base; this.camera.updateProjectionMatrix(); }
   }
 
   // a puff of dust round your feet, in the colour of what you stand on (water has its own splash)
@@ -733,6 +743,10 @@ export class Game {
     this.fx.burst(new THREE.Vector3(p.x, p.y + 1.1, p.z), 0xffd23f, 26, 5);
     this.audio.spark?.(this.sparks.items.filter(i => !i.live).length);
     this.events.vibrate?.(22);
+    // …and its breeze goes through you: for a few seconds you run as on a bridge, wherever you are (the detour for
+    // a spark pays its own way against the clock)
+    this.player.gustT = SPARK_GUST;
+    this.audio.breeze?.();
     if (!this.roaming) {
       this.magnetCharges = Math.min(9, this.magnetCharges + 1);
       this.events.magnet?.(this.magnetCharges, true);
@@ -777,8 +791,7 @@ export class Game {
     this.figureMat = null;
     this.life?.dispose();
     this.life = null;
-    this.rush = 0;
-    this.fx.wind.update(this.camera, this.player.vel, 0);
+    this.stillAir();
     this.arch = null;
     this.world = null;
   }
@@ -1248,7 +1261,7 @@ export class Game {
     LK.b.z = this.arch ? -this.arch.group.position.x : 0; LK.b.w = this.arch ? -this.arch.group.position.z : 0;
 
     this.life?.update(dt, this.t, this.camera.position, this.camera, d => { if (this.mode === 'play') this.audio.plop?.(d); });
-    if (this.mode !== 'play') { this.sparks?.update(dt, this.t, null); if (this.rush) { this.rush = 0; this.fx.wind.update(this.camera, this.player.vel, 0); } }
+    if (this.mode !== 'play') { this.sparks?.update(dt, this.t, null); if (this.rush) this.stillAir(); }
     if (this.mode === 'play') this.updatePlay(dt);
     else if (this.mode === 'showcase') this.updateOrbit(dt, 0.08, 1);
     else if (this.mode === 'celebrate') this.updateCelebrate(dt);

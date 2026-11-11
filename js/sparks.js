@@ -19,7 +19,8 @@ const CATCH = 0.95; // caught within this far of you (anywhere from your feet to
 const BODY = 1.7;
 const RING = 1.25; // radius of a breeze ring
 
-// Where an island's sparks float: the same spots every time (seeded), so the ones you've caught stay caught.
+// Where an island's sparks float: the same spots every time (seeded), so the ones you've caught stay caught
+// (a save keeps a bit per spot, in this order: a change to the placement changes which spark a bit stands for).
 // `world` is the island's api (an archipelago's answers for its active island, in the scene's coordinates).
 export function sparkSpots(world, seed, footR) {
   const rng = mulberry32(seed);

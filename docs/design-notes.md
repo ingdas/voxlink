@@ -572,3 +572,16 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
 - Kubo's line about sparks now waits until you walk up to one (8 m, was 13 m: from the bridge that was as you
   arrived, on top of the island's own three lines).
 
+## 2026-11-11 · A spark's breeze
+
+- A spark was a detour against the par clock, paid back later (if at all) by its magnet charge, and catching one
+  felt like ticking a box. Now **its breeze goes through you**: for 7 seconds after a catch plain ground carries
+  you 1.9× as fast (a run at 14 m/s; a bridge is 2.4×), with the wind lines and the wider view that come with
+  that speed. Slow ground (water, drifts) still slows; reduced motion makes it 1.3×, like the bridges.
+- So the detour pays its own way at once, and the fastest way round an island now runs through its sparks: on
+  the Tulip a bot that goes for all three first has them in about 9 seconds.
+- **Fixed in passing.** Leaving a world mid-rush (through its portal at the end of a breeze lane) kept the widened
+  view on the Keeper's Isle: the view is reset when a world is put away or a cutscene takes over. With Kubo's
+  lift earned, a jump pressed just before landing became a small hop in the air instead of the next jump off the
+  ground: within 0.3 m of the ground on the way down it waits for the landing, as it always did.
+

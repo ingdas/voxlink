@@ -95,6 +95,20 @@ await suite('sparks', async t => {
   t.check('…and counts for the island, in the goals and the save', s1.chip === '1 / 3' && s1.saved === 1 && /1/.test(s1.toast), s1);
   await p.waitForFunction(() => /magnet/i.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || '') && !/spark/i.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || ''), null, { timeout: 12000 }).catch(() => {});
   t.check('the first one ever: Kubo says how the magnet works', /R/.test(await speech(p)) && /magnet/i.test(await speech(p)), await speech(p));
+  // (running round the pedestal for a while: the fastest you get)
+  const run = ms => p.evaluate(ms => new Promise(res => {
+    const g = window.__voxlink.game, k = g.input.keys, s = g.arch.spawnOf(g.level, 9), t0 = performance.now(); let top = 0;
+    g.player.pos.set(s.x, 0, s.z); g.player.vel.set(0, 0, 0);
+    const tick = () => {
+      // round the pedestal, on the open ground between it and the shore
+      const a = Math.atan2(g.player.pos.z, g.player.pos.x) + 0.35, r = g.footR + 3.4;
+      g.player.yaw = Math.atan2(-(Math.cos(a) * r - g.player.pos.x), -(Math.sin(a) * r - g.player.pos.z));
+      k.add('KeyW'); k.add('ShiftLeft');
+      top = Math.max(top, Math.hypot(g.player.vel.x, g.player.vel.z));
+      if (performance.now() - t0 > ms) { k.delete('KeyW'); k.delete('ShiftLeft'); res({ top, left: g.player.gustT, boost: g.player.breezeK, built: g.player.breeze }); } else requestAnimationFrame(tick);
+    };
+    tick();
+  }), ms);
   // the magnet works on a small figure: it pulls in the blocks that fit
   const pulled = await p.evaluate(() => {
     const g = window.__voxlink.game, v = g.voxels.find(v => v.state === 'loose' && g.sockets.has(v.i));
@@ -107,6 +121,12 @@ await suite('sparks', async t => {
   // a second spark, then away over the bridge and back: the run keeps its sparks and its charges
   await touch(p, 1);
   await p.waitForFunction(() => window.__voxlink.game.sparkMask === 3, null, { timeout: 5000 }).catch(() => {});
+  const fast = await run(2600);
+  await p.waitForTimeout(5500);
+  const calm = await run(2000);
+  // (round the pedestal's bend neither run gets to its full speed: 14.4 and 7.6 m/s on a straight)
+  t.check('a spark\'s breeze carries you: for a few seconds a run is well over a run', fast.boost === 1.9 && fast.built > 0.9 && fast.top > calm.top + 1.5 && fast.left > 2, { fast, calm });
+  t.check('…and then it is a run again', calm.top < 10 && calm.left === 0 && calm.built < 0.5, calm);
   await p.evaluate(() => window.__voxlink.startLevel(1, true, 'keep'));
   await p.waitForTimeout(400);
   const s2 = await state(p);

@@ -4,6 +4,7 @@ const RADIUS = 0.3, HEIGHT = 1.7, EYE = 1.55, STEP = 0.55;
 export const GRAVITY = 24, JUMP_V = 8.6;
 const HOP_V = 6.6; // Kubo's lift: a second, smaller jump in mid-air
 const GLIDE_V = 1.7; // …and how fast you sink while he carries you after it
+const GUST = 1.9; // a spark's breeze: how much faster plain ground carries you while it lasts (a bridge: 2.4)
 const WALK = 5.0, RUN = 7.6;
 
 export class Player {
@@ -24,6 +25,7 @@ export class Player {
     this.surface = null; // what the player stands on: { friction, slow, sound, splash } from world.surfaceAt
     this.launchT = 0; // flying off a jump pad: no air steering until landing
     this.breeze = 0; this.breezeK = 1; // a breeze lane's speed-up: how far it has built up (0..1), and its full factor
+    this.gustT = 0; // seconds left of a spark's breeze
     this.hoverT = 0; this.floating = false; // Keeper's updraft: hover time left after letting go of jump
     this.rescue = null; // gliding back to safety after falling into the void
     this.lastSafe = new THREE.Vector3();
@@ -39,7 +41,7 @@ export class Player {
     this.launchT = 0; this.rescue = null;
     this.hoverT = 0; this.floating = false;
     this.land = 0; this.bobAmt = 0; this.surface = null;
-    this.breeze = 0; this.breezeK = 1;
+    this.breeze = 0; this.breezeK = 1; this.gustT = 0;
     this.lastSafe.copy(this.pos);
   }
 
@@ -72,7 +74,10 @@ export class Player {
     const { x: mx, y: my, sprint } = input.move;
     // a breeze lane (ground that speeds you up: the bridges) builds up over a second or so once you walk on it and
     // dies away over half a second or so after (in the air it holds); ground that slows you does so at once
-    const slow = surf?.slow ?? 1;
+    // (a spark's breeze: for a few seconds plain ground carries you like a lane does; slow ground still slows)
+    this.gustT = Math.max(0, this.gustT - dt);
+    const ground = surf?.slow ?? 1;
+    const slow = this.gustT > 0 && ground >= 1 ? Math.max(ground, world.calmMotion?.() ? 1.3 : GUST) : ground;
     if (slow > 1) this.breezeK = slow;
     if (this.onGround) this.breeze = THREE.MathUtils.clamp(this.breeze + (slow > 1 && (mx || my) ? dt / 1.3 : -dt / 0.6), 0, 1);
     const b = this.breeze * this.breeze * (3 - 2 * this.breeze);
@@ -102,8 +107,9 @@ export class Player {
       this.coyote = 0; this.jumpBuffer = 0;
       this.onGround = false;
       this.onJump?.();
-    } else if (this.canHop && this.jumpBuffer > 0 && !this.onGround && this.hops < 1 && this.launchT <= 0 && !lift) {
-      // Kubo's lift: jump again in mid-air (not while a pad is throwing you, or in the updraft, which floats you)
+    } else if (this.canHop && this.jumpBuffer > 0 && !this.onGround && this.hops < 1 && this.launchT <= 0 && !lift && !this.landing()) {
+      // Kubo's lift: jump again in mid-air (not while a pad is throwing you, or in the updraft, which floats you;
+      // a press just before you land is still the next jump off the ground, as it always was)
       this.vel.y = Math.max(this.vel.y + 2, HOP_V);
       this.hops++; this.jumpBuffer = 0;
       this.onHop?.();
@@ -197,6 +203,12 @@ export class Player {
       this.stepPhase += hs * dt * 1.55;
       if (Math.floor(prev / Math.PI) !== Math.floor(this.stepPhase / Math.PI)) this.onStep?.(hs, this.surface);
     }
+  }
+
+  // falling, with the ground right under your feet
+  landing() {
+    const f = this._floor ? this._floor(this.pos.x, this.pos.z) : 0;
+    return this.vel.y < 0 && f !== null && this.pos.y - f < 0.3;
   }
 
   updateRescue(dt) {

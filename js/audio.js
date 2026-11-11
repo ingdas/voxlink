@@ -206,6 +206,8 @@ export class Audio {
     this.noise({ dur: 0.5, vol: 0.05, freq: 500, f2: 1400, q: 0.6, attack: 0.12 });
     this.tone({ f: 660, f2: 990, type: 'sine', dur: 0.25, vol: 0.04, wet: 0.5 });
   }
+  // a spark's breeze picking you up
+  breeze() { this.noise({ t: 0.1, dur: 1.3, vol: 0.07, freq: 300, f2: 1300, q: 1.2, attack: 0.35 }); }
   // a spark caught: a quick run of bells, a step higher for each one you hold
   spark(n = 1) {
     const base = 79 + Math.min(3, n) * 2;
