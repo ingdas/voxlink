@@ -8,6 +8,7 @@ import { Player } from './player.js';
 import { LAYER_OVERLAY, toon } from './render.js';
 import { setLookTheme, LK } from './looks.js';
 import { Sparks, sparkSpots } from './sparks.js';
+import { makeLife } from './life.js';
 import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
@@ -217,6 +218,10 @@ export class Game {
       this.world = buildIsland(level, themeId, this.renderer.mobile ? 'low' : 'high', false);
       this.scene.add(this.world.group);
     }
+    // what lives here (butterflies, birds, fish…): made with the world, and moved along when the scene shifts to
+    // another island of it
+    if (!this.life) this.life = makeLife(this.scene, this.world, themeId, this.renderer.mobile ? 'low' : 'high');
+    else if (shift) this.life.shift(shift);
     this.world.onFlash = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.thunder(); };
     this.world.onGust = () => { if (this.mode === 'play' || this.mode === 'showcase') this.audio.whoosh(); };
     this.audio.setWorld?.(themeId);
@@ -740,6 +745,8 @@ export class Game {
     this.world.dispose();
     this.figureMat?.dispose();
     this.figureMat = null;
+    this.life?.dispose();
+    this.life = null;
     this.arch = null;
     this.world = null;
   }
@@ -1206,6 +1213,7 @@ export class Game {
     // (world → archipelago coordinates: the sea and the ground's patterns stay put when the active island changes)
     LK.b.z = this.arch ? -this.arch.group.position.x : 0; LK.b.w = this.arch ? -this.arch.group.position.z : 0;
 
+    this.life?.update(dt, this.t, this.camera.position, this.camera, d => { if (this.mode === 'play') this.audio.plop?.(d); });
     if (this.mode !== 'play') this.sparks?.update(dt, this.t, null);
     if (this.mode === 'play') this.updatePlay(dt);
     else if (this.mode === 'showcase') this.updateOrbit(dt, 0.08, 1);

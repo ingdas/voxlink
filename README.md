@@ -68,6 +68,8 @@ Workshop editor:
   that world's portal there. A world's islands share its look but each has a mood of its own: its colours
   (blossom, autumn, golden…), more or fewer trees and rocks, and a landmark (stone circle, giant mushrooms, an
   ancient oak, a wreck…).
+- The islands are lived in (`js/life.js`): butterflies over the grass that move off when you walk up, birds
+  wheeling overhead, fish jumping beside the shore or the bridge you're on, shooting stars in the night worlds.
 - Floating **bubbles** on the figure show which numbers are open right now.
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.

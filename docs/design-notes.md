@@ -470,3 +470,28 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
 - **Seen, not changed.** Sparks on other islands aren't drawn until you step onto them (an island's puzzle and
   its sparks load together); there is no reward yet for a whole world's sparks beyond the count.
 
+## 2026-11-11 · The islands are lived in: butterflies, birds, fish, shooting stars
+
+- **Why.** In the stills and the film strips of a bot playing, nothing on an island moved but Kubo, the grass and
+  the weather's particles: the worlds read as dioramas. The walks between islands (a good part of play) look out
+  over an empty sea and sky.
+- **What** (`js/life.js`, made with a world and kept for all its islands; pure scenery, nothing collides or can be
+  clicked):
+  - **Butterflies** (Meadow, Windmill Farm, Sunset Reef, Gale Cliffs; 5–10, in the world's flower colours): each
+    keeps to a patch of ground within about 20 m of you, wandering on a few summed sines with a quick flutter
+    and little rests; walk within 2.4 m and it climbs while its patch drifts away from you. A patch left 30 m
+    behind is given up for one near where you are now.
+  - **Birds** (3–6 per world; swallows over the meadows, gulls over the reef, the cove and the cliffs, a few
+    white birds over the frost, three dark ones in the storm; none in the two void worlds): a loose ring 13–20 m
+    up whose middle follows you, wings beating in bursts with glides between (gulls glide most).
+  - **Fish** (the five warm seas): every few seconds one jumps from the **nearest open water** in some direction,
+    three times out of four the way you're looking, so they turn up just off the shore you stand on or beside the
+    bridge you're crossing, with a ring on the water where they leave it and where they land and a small plop
+    that fades with distance. A first version picked any water 9–34 m off; from the middle of an island those
+    were hidden behind the scenery. Orange and yellow fish: silver ones were lost against the sea. They're drawn
+    without ink outlines, which swallowed a fish at 20 m.
+  - **Shooting stars** (Starfall Peak, Moon Isle): a streak across the part of the sky you face every 4–11 s.
+- Wings are two instances each of one flat wing (the left a mirror image), turned on the CPU: a world's life is
+  3–8 draw calls and a few dozen matrices a frame; phones get about 60 % of the numbers and one fish. When the
+  scene shifts to another island everything alive shifts with it. Cutscenes hide it (and the sparks).
+

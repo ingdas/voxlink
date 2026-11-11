@@ -189,6 +189,13 @@ export class Audio {
   hint() {
     [0, 4, 7, 12].forEach((n, i) => this.tone({ f: this.midi(76 + n), type: 'sine', t: i * 0.06, dur: 0.3, vol: 0.08, wet: 0.6 }));
   }
+  // a fish breaking the water d metres away: a small plop, fainter with distance
+  plop(d = 10) {
+    const v = 0.07 * Math.max(0, 1 - d / 30);
+    if (v < 0.005) return;
+    this.tone({ f: 520, f2: 180, type: 'sine', dur: 0.09, vol: v });
+    this.noise({ dur: 0.12, vol: v * 0.6, freq: 1800, f2: 700, q: 0.8 });
+  }
   // a spark caught: a quick run of bells, a step higher for each one you hold
   spark(n = 1) {
     const base = 79 + Math.min(3, n) * 2;

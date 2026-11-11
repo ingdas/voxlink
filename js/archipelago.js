@@ -934,7 +934,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     get onFlash() { return hubWorld.onFlash; }, set onFlash(f) { hubWorld.onFlash = f; },
     get onGust() { return hubWorld.onGust; }, set onGust(f) { hubWorld.onGust = f; },
     get calm() { return hubWorld.calm; }, set calm(v) { hubWorld.calm = v; },
-    gravityScale: hubWorld.gravityScale, wind: hubWorld.wind, voidY: hubWorld.voidY,
+    gravityScale: hubWorld.gravityScale, wind: hubWorld.wind, voidY: hubWorld.voidY, seaY: hubWorld.seaY, hasSea: hubWorld.hasSea,
     colliders: [], blockers: [],
     // the puzzle lives on the active island, in the middle of the scene (turned with the island: `spin`)
     get R() { return active.world.R; }, get tops() { return activeTops; }, get spin() { return active.spin; },
