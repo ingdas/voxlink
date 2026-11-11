@@ -586,14 +586,27 @@ const BUILD = {
     L.box(0, 0, 0.6, 0.6, 0, 1.4, { sound: 'stone' });
   },
 
-  // an iron lightning rod on a stone base, its tip glowing
+  // an iron lightning rod on a plinth of dressed stones: a tapering mast with discs up it, braced by three stays, a
+  // coil at its foot, a cable run to a stake in the ground, its tip glowing with a crown of sparks; scorched ground
   rod(W, L) {
-    L.p(GEO.box(), 0x77728f, 0, 0.35, 0, { sx: 1.4, sy: 0.7, sz: 1.4 });
-    L.p(GEO.box(), 0x6fa58a, 0, 0.72, 0, { sx: 1.45, sy: 0.06, sz: 1.45, kind: 'fx' });
-    L.p(GEO.cyl(6), 0x4a4660, 0, 3.7, 0, { sx: 0.1, sy: 6.0, sz: 0.1 });
-    for (const h of [2.0, 3.6, 5.2]) L.p(GEO.cyl(8), 0x5c5878, 0, h, 0, { sx: 0.3, sy: 0.12, sz: 0.3 });
+    const st = 0x77728f, dark = 0x5c5878, iron = 0x4a4660, moss = 0x6fa58a, d = W.drng;
+    for (const [lx, lz] of [[-0.36, -0.36], [0.36, -0.36], [-0.36, 0.36], [0.36, 0.36]]) L.block((lx * lz > 0) ? st : shade(st, 0.92), lx, 0.2, lz, 0.72, 0.4, 0.72, { b: 0.05, tint: footTint(0.84, 1.02) });
+    L.block(dark, 0, 0.55, 0, 1.3, 0.3, 1.3, { b: 0.05, tint: capTint(moss, 0.7, 0.95) });
+    L.p(GEO.cyl(12), 0x4a4350, 0, 0.012, 0, { sx: 1.7, sy: 0.02, sz: 1.5, kind: 'fx' });
+    for (let k = 0; k < 4; k++) { const a = d() * 6.283; L.block(moss, Math.sin(a) * 0.66, 0.2 + d() * 0.3, Math.cos(a) * 0.66, 0.22, 0.3, 0.04, { b: 0.015, ry: a }); }
+    L.p(GEO.taper(8, 0.45), iron, 0, 3.7, 0, { sx: 0.13, sy: 6.0, sz: 0.13, tint: footTint(0.8, 1.15) });
+    for (const [h, r] of [[1.2, 0.34], [2.0, 0.3], [3.6, 0.26], [5.2, 0.2]]) {
+      L.p(GEO.cyl(10), dark, 0, h, 0, { sx: r, sy: 0.1, sz: r });
+      L.p(GEO.cyl(10), 0x9fb4ff, 0, h + 0.07, 0, { sx: r * 0.7, sy: 0.05, sz: r * 0.7 });
+    }
+    // the coil, the stays, the cable
+    for (let k = 0; k < 4; k++) L.p(GEO.cyl(10), 0xc98a5e, 0, 0.82 + k * 0.08, 0, { sx: 0.2, sy: 0.05, sz: 0.2 });
+    for (let k = 0; k < 3; k++) L.p(GEO.box(), iron, Math.sin(k * 2.1) * 0.8, 1.3, Math.cos(k * 2.1) * 0.8, { sx: 0.05, sy: 2.4, sz: 0.05, rx: Math.cos(k * 2.1) * 0.35, rz: -Math.sin(k * 2.1) * 0.35 });
+    L.p(GEO.cyl(5), 0xc98a5e, 1.05, 0.5, 0.5, { sx: 0.03, sy: 1.3, sz: 0.03, rz: -1.05, ry: -0.44 });
+    L.p(GEO.cone(4), iron, 1.62, 0.16, 0.77, { sx: 0.06, sy: 0.34, sz: 0.06 });
     L.p(GEO.octa(), 0x9fe8ff, 0, 6.9, 0, { sx: 0.22, sy: 0.5, sz: 0.22, kind: 'glow' });
-    for (let k = 0; k < 3; k++) L.p(GEO.box(), 0x4a4660, Math.sin(k * 2.1) * 0.8, 1.3, Math.cos(k * 2.1) * 0.8, { sx: 0.05, sy: 2.4, sz: 0.05, rx: Math.cos(k * 2.1) * 0.35, rz: -Math.sin(k * 2.1) * 0.35 });
+    for (let k = 0; k < 5; k++) { const a = k * 1.257; L.p(GEO.octa(), 0xdff6ff, Math.sin(a) * 0.3, 6.95, Math.cos(a) * 0.3, { sx: 0.05, sy: 0.22, sz: 0.05, rx: Math.cos(a) * 0.9, rz: -Math.sin(a) * 0.9, kind: 'glow' }); }
+    L.skirt(0, 0, 1.0);
     L.box(0, 0, 0.7, 0.7, 0, 0.7, { top: true, sound: 'stone' });
     L.box(0, 0, 0.15, 0.15, 0.7, 7, { sound: 'stone' });
   },

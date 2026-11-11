@@ -982,3 +982,50 @@ export function rover(W, x, z, ry, y = 0, s = 1) {
   putL(W, GEO.dome(), 0xcfcbe0, ...at(-0.16, 0.66, -0.3), { sx: 0.17 * s, sy: 0.07 * s, sz: 0.17 * s, ry, rx: Math.PI - 0.5 });
   put(W, GEO.cyl(5), 0xa9a5ba, ...at(-0.16, 0.56, -0.3), { sx: 0.018 * s, sy: 0.18 * s, sz: 0.018 * s });
 }
+
+// ---------- high cliffs ----------
+// what a tall cliff has about it: fallen blocks of its own rock in the sea at its foot, and grassy ledges jutting
+// out of its face a little way down
+export function cliffFoot(W, coast, { rock = W.T.cliff, grass = W.T.grass } = {}) {
+  const d = W.drng, n = Math.round(W.bound * 0.55);
+  for (let i = 0, k = 0; i < n * 10 && k < n; i++) {
+    const a = d() * 6.283, r = W.bound * (0.6 + d() * 0.55), x = Math.cos(a) * r, z = Math.sin(a) * r, sd = coast(x, z);
+    if (sd < 0.6 || sd > 3.2) continue;
+    k++;
+    const s0 = 0.8 + d() * 1.5;
+    for (let j = 0; j < 1 + Math.floor(d() * 3); j++) {
+      const ss = j ? s0 * (0.35 + d() * 0.3) : s0, ja = d() * 6.283, jr = j ? s0 * (0.9 + d() * 0.5) : 0, px = x + Math.cos(ja) * jr, pz = z + Math.sin(ja) * jr;
+      if (coast(px, pz) < 0.4) continue;
+      if (j === 0 && d() < 0.5) block(W, shade(rock, 0.9 + d() * 0.1), px, W.seaY + ss * 0.25, pz, ss * 1.3, ss * 0.9, ss, { b: ss * 0.12, ry: d() * 3, rx: (d() - 0.5) * 0.5, rz: (d() - 0.5) * 0.5, tint: footTint(0.72, 1.04) });
+      else put(W, GEO.rock(), shade(rock, 0.88 + d() * 0.12), px, W.seaY + ss * 0.15, pz, { sx: ss * 1.2, sy: ss * 0.8, sz: ss, rx: d(), ry: d() * 6, rz: d(), tint: footTint(0.72, 1.04) });
+    }
+  }
+  // ledges
+  const m = Math.round(W.bound * 0.45);
+  for (let i = 0, k = 0; i < m * 12 && k < m; i++) {
+    const a = d() * 6.283, r = W.bound * (0.7 + d() * 0.45), x = Math.cos(a) * r, z = Math.sin(a) * r, sd = coast(x, z);
+    if (sd < 0.15 || sd > 0.6) continue;
+    k++;
+    const y = -1.2 - d() * Math.min(6, -W.seaY * 0.5), w = 0.9 + d() * 1.1;
+    put(W, GEO.rock(), shade(rock, 0.94), x, y - 0.25, z, { sx: w, sy: 0.5, sz: w * 0.8, ry: d() * 6 });
+    put(W, GEO.dome(), grass, x, y - 0.02, z, { sx: w * 0.8, sy: 0.16, sz: w * 0.62, ry: d() * 6 });
+    if (d() < 0.5) put(W, GEO.lump(1), shade(grass, 0.86), x + (d() - 0.5) * 0.4, y + 0.14, z + (d() - 0.5) * 0.4, { sx: 0.26, sy: 0.2, sz: 0.24 });
+  }
+}
+
+// a length of dry stone wall from a to b: two uneven courses of field stones under a row of coping stones set on
+// edge, small ones wedged in, moss on top. draws: the layout's own random numbers for it (five a step)
+export function stoneWall(W, ax, az, bx, bz, draws, { stone = [0xa59f92, 0x8f897d], top = [0xb9b3a6, 0x9a9488] } = {}) {
+  const d = W.drng, L = Math.hypot(bx - ax, bz - az), ry = Math.atan2(bx - ax, bz - az) - Math.PI / 2, moss = mix(W.T.rock, W.T.tuft, 0.6);
+  let i = 0;
+  for (let t = 0; t <= L; t += 0.5, i++) {
+    const px = ax + (bx - ax) * (t / L), pz = az + (bz - az) * (t / L), [c0, r0, c1, off, r1] = draws[i] || [0.3, 0.1, 0.7, 0.5, 0.2];
+    const w0 = 0.46 + d() * 0.14, h0 = 0.36 + d() * 0.1;
+    block(W, c0 < 0.5 ? stone[0] : stone[1], px, h0 / 2 + 0.01, pz, w0, h0, 0.5 + d() * 0.1, { b: 0.06, ry: ry + r0 * 0.3, tint: footTint(0.82, 1.03) });
+    block(W, c1 < 0.5 ? top[0] : top[1], px + (off - 0.5) * 0.1, h0 + 0.15, pz, 0.4 + d() * 0.14, 0.3, 0.44 + d() * 0.08, { b: 0.06, ry: ry + r1 * 0.4, tint: footTint(0.9, 1.03) });
+    // a coping stone on edge, and now and then a small stone at the foot
+    if (i % 2 === 0) putL(W, GEO.bevel(0.14), i % 4 ? top[0] : stone[0], px + (bx - ax) / L * 0.22, h0 + 0.44, pz + (bz - az) / L * 0.22, { sx: 0.2, sy: 0.3, sz: 0.48, ry, rz: (d() - 0.5) * 0.3, tint: capTint(moss, 0.75, 0.95) });
+    if (d() < 0.3) { const sg = d() < 0.5 ? -1 : 1; put(W, GEO.rock(), stone[1], px - Math.sin(ry) * sg * 0.42, 0.07, pz - Math.cos(ry) * sg * 0.42, { sx: 0.16, sy: 0.11, sz: 0.13, ry: d() * 6 }); }
+  }
+  W.skirts.push({ x: (ax + bx) / 2, z: (az + bz) / 2, y: 0, r: 0.7 });
+}

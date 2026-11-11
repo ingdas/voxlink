@@ -702,3 +702,11 @@ thing, not more realism. Detail that is added draws from a random source of its 
   bootprints leading to it. Landmarks: the **lander** has foil panels, a cabin with a window, thrusters, a dish, an
   engine bell, braced legs with footpads and a ladder; the **radio dish** stands on a braced mount with a cabinet
   of lights at its foot.
+- **Gale Cliffs.** **Cottages** have shutters, a chimney that smokes, a bench under one window, a milk churn by
+  the door and a climbing rose up the corner. **Dry stone walls** are two uneven courses of field stones under
+  coping stones set on edge, small ones wedged in at the foot. **Kites** have cross spars and a tail of bows.
+- **Eye of the Storm.** The **lightning rod** stands on a plinth of dressed stones: a tapering mast with discs
+  up it, stays, a copper coil, a cable to a stake, a crown of sparks round its tip, scorched ground. The
+  flagstones are worn slabs of uneven shape; the sea's fangs have a shorter one beside them and rocks awash.
+- **High cliffs** (both worlds): fallen blocks of the cliff's own rock lie in the sea at its foot, and grassy
+  ledges jut out of its face a little way down (`cliffFoot`).

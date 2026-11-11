@@ -7,7 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
-import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin, snowman, stump, rowboat, shipwreck, starfish, crate, barrel, clam, crab, parasol, sandcastle, rover } from './world-props.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep, igloo, penguin, snowman, stump, rowboat, shipwreck, starfish, crate, barrel, clam, crab, parasol, sandcastle, rover, cliffFoot, stoneWall } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -835,7 +835,10 @@ function storm(W) {
     const a = rng() * Math.PI * 2, r = clearR + 0.5 + rng() * 5.5;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (isl(x, z) > -1 || W.blocked(x, z, 0.4, 0, 1)) continue;
-    put(W, GEO.box(), rng() < 0.5 ? 0x6a6a78 : 0x5c5c6a, x, 0.015, z, { sx: 0.45 + rng() * 0.4, sy: 0.04, sz: 0.4 + rng() * 0.3, ry: rng() * 0.4, kind: 'fx' });
+    const fc = rng() < 0.5 ? 0x6a6a78 : 0x5c5c6a, fw = 0.45 + rng() * 0.4, fd = 0.4 + rng() * 0.3, fr = rng() * 0.4;
+    // a worn slab: a corner knocked off, a paler patch where feet have polished it
+    put(W, GEO.cyl(i % 2 ? 5 : 6), fc, x, 0.015, z, { sx: fw * 0.62, sy: 0.04, sz: fd * 0.62, ry: fr + i, kind: 'fx' });
+    if (i % 3 === 0) put(W, GEO.cyl(5), 0x77778a, x + 0.03, 0.02, z, { sx: fw * 0.3, sy: 0.04, sz: fd * 0.28, ry: fr, kind: 'fx' });
   }
   W.landmark(); // before the trees and rocks, which grow around it
   scatterProps(W, W.more('trees', Math.round(R * 0.3)), (x, z) => okTree(W, x, z), (x, z) => tree(W, 'bent', x, z, 0.7 + rng() * 0.4, 0));
@@ -843,8 +846,13 @@ function storm(W) {
   // jagged rocks rising from the sea
   scatterProps(W, 9, (x, z) => isl(x, z) > 4 && isl(x, z) < 30, (x, z) => {
     const h = 6 + rng() * 9, s = 1.5 + rng() * 2;
-    put(W, GEO.cone(5), T.cliff, x, W.seaY + h / 2, z, { sx: s, sy: h, sz: s, ry: rng() * 3, rz: (rng() - 0.5) * 0.2 });
+    put(W, GEO.cone(5), T.cliff, x, W.seaY + h / 2, z, { sx: s, sy: h, sz: s, ry: rng() * 3, rz: (rng() - 0.5) * 0.2, tint: footTint(0.7, 1.15) });
+    // a shorter fang beside it, rocks awash at its foot
+    const a = W.drng() * 6.283;
+    put(W, GEO.cone(5), shade(T.cliff, 0.9), x + Math.cos(a) * s * 0.75, W.seaY + h * 0.2, z + Math.sin(a) * s * 0.75, { sx: s * 0.42, sy: h * 0.45, sz: s * 0.42, ry: a, rz: 0.15, tint: footTint(0.7, 1.12) });
+    for (let k = 0; k < 3; k++) { const b = W.drng() * 6.283; put(W, GEO.rock(), T.cliff, x + Math.cos(b) * s * 1.05, W.seaY + 0.1, z + Math.sin(b) * s * 1.05, { sx: 0.7, sy: 0.45, sz: 0.6, ry: b }); }
   }, 6);
+  cliffFoot(W, isl, { grass: T.moss });
 
   // wind gusts: every so often a gentle push, with leaves and rain blowing sideways
   W.tuftScale = 1.3; W.sway = 1.8;
@@ -1544,11 +1552,9 @@ function cliffs(W) {
     const ax = alongX ? x - L / 2 : x, az = alongX ? z : z - L / 2, bx = alongX ? x + L / 2 : x, bz = alongX ? z : z + L / 2;
     if ([0, 0.5, 1].some(t => isl(ax + (bx - ax) * t, az + (bz - az) * t) > -2 || onHill(ax + (bx - ax) * t, az + (bz - az) * t, 2) || W.blocked(ax + (bx - ax) * t, az + (bz - az) * t, 0.6, 0, 1))) return;
     walls.push({ x, z });
-    for (let t = 0; t <= L; t += 0.5) {
-      const px = ax + (bx - ax) * (t / L), pz = az + (bz - az) * (t / L);
-      put(W, GEO.box(), rng() < 0.5 ? 0xa59f92 : 0x8f897d, px, 0.22, pz, { sx: 0.55, sy: 0.42, sz: 0.55, ry: rng() * 0.3 });
-      put(W, GEO.box(), rng() < 0.5 ? 0xb9b3a6 : 0x9a9488, px + (rng() - 0.5) * 0.1, 0.58, pz, { sx: 0.5, sy: 0.32, sz: 0.48, ry: rng() * 0.4 });
-    }
+    const draws = [];
+    for (let t = 0; t <= L; t += 0.5) draws.push([rng(), rng(), rng(), rng(), rng()]);
+    stoneWall(W, ax, az, bx, bz, draws);
     W.box(Math.min(ax, bx) - 0.3, 0, Math.min(az, bz) - 0.3, Math.max(ax, bx) + 0.3, 0.75, Math.max(az, bz) + 0.3, { top: true, sound: 'stone' });
     W.obstacles.push({ x, z, r: L / 2 + 0.6 });
   });
@@ -1556,7 +1562,17 @@ function cliffs(W) {
   scatterProps(W, R > 20 ? 2 : 1, (x, z) => !W.nearCentre(x, z, 6) && !W.spawnPath(x, z, 3.5) && isl(x, z) < -4 && !onHill(x, z, 3.5)
     && W.flatAt(x, z, 2.8, 0.01) !== null && !W.blocked(x, z, 2.8, 0, 3) && !W.crowded(x, z, 3.2), (x, z) => {
     const ry = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
-    house(W, x, z, ry, { wall: 0xf7f3ea, roof: 0x4f5a6e, door: 0x2d6fb0, glass: 0x9fd4f2 });
+    const Hs = house(W, x, z, ry, { wall: 0xf7f3ea, roof: 0x4f5a6e, door: 0x2d6fb0, glass: 0x9fd4f2, shutters: 0x2d6fb0, chimney: 0xd8d2c4, smoke: true, footing: 0xb9b0a0 });
+    // a bench under one window, a milk churn by the door, a climbing rose up the corner
+    put(W, GEO.box(), 0x8a5a3c, ...Hs.at(-0.84, 0.36, 1.45), { sx: 0.9, sy: 0.06, sz: 0.3, ry });
+    for (const e of [-1, 1]) put(W, GEO.box(), 0x6b4a36, ...Hs.at(-0.84 + e * 0.36, 0.18, 1.45), { sx: 0.07, sy: 0.36, sz: 0.26, ry });
+    put(W, GEO.taper(8, 0.6), 0xcfd4dc, ...Hs.at(0.62, 0.3, 1.5), { sx: 0.16, sy: 0.6, sz: 0.16 });
+    put(W, GEO.cyl(8), 0xaab0bc, ...Hs.at(0.62, 0.62, 1.5), { sx: 0.11, sy: 0.05, sz: 0.11 });
+    for (let k = 0; k < 7; k++) {
+      const up = 0.25 + k * 0.28, dr = W.drng;
+      put(W, GEO.lump(k), 0x4e9a48, ...Hs.at(1.38 + (dr() - 0.5) * 0.14, up, 1.22 + (dr() - 0.5) * 0.08), { sx: 0.2, sy: 0.17, sz: 0.12, ry });
+      if (k % 2) put(W, GEO.ico(), 0xff8fc7, ...Hs.at(1.36 + (dr() - 0.5) * 0.2, up + 0.05, 1.31), { sx: 0.06, sy: 0.06, sz: 0.05 });
+    }
   });
   plateauField(W, Math.round(2 + R * 0.1), { body: 0xd9d2c2, cap: T.cap, step: T.cliff, sound: 'stone' }, (x, z, ext) => !onHill(x, z, ext + 2));
   W.landmark(); // before the trees and rocks, which grow around it
@@ -1572,6 +1588,17 @@ function cliffs(W) {
       const half = new THREE.Mesh(new THREE.OctahedronGeometry(0.9, 0).scale(0.8, 1.1, 0.06), toon(c[1]));
       half.scale.set(0.5, 0.5, 1.2);
       g.add(diamond, half);
+      // cross spars, and a tail of bows that trails below
+      const spar = toon(0x8a5a3c), sv = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.95, 0.04), spar), sh = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.04, 0.04), spar);
+      sv.position.z = sh.position.z = 0.07;
+      g.add(sv, sh);
+      const bowGeo = new THREE.OctahedronGeometry(0.16, 0).scale(1.5, 0.6, 0.2), bowA = toon(c[1]), bowB = toon(c[0]);
+      for (let k = 0; k < 5; k++) {
+        const bow = new THREE.Mesh(bowGeo, k % 2 ? bowA : bowB);
+        bow.position.set(Math.sin(k * 1.3) * 0.18, -1.25 - k * 0.42, 0);
+        bow.rotation.z = (k % 2 ? 1 : -1) * 0.5;
+        g.add(bow);
+      }
       const a = rng() * Math.PI * 2, d = 8 + rng() * (R * 0.6);
       const anchor = new THREE.Vector3(Math.cos(a) * d * 0.6, 0, Math.sin(a) * d * 0.6);
       const home = new THREE.Vector3(Math.cos(a) * d, 11 + rng() * 5, Math.sin(a) * d);
@@ -1592,6 +1619,7 @@ function cliffs(W) {
       }
     });
   });
+  cliffFoot(W, isl);
   W.tuftScale = 1.2; W.sway = 1.6;
   gusts(W, { first: 6 + rng() * 3, len: 2.6, peak: 0.9, calm: [9, 7] });
   Object.assign(W, SKIES.cliffs);
