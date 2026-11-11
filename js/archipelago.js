@@ -683,6 +683,8 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
     const [ux, uz] = unit(b.x - a.x, b.z - a.z), far = b.port ? 1.1 : 0, back = a.portal ? 1.2 : 0;
     return [a.x - ux * back, a.z - uz * back, b.x + ux * far, b.z + uz * far];
   });
+  // (grass and flowers keep off them: the planks laid there below must show)
+  for (const k of [hub, ...parts]) k.world.out.mow?.(k.lanes, LANE - 0.15);
   for (const pt of parts) {
     const [ex, ez] = toWorld(pt, 0, pt.coast);
     pt.entry = new THREE.Vector3(ex, 0, ez); // where its bridge reaches the island

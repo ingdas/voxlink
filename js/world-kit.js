@@ -201,7 +201,9 @@ export class Batch {
   constructor(tile = 14) { this.tile = tile; this.parts = new Map(); this._m = new THREE.Matrix4(); this._c = new THREE.Color(); this._v = new THREE.Vector3(); }
   // kind: 'solid' (outlined, casts + receives shadows), 'ground' (outlined, receives only),
   //       'glow' (outlined, self-lit), 'fx' (no outline, receives shadows)
-  add(geo, color, matrix = null, kind = 'solid') {
+  // tint(p, n, c, box): paints each vertex its own shade (p, n: its place and normal once placed; c: the colour to
+  // change, starting from `color`; box: the placed shape's bounds), for gradients such as moss on top or a dark foot
+  add(geo, color, matrix = null, kind = 'solid', tint = null) {
     let g = geo.index ? geo.toNonIndexed() : geo.clone();
     for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
     if (matrix) g.applyMatrix4(matrix);
@@ -209,14 +211,30 @@ export class Batch {
     const c = g.boundingBox.getCenter(this._v);
     const key = `${kind}|${Math.floor(c.x / this.tile)},${Math.floor(c.z / this.tile)}`;
     if (!this.parts.has(key)) this.parts.set(key, { kind, list: [] });
-    this.parts.get(key).list.push({ g, color: this._c.set(color).clone() });
+    const base = this._c.set(color).clone();
+    let cols = null;
+    if (tint) {
+      const pa = g.attributes.position, na = g.attributes.normal, p = new THREE.Vector3(), n = new THREE.Vector3(), cc = new THREE.Color();
+      cols = new Float32Array(pa.count * 3);
+      for (let i = 0; i < pa.count; i++) {
+        tint(p.fromBufferAttribute(pa, i), na ? n.fromBufferAttribute(na, i) : n.set(0, 1, 0), cc.copy(base), g.boundingBox);
+        cols[i * 3] = cc.r; cols[i * 3 + 1] = cc.g; cols[i * 3 + 2] = cc.b;
+      }
+    }
+    this.parts.get(key).list.push({ g, color: base, cols });
+    return this;
+  }
+  // a one-off shape (not from GEO): added, then freed
+  own(geo, color, matrix = null, kind = 'solid', tint = null) {
+    this.add(geo, color, matrix, kind, tint);
+    geo.dispose();
     return this;
   }
   // convenience: transform from position / rotation / scale
-  put(geo, color, x, y, z, { sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0, kind = 'solid' } = {}) {
+  put(geo, color, x, y, z, { sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0, kind = 'solid', tint = null } = {}) {
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz));
     this._m.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(sx, sy, sz));
-    return this.add(geo, color, this._m, kind);
+    return this.add(geo, color, this._m, kind, tint);
   }
   // wear: the ground wears round a pedestal at the middle
   build(group, blockers, { wear = false } = {}) {
@@ -239,7 +257,8 @@ export class Batch {
         pos.set(pa, o * 3);
         if (na) nor.set(na, o * 3);
         const cnt = p.g.attributes.position.count;
-        for (let i = 0; i < cnt; i++) { col[(o + i) * 3] = p.color.r; col[(o + i) * 3 + 1] = p.color.g; col[(o + i) * 3 + 2] = p.color.b; }
+        if (p.cols) col.set(p.cols, o * 3);
+        else for (let i = 0; i < cnt; i++) { col[(o + i) * 3] = p.color.r; col[(o + i) * 3 + 1] = p.color.g; col[(o + i) * 3 + 2] = p.color.b; }
         o += cnt;
         p.g.dispose();
       }
@@ -275,7 +294,89 @@ export const GEO = {
   cone: (n = 7) => geo('cone' + n, () => new THREE.ConeGeometry(1, 1, n)),
   octa: () => geo('octa', () => new THREE.OctahedronGeometry(1, 0)),
   dome: () => geo('dome', () => new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2)),
+  // a cylinder that narrows to `top` of its radius (trunks, posts, chimneys); unit height, centred
+  taper: (n = 8, top = 0.6) => geo(`taper${n}:${top}`, () => new THREE.CylinderGeometry(top, 1, 1, n)),
+  // a unit box with its edges cut off by b (stone blocks, beams): the cut catches the light and the ink line
+  bevel: (b = 0.08) => geo(`bevel${b}`, () => bevelBox(1, 1, 1, b)),
+  // a lumpy ball (boulders, leafy crowns): one of a few fixed shapes, k picks which
+  lump: (k = 0, detail = 1) => geo(`lump${k % 4}:${detail}`, () => lumpGeo(k % 4, detail)),
+  // a five-sided, slightly leaning shard (ice, crystal): unit height, standing on its base
+  shard: () => geo('shard', () => { const g = new THREE.CylinderGeometry(0.34, 1, 1, 5).translate(0, 0.5, 0); const c = new THREE.ConeGeometry(0.34, 0.42, 5).translate(0, 1.21, 0); return mergeGeos([g, c]); }),
 };
+
+// a box of w × h × d with every edge cut off by b (a chamfer), flat-shaded
+export function bevelBox(w, h, d, b) {
+  const hx = w / 2, hy = h / 2, hz = d / 2, pos = [];
+  const quad = (a, b2, c, e) => pos.push(...a, ...b2, ...c, ...a, ...c, ...e);
+  const tri = (a, b2, c) => pos.push(...a, ...b2, ...c);
+  // each axis: the two faces, pulled in by b; then the twelve edge strips and eight corner triangles
+  const P = (sx, sy, sz, ax) => [sx * (hx - (ax === 0 ? 0 : b)), sy * (hy - (ax === 1 ? 0 : b)), sz * (hz - (ax === 2 ? 0 : b))];
+  for (const s of [-1, 1]) {
+    // x faces
+    quad(P(s, -1, -s, 0), P(s, 1, -s, 0), P(s, 1, s, 0), P(s, -1, s, 0));
+    // y faces
+    quad(P(-s, s, -1, 1), P(-s, s, 1, 1), P(s, s, 1, 1), P(s, s, -1, 1));
+    // z faces
+    quad(P(-s, -1, s, 2), P(s, -1, s, 2), P(s, 1, s, 2), P(-s, 1, s, 2));
+  }
+  // edges along z (between x and y faces), along x (between y and z), along y (between x and z)
+  for (const a of [-1, 1]) for (const c of [-1, 1]) {
+    const f = a * c;
+    const q = (p0, p1, p2, p3) => (f > 0 ? quad(p0, p1, p2, p3) : quad(p3, p2, p1, p0));
+    q(P(a, c, -1, 0), P(a, c, -1, 1), P(a, c, 1, 1), P(a, c, 1, 0));
+    q(P(-1, a, c, 1), P(-1, a, c, 2), P(1, a, c, 2), P(1, a, c, 1));
+    q(P(a, -1, c, 2), P(a, -1, c, 0), P(a, 1, c, 0), P(a, 1, c, 2));
+  }
+  for (const a of [-1, 1]) for (const c of [-1, 1]) for (const e of [-1, 1]) {
+    const p0 = P(a, c, e, 0), p1 = P(a, c, e, 1), p2 = P(a, c, e, 2);
+    if (a * c * e > 0) tri(p0, p1, p2); else tri(p0, p2, p1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+// an icosphere pushed in and out by a few fixed waves: lumpy, still round
+function lumpGeo(k, detail) {
+  const g = new THREE.IcosahedronGeometry(1, detail);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  const a = 1.3 + k * 2.1, b = 0.7 + k * 1.3, c = 2.9 + k * 0.8;
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).normalize();
+    const r = 1 + 0.13 * Math.sin(v.x * 3.1 + a) * Math.cos(v.z * 2.7 + b) + 0.1 * Math.sin(v.y * 4.3 + c) + 0.07 * Math.sin((v.x + v.z) * 5.2 + a * 2);
+    p.setXYZ(i, v.x * r, v.y * r, v.z * r);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+// several geometries as one (positions and normals only)
+export function mergeGeos(list) {
+  const parts = list.map(g => (g.index ? g.toNonIndexed() : g));
+  let n = 0;
+  for (const g of parts) n += g.attributes.position.count;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
+  let o = 0;
+  for (const g of parts) {
+    pos.set(g.attributes.position.array, o * 3);
+    if (!g.attributes.normal) g.computeVertexNormals();
+    nor.set(g.attributes.normal.array, o * 3);
+    o += g.attributes.position.count;
+  }
+  for (const g of new Set([...list, ...parts])) g.dispose();
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  return out;
+}
+
+// a small seeded random source for decoration (kept apart from a layout's own, so adding detail never moves the
+// things the layout places)
+export function seeded(n) {
+  let a = (n * 2654435761) >>> 0;
+  return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
 
 // soft round sprite for particles: dotTexture() makes a fresh one (the caller disposes it),
 // sharedDot() returns one cached copy that world.dispose() leaves alone

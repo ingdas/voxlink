@@ -3,7 +3,8 @@
 //   contact shadows: a little screen-space ambient occlusion in the outline pass (render.js)
 //   a living sea: shallows by the shores, foam lines, waves, sun glints, a horizon that melts into the sky (sea.js)
 //   a colour grade per world (lift / gain / saturation / contrast) in the outline pass
-//   ground with variation: patches of lighter and darker ground, a worn ring round the pedestal
+//   ground with variation: patches of lighter and darker ground (soft ones, and painted ones with a crisp edge), a
+//   worn ring round the pedestal
 //   aerial haze: far things fade into the sky, a low mist between the islands
 //   outlines drawn in a deep shade of what they outline, and FXAA (smooth edges, phones included; render.js)
 //   islands that bloom: finished ones run richer, unfinished ones are muted, and finishing one washes colour out
@@ -102,6 +103,10 @@ export function installLooks() {
     // lighter patches run a little warmer, darker ones a little richer
     c *= 1.0 + tone;
     c = mix(c, c * vec3(1.05, 1.02, 0.86), clamp(tone * 3.0, 0.0, 1.0) * 0.5);
+    // painted patches with a crisp edge: a deeper shade where the growth is thick, a paler one where it is worn
+    float pa = lkNoise(gp * 0.21 + 11.3) * 0.65 + lkNoise(gp * 0.57 + 5.7) * 0.35;
+    c = mix(c, c * vec3(0.9, 0.955, 0.9), smoothstep(0.56, 0.58, pa) * 0.8);
+    c = mix(c, c * vec3(1.05, 1.035, 0.95), (1.0 - smoothstep(0.4, 0.42, pa)) * 0.6);
     #ifdef LK_WEAR
     float r = length(vLkL.xz);
     float wear = smoothstep(2.9, 3.4, r) * (1.0 - smoothstep(3.6, 5.0, r));

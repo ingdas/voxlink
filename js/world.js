@@ -6,6 +6,7 @@ import { LAYOUTS } from './world-layouts.js';
 import { placeLandmark } from './world-moods.js';
 import { glows } from './looks.js';
 import { makeSea } from './sea.js';
+import { addGroundCover } from './world-cover.js';
 
 export { dotTexture } from './world-kit.js';
 
@@ -260,73 +261,9 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   W.box(-2.1, 0, -2.1, 2.1, 0.5, 2.1, { sound: 'stone' });
   }
 
-  // --- Grass tufts & flowers (instanced, no outlines, sway in the wind) ---
+  // --- Ground cover: clumps of grass and drifts of flowers (instanced, no outlines, swaying in the wind) ---
   const swayU = { uTime: { value: 0 }, uWind: { value: new THREE.Vector2() }, uSway: { value: W.sway ?? 1 } };
-  const swayMat = (c) => {
-    const m = toon(c);
-    m.onBeforeCompile = sh => {
-      Object.assign(sh.uniforms, swayU);
-      sh.vertexShader = 'uniform float uTime; uniform vec2 uWind; uniform float uSway;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
-        #ifdef USE_INSTANCING
-        vec4 ip = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-        float ph = ip.x * 0.45 + ip.z * 0.33;
-        float k = max(transformed.y, 0.0);
-        transformed.x += (sin(uTime * 2.1 + ph) * 0.05 * uSway + uWind.x * 0.18) * k;
-        transformed.z += (cos(uTime * 1.7 + ph) * 0.05 * uSway + uWind.y * 0.18) * k;
-        #endif`);
-    };
-    m.customProgramCacheKey = () => 'vx-sway';
-    return m;
-  };
-  const tuftCount = Math.round((quality === 'low' ? 170 : 400) * (W.tuftScale ?? 1));
-  const tuftGeo = new THREE.ConeGeometry(0.07, 0.32, 4);
-  tuftGeo.translate(0, 0.16, 0);
-  const tufts = new THREE.InstancedMesh(tuftGeo, swayMat(T.tuft), Math.max(1, tuftCount));
-  const flowerGeo = new THREE.IcosahedronGeometry(0.065, 0);
-  const nFlowers = Math.max(1, Math.floor(tuftCount / 3) + (W.extraFlowers?.length || 0));
-  const flowers = new THREE.InstancedMesh(flowerGeo, swayMat(0xffffff), nFlowers);
-  {
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3(), eu = new THREE.Euler();
-    const col = new THREE.Color();
-    let ti = 0, fi = 0;
-    const groundOk = (x, z) => {
-      if (Math.hypot(x, z) < 3.4 || walkSd(x, z) > -0.4) return null;
-      if (W.noTuft?.(x, z)) return null;
-      const f = floorAt(x, z);
-      if (f === null || f < -0.06) return null;
-      if (W.blocked(x, z, 0.08, f, 0.4)) return null;
-      return f;
-    };
-    for (let i = 0; i < tuftCount * 4 && (ti < tuftCount || fi < nFlowers); i++) {
-      const th = rng() * Math.PI * 2, r = Math.sqrt(rng()) * W.bound;
-      const x = Math.cos(th) * r, z = Math.sin(th) * r;
-      const f = groundOk(x, z);
-      if (f === null) continue;
-      if (ti < tuftCount) {
-        for (let k = 0; k < 3 && ti < tuftCount; k++) {
-          q.setFromEuler(eu.set((rng() - 0.5) * 0.6, rng() * 6, (rng() - 0.5) * 0.6));
-          const s = 0.6 + rng() * 0.7;
-          m.compose(p.set(x + (rng() - 0.5) * 0.25, f, z + (rng() - 0.5) * 0.25), q, sc.set(s, s, s));
-          tufts.setMatrixAt(ti++, m);
-        }
-      } else if (fi < nFlowers - (W.extraFlowers?.length || 0)) {
-        m.compose(p.set(x, f + 0.09, z), q.identity(), sc.set(1, 1, 1));
-        flowers.setMatrixAt(fi, m);
-        flowers.setColorAt(fi++, col.setHex(T.flowers[Math.floor(rng() * T.flowers.length)]));
-      }
-    }
-    // flower beds requested by the layout
-    for (const e of W.extraFlowers || []) {
-      if (fi >= nFlowers) break;
-      m.compose(p.set(e.x, e.y + 0.09, e.z), q.identity(), sc.setScalar(e.s || 1.2));
-      flowers.setMatrixAt(fi, m);
-      flowers.setColorAt(fi++, col.setHex(e.c));
-    }
-    tufts.count = ti; flowers.count = fi;
-  }
-  tufts.layers.set(LAYER_FX); flowers.layers.set(LAYER_FX);
-  tufts.receiveShadow = flowers.receiveShadow = true;
-  group.add(tufts, flowers);
+  addGroundCover(W, { group, updaters, walkSd, floorAt, quality, swayU });
   updaters.push((dt, t) => {
     swayU.uTime.value = t;
     if (W.wind) swayU.uWind.value.set(W.wind.x, W.wind.z);

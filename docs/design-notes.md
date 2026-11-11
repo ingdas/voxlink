@@ -603,3 +603,19 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   then; in the Garden one jumps hello when you walk up to it. One helper (`idleHop` in `js/life.js`) drives
   them and the figures on an archipelago's other islands; a miniature jumps in proportion to its size.
 
+
+## 2026-11-11 · A pass over the visuals: richer models, same look
+
+Every model is being redone in the order you meet it (the opening, then world by world), keeping the look: flat
+toon shading in three steps, ink outlines, chunky cartoon shapes. Richer means more parts and more tones per
+thing, not more realism. Detail that is added draws from a random source of its own (`seeded` in
+`js/world-kit.js`), so no island's layout, landmark spot or block placement moves.
+
+- **Grass and flowers** (`js/world-cover.js`). The ground had a few hundred four-sided cones and flowers that
+  were floating dots. Now it wears clumps of blades (dark at the foot, the ground's own colour at the tip), thick
+  in patches and thin between them. Open ground gets a short carpet, because loose blocks lie there and their
+  numbers must stay readable; along the shore and round the foot of trees and rocks, where no block ever lies,
+  the grass stands tall. Flowers have stems, leaves and petals (daisies and cups) and grow in drifts of one
+  colour. Snow wears sparse dry stalks, sand thin dune grass. The ways across an island are mown (the planks
+  show), an island you're not on draws less of its cover the farther away it is, and phones get about a third.
+  The ground itself gained painted patches with a crisp edge (`js/looks.js`).
