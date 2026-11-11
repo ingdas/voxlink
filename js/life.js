@@ -18,6 +18,8 @@ const KIT = {
   moon: { stars: [5, 11] },
   cliffs: { flutter: [7, [0xffffff, 0xffd23f, 0xff8fc7]], birds: [6, 0xffffff, 0.75, 16], fish: 0xf2f6ff },
   storm: { birds: [3, 0x2f2c44, 0.2, 12] },
+  // the Keeper's Isle
+  nexus: { flutter: [8, [0xff8fc7, 0xffd23f, 0xffffff, 0xb693f5, 0x6ee7ff]], birds: [5, 0xffffff, 0.7, 15] },
 };
 
 // A finished figure's little jump on its pedestal, u from 0 to 1: it crouches, goes up with a stretch, lands with a
@@ -28,6 +30,21 @@ export function hopPose(u, height) {
   if (u < HOP_LANDS) { const k = (u - 0.2) / (HOP_LANDS - 0.2); return [height * 4 * k * (1 - k), 0.9 + 0.17 * Math.sin(k * Math.PI)]; }
   const k = (u - HOP_LANDS) / (1 - HOP_LANDS);
   return [0, 1 - 0.1 * (1 - k) * Math.cos(k * Math.PI * 1.5)];
+}
+
+// Now and then a finished figure's merged mesh gives that jump on the spot (the figures on an archipelago's other
+// islands, the Keeper's Isle's miniatures, the Garden's statues). st: its state ({} to begin with; st.u = 0 makes it
+// jump right now); baseY: where it stands; k: its scale (a miniature jumps in proportion)
+export function idleHop(mesh, st, dt, baseY, k = 1, height = 0.28) {
+  if (st.u === undefined) {
+    if ((st.wait = (st.wait ?? 2 + Math.random() * 10) - dt) > 0) return;
+    st.u = 0; st.wait = 7 + Math.random() * 10;
+  }
+  st.u += dt / 0.62;
+  const [up, tall] = hopPose(Math.min(1, st.u), height * k), wide = 1 / Math.sqrt(tall);
+  mesh.position.y = baseY + up;
+  mesh.scale.set(k * wide, k * tall, k * wide);
+  if (st.u >= 1) st.u = undefined;
 }
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _v = new THREE.Vector3();

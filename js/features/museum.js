@@ -7,6 +7,7 @@ import { toon, LAYER_OVERLAY } from '../render.js';
 import { t } from '../i18n.js';
 import { setLookTheme, LK } from '../looks.js';
 import { makePortal, paintView } from '../portal.js';
+import { makeLife, idleHop } from '../life.js';
 
 const gardenName = () => t('museum.name');
 export const FONTS = "Fredoka, 'M PLUS Rounded 1c', Jua, Mitr, 'Baloo Bhaijaan 2', sans-serif";
@@ -226,6 +227,8 @@ class Garden {
       theme: 'meadow', clearR: ringR + 3.4, plain: true,
     });
     scene.add(this.world.group);
+    // butterflies, birds and fish here too
+    this.life = makeLife(scene, this.world, 'meadow', renderer.mobile ? 'low' : 'high');
     scene.fog.color.setHex(this.world.theme.skyHorizon);
     scene.fog.density = this.world.theme.fogDensity * 0.8;
     setLookTheme('meadow'); LK.b.z = LK.b.w = 0;
@@ -296,7 +299,7 @@ class Garden {
         for (const [hx, hz] of [[0.92, 0.38], [0.38, 0.92], [0.68, 0.68]]) {
           this.colliders.push(new THREE.Box3(new THREE.Vector3(px - hx * it.r, 0, pz - hz * it.r), new THREE.Vector3(px + hx * it.r, hy, pz + hz * it.r)));
         }
-        this.items.push({ kind: 'figure', ...it, done, th, x: px, z: pz, figH, center: new THREE.Vector3(px, PED_H + figH * 0.5, pz) });
+        this.items.push({ kind: 'figure', ...it, done, th, x: px, z: pz, figH, center: new THREE.Vector3(px, PED_H + figH * 0.5, pz), fig, k: K, hop: {} });
       });
       // a little sign in front of each chapter gallery
       const nDone = ch.levels.filter(l => save.stars[l.id]?.done).length;
@@ -440,6 +443,9 @@ class Garden {
     this.t += dt;
     const cam = ctx.camera;
     this.world.update(dt, this.t, cam.position);
+    this.life?.update(dt, this.t, cam.position, cam);
+    // the rebuilt figures give a little jump now and then (and when you walk up to one)
+    if (!document.body.classList.contains('reduce-motion')) for (const it of this.items) if (it.done && it.fig) idleHop(it.fig, it.hop, dt, PED_H, it.k);
     for (const sp of this.sprites) sp.position.y = sp.userData.y + Math.sin(this.t * 2 + sp.userData.ph) * 0.12;
     this.exitHeart.update(this.t, document.body.classList.contains('reduce-motion'));
     // Kubo turns to watch you and bobs a little
@@ -503,6 +509,7 @@ class Garden {
     const key = best ? (best.level?.id || best.kind) : '';
     if (key === this.nearKey) return;
     this.nearKey = key;
+    if (best?.done && best.hop && best.hop.u === undefined) best.hop.u = 0; // hello
     const card = $('garden-card');
     if (!best) { card.classList.remove('show'); return; }
     card.innerHTML = cardHtml(best);
@@ -516,6 +523,7 @@ class Garden {
     const { scene } = ctx;
     scene.remove(this.world.group);
     this.world.dispose();
+    this.life?.dispose();
     scene.remove(this.group);
     for (const d of this.disposables) d.dispose();
   }

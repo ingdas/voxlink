@@ -594,3 +594,11 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   are all gold, so the first world introduces one tool, not two. Express's button shows on a small figure once it
   has a charge (like the magnet's), and Kubo says what it does the first time (his existing line).
 
+## 2026-11-11 · The Keeper's Isle and the Garden are lived in too
+
+- The two other places you walk had none of what the worlds got: the Keeper's Isle now has butterflies and white
+  birds, the Garden the Meadow's butterflies, swallows and fish, and the rebuilt figures in both (the isle's
+  miniatures on their pedestals and over the portals, the Garden's statues) give the same little jump now and
+  then; in the Garden one jumps hello when you walk up to it. One helper (`idleHop` in `js/life.js`) drives
+  them and the figures on an archipelago's other islands; a miniature jumps in proportion to its size.
+

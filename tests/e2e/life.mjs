@@ -106,6 +106,41 @@ await suite('life', async t => {
   t.check('reduced motion: no jumps', still.hops === 0 && still.top < 1e-6, still);
   await f.close();
 
+  // the Keeper's Isle and the Garden are lived in too, and their rebuilt figures jump now and then
+  const k = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true, garden: true, museum: true, 'tip.sparks': true } }), query: '?debug' });
+  await t.hideDebug(k);
+  await k.evaluate(() => window.__voxlink.openNexus({ from: 0 }));
+  await k.waitForFunction(() => window.__voxlink.ctx.nexus.session?.ready, null, { timeout: 20000 });
+  const isle = await k.evaluate(() => new Promise(res => {
+    const V = window.__voxlink, N = V.ctx.nexus.session, t0 = performance.now(), seen = new Set();
+    const minis = N.isle.group.children.filter(c => c.isMesh && c.material === N.figureMat), base = minis.map(m => m.position.y);
+    const tick = () => {
+      minis.forEach((m, i) => { if (m.position.y > base[i] + 0.03) seen.add(i); });
+      if (performance.now() - t0 > 16000 || seen.size >= 2) res({ life: Object.keys(N.life?.parts || {}), minis: minis.length, hopped: seen.size });
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  }));
+  t.check('the Keeper\'s Isle has butterflies and birds', isle.life.includes('flutter') && isle.life.includes('birds'), isle);
+  t.check('…and its miniatures of the figures you\'ve rebuilt give a jump now and then', isle.minis === 5 && isle.hopped >= 2, isle);
+  await k.evaluate(() => window.__voxlink.ctx.museum.enter());
+  await k.waitForFunction(() => window.__voxlink.ctx.museum.session?.ready, null, { timeout: 20000 });
+  const garden = await k.evaluate(() => new Promise(res => {
+    const V = window.__voxlink, G = V.ctx.museum.session, it = G.items.find(i => i.kind === 'figure' && i.done), t0 = performance.now();
+    // walk up to a rebuilt figure: it jumps hello
+    G.player.pos.set(it.x * 0.86, 0, it.z * 0.86);
+    let top = 0;
+    const tick = () => {
+      top = Math.max(top, it.fig.position.y);
+      if (performance.now() - t0 > 2500) res({ life: Object.keys(G.life?.parts || {}), near: G.near === it, rose: top - 0.6, back: it.fig.position.y });
+      else requestAnimationFrame(tick);
+    };
+    tick();
+  }));
+  t.check('the Garden has butterflies, birds and fish', ['flutter', 'birds', 'fish'].every(x => garden.life.includes(x)), garden);
+  t.check('…and a rebuilt figure jumps when you walk up to it', garden.near && garden.rose > 0.08, garden);
+  await k.close();
+
   // the night worlds: shooting stars, and nothing jumping over the void
   const q = await t.page({ save: ALL_OPEN, query: '?debug' });
   await t.hideDebug(q);

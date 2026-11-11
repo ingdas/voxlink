@@ -4,6 +4,7 @@
 // you arrive. A flowery arch leads to Kubo's Garden. Going between places runs through a short flash of light.
 import { buildNexus } from '../nexus.js';
 import { SPARKS } from '../sparks.js';
+import { makeLife } from '../life.js';
 import { THEMES } from '../world.js';
 import { setLookTheme, LK } from '../looks.js';
 import { Player } from '../player.js';
@@ -208,6 +209,8 @@ class Isle {
     this.buildMs = performance.now() - t0;
     this.isle.api.calmMotion = () => document.body.classList.contains('reduce-motion');
     scene.add(this.isle.group);
+    // butterflies and birds here too
+    this.life = makeLife(scene, this.isle.api, 'nexus', renderer.mobile ? 'low' : 'high');
     const T = THEMES.nexus;
     scene.fog.color.setHex(T.skyHorizon);
     scene.fog.density = T.fogDensity;
@@ -272,6 +275,7 @@ class Isle {
     const { camera, input } = ctx;
     this.t += dt;
     this.isle.update(dt, this.t, camera.position);
+    this.life?.update(dt, this.t, camera.position, camera);
     if (this.introT < 1) {
       this.introT = Math.min(1, this.introT + dt / this.introLen);
       const k = 1 - Math.pow(1 - this.introT, 3);
@@ -341,6 +345,7 @@ class Isle {
   dispose() {
     ctx.scene.remove(this.isle.group);
     this.isle.dispose();
+    this.life?.dispose();
     this.figureMat.dispose();
   }
 }

@@ -16,7 +16,7 @@ import { Batch, GEO, projectInside } from './world-kit.js';
 import { toon, LAYER_OVERLAY } from './render.js';
 import { mergeFigure, mulberry32 } from './voxels.js';
 import { expandLevel } from './levels.js';
-import { hopPose } from './life.js';
+import { idleHop } from './life.js';
 
 const DECK = 0.22; // bridge deck height
 const BOOST = 2.4; // walking speed on the bridges
@@ -1020,16 +1020,7 @@ export function buildArchipelago({ chapter, levels, makePart, makeHub, isOpen, i
         h.rotation.y = Math.abs(d) < 0.002 ? h.userData.to : h.rotation.y + d * Math.min(1, dt * 2.6);
       }
       // the finished figures on the other islands are alive: now and then one gives a little jump on its pedestal
-      if (!api.calmMotion?.()) for (const m of displays.values()) {
-        const h = m.userData;
-        if (!m.visible) continue;
-        if (h.u === undefined) { if ((h.wait = (h.wait ?? 2 + Math.random() * 10) - dt) > 0) continue; h.u = 0; h.wait = 7 + Math.random() * 10; }
-        h.u += dt / 0.62;
-        const [up, tall] = hopPose(Math.min(1, h.u), 0.28), wide = 1 / Math.sqrt(tall);
-        m.position.y = PEDESTAL_TOP + up;
-        m.scale.set(wide, tall, wide);
-        if (h.u >= 1) h.u = undefined;
-      }
+      if (!api.calmMotion?.()) for (const m of displays.values()) if (m.visible) idleHop(m, m.userData, dt, PEDESTAL_TOP);
       for (const k of pieces) k.world.update(dt, t, c ? (([lx, lz]) => new THREE.Vector3(lx, c.y, lz))(toLocal(k, c.x, c.z)) : null);
       // a finished island's colour washes out from its figure to its shores
       for (const pt of parts) if (pt.washT !== undefined) {

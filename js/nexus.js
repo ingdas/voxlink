@@ -11,6 +11,7 @@ import { toon, LAYER_FX, LAYER_OVERLAY } from './render.js';
 import { glows } from './looks.js';
 import { mulberry32, mergeFigure, S } from './voxels.js';
 import { makePortal, paintView } from './portal.js';
+import { idleHop } from './life.js';
 
 const PLAZA_R = 10, ISLET_R = 6.2, RING = 28; // the plaza, each islet, and how far out the islets stand
 const DECK = 0.22, HW = 1.2; // bridge deck height and half width
@@ -207,7 +208,9 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
     m.rotation.y = ry;
     m.castShadow = m.receiveShadow = true;
     root.add(m);
+    figs.push({ m, y, k, st: {} });
   };
+  const figs = []; // the rebuilt figures standing here: they give a little jump now and then, like the ones in their worlds
   for (const k of islets) {
     if (k.slot.garden) continue;
     const T = k.T;
@@ -297,6 +300,7 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
       for (const k of pieces) k.world.update(dt, t, cam ? cam.clone().sub(k.p) : null);
       const calm = api.calmMotion();
       beacon.animate(t, calm);
+      if (!calm) for (const f of figs) idleHop(f.m, f.st, dt, f.y, f.k);
       for (const k of islets) {
         const P = k.portal;
         if (P.heart.group.visible) P.heart.update(t + k.i * 1.7, calm);
