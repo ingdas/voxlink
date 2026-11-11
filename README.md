@@ -71,6 +71,9 @@ Workshop editor:
 - Floating **bubbles** on the figure show which numbers are open right now.
 - Find a loose block with that number, grab it, then click the bubble (or the block it attaches to).
 - You can carry 4 blocks at once. Bubbles you can fill right away turn green.
+- Every island but the first has three **sparks** of the Keeper's Lantern: up on a hay stack, a terrace or a
+  mesa, out on the far side, or hanging in the air a jump up. Walk into one to catch it: it charges the
+  **Magnet** for this run (on small figures too) and counts towards the island's three for good (`js/sparks.js`).
 - Each figure has 3 stars: finish it, beat the par time, and use no hints. The goals sit under the
   progress bar while you build (time against par, hints used, each with its star); the first hint of a
   run asks for a second press, since it costs the no-hint star.

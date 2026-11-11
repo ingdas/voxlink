@@ -434,3 +434,39 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   beams are left out: at any strength that reads they burn out to white.
 - **Dropped:** cloud shadows (drifting noise darkening the sun's light). They were hard to read as clouds on
   islands this size and only showed up clearly on the sea.
+
+## 2026-11-11 · Sparks: something to find on every island, and a magnet you earn by finding it
+
+- **Why.** A playtest of the whole campaign (a bot walking and building at a person's pace, plus stills of every
+  world) showed the same loop on all 50 islands: read numbers, carry, link. The islands' terraces, hay stacks, rock
+  stacks and mesas only ever mattered as places a block might lie (and a block up there can be grabbed from below),
+  nothing rewarded a look round the far side of an island, and the tools only existed on the 20 big figures, handed
+  out by a link counter.
+- **What.** The storm blew three sparks of the Keeper's Lantern onto every figure's island (not the Sprout's: the
+  first minute stays as it is). `js/sparks.js` places them, the same spots every visit (seeded per figure): up to
+  two over **high spots you can climb onto** (the highest first, 7 m apart), the rest over open ground as far from
+  each other and from the way in as the island allows; where an island has fewer than two climbable tops, the last
+  one **hangs in the air**, a jump up. Of the 147: 62 up high, 60 on the far side, 25 in the air.
+- **Climbable** is worked out from the island itself: a top is reachable if a jump gets you onto it from clear ground
+  beside it, or from a top that already is (85 % of the jump's apex in that world's gravity, so the moon's mesas
+  count and the cove's 4 m stacks don't). A browser test then walks the game's own `Player` at every spark from up
+  to 48 starting points (run at it, jump when something's in the way): all 147 are caught, also with 0.1 s taps
+  instead of a held jump. Without jumping, 60 of the 62 high ones and 22 of the 25 in the air can't be: they are
+  the game's first real reason to climb.
+- **What a spark does.** Walk into it (0.95 m from anywhere between your feet and your head) and it darts into
+  your hands: **a magnet charge for this run, on any figure**, small ones too, where the magnet's button now shows
+  once it has a charge. So the magnet arrives on the second figure instead of the tenth, and is earned by going
+  somewhere rather than by counting links (the big figures keep their charge every 12 links as well). A detour
+  costs about what a charge saves, so it's a choice against the par clock, not a tax.
+- **For good.** Each spark found counts towards the island's three (`save.sparks`, a bit per spark; merged across
+  devices like stars): in the goals under the progress bar, on the results card, in the world's pill while you
+  walk (`2 / 12`) and on the world's card on the Keeper's Isle. A fresh run brings all three back (the ones found
+  before in a paler light: they still charge the magnet); on a finished island only the ones never found are
+  left. A half-built run keeps its caught sparks and its tool charges (charges used to reset when you walked off
+  an island and back).
+- **Kubo** says what a spark is the first time one is in view within 13 m and he has nothing else to say (the
+  Tulip already has three lines of his on arrival), how the magnet works on the first catch, and cheers an
+  island's third.
+- **Seen, not changed.** Sparks on other islands aren't drawn until you step onto them (an island's puzzle and
+  its sparks load together); there is no reward yet for a whole world's sparks beyond the count.
+

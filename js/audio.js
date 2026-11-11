@@ -189,6 +189,12 @@ export class Audio {
   hint() {
     [0, 4, 7, 12].forEach((n, i) => this.tone({ f: this.midi(76 + n), type: 'sine', t: i * 0.06, dur: 0.3, vol: 0.08, wet: 0.6 }));
   }
+  // a spark caught: a quick run of bells, a step higher for each one you hold
+  spark(n = 1) {
+    const base = 79 + Math.min(3, n) * 2;
+    [0, 5, 9, 12].forEach((d, i) => this.tone({ f: this.midi(base + d), type: 'sine', t: i * 0.055, dur: 0.28, vol: 0.1, wet: 0.6 }));
+    this.tone({ f: this.midi(base + 24), type: 'triangle', t: 0.2, dur: 0.4, vol: 0.05, wet: 0.7 });
+  }
   star(k) {
     const n = [76, 79, 84][k] ?? 84;
     this.tone({ f: this.midi(n), type: 'triangle', dur: 0.35, vol: 0.18, wet: 0.5 });

@@ -47,6 +47,8 @@ export function init(c) {
     // only on an island, playing (not in menus, cutscenes, the Garden, the Keeper's Isle or the workshop); he hides
     // on his next frame there, but these places don't run his frames, so check now
     active: () => { if (shown && !wanted(ctx.game)) hide(); return shown; },
+    // nothing being said and nothing waiting (a tip that can wait its turn asks first)
+    quiet: () => barkLeft <= 0 && !queue.length,
     // clear the current line (it no longer applies)
     hush() { barkLeft = 0; hold = false; },
     // a fresh start (a figure was just finished): drop whatever was waiting

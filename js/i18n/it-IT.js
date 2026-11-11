@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "All'Isola del Custode",
   "rotate.title": "Gira il dispositivo in orizzontale per giocare",
   "settings.mutedBySite": "Disattivato su questo sito",
+  "kubo.sparks": "Guarda, una <b>scintilla</b> della Lanterna del Custode! La tempesta ne ha soffiate tre su ogni isola. Prendine una e ricaricherà la tua <b>calamita</b>.",
+  "kubo.sparksAll": "Tutte e tre le scintille di quest’isola! La Lanterna brilla un po’ di più.",
+  "toast.spark": "Scintilla {n} di {total}!",
+  "a11y.goal.sparks": "Scintille trovate: {n} di {total}",
 };

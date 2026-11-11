@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Na Wyspę Strażnika",
   "rotate.title": "Obróć urządzenie poziomo, aby grać",
   "settings.mutedBySite": "Wyciszone na tej stronie",
+  "kubo.sparks": "Patrz, <b>iskra</b> z Latarni Strażnika! Burza zwiała po trzy na każdą wyspę. Złap jedną, a naładuje twój <b>magnes</b>.",
+  "kubo.sparksAll": "Wszystkie trzy iskry tej wyspy! Latarnia świeci trochę jaśniej.",
+  "toast.spark": "Iskra {n} z {total}!",
+  "a11y.goal.sparks": "Znalezione iskry: {n} z {total}",
 };

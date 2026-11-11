@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Para a Ilha do Guardião",
   "rotate.title": "Gire o aparelho na horizontal para jogar",
   "settings.mutedBySite": "Silenciado neste site",
+  "kubo.sparks": "Olha, uma <b>faísca</b> da Lanterna do Guardião! A tempestade soprou três para cada ilha. Pegue uma e ela carrega o seu <b>ímã</b>.",
+  "kubo.sparksAll": "As três faíscas desta ilha! A Lanterna brilha um pouco mais forte.",
+  "toast.spark": "Faísca {n} de {total}!",
+  "a11y.goal.sparks": "Faíscas encontradas: {n} de {total}",
 };

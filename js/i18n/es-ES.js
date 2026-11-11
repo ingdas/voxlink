@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "A la Isla del Guardián",
   "rotate.title": "Gira tu dispositivo en horizontal para jugar",
   "settings.mutedBySite": "Silenciado en este sitio",
+  "kubo.sparks": "¡Mira, una <b>chispa</b> del Farol del Guardián! La tormenta sopló tres a cada isla. Atrapa una y cargará tu <b>imán</b>.",
+  "kubo.sparksAll": "¡Las tres chispas de esta isla! El Farol brilla un poco más.",
+  "toast.spark": "¡Chispa {n} de {total}!",
+  "a11y.goal.sparks": "Chispas encontradas: {n} de {total}",
 };

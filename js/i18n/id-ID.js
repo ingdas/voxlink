@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Ke Pulau Penjaga",
   "rotate.title": "Putar perangkatmu ke posisi mendatar untuk bermain",
   "settings.mutedBySite": "Dibisukan di situs ini",
+  "kubo.sparks": "Lihat, <b>percikan</b> dari Lentera Penjaga! Badai meniup tiga ke setiap pulau. Tangkap satu dan <b>magnet</b>-mu terisi.",
+  "kubo.sparksAll": "Ketiga percikan di pulau ini! Lentera bersinar sedikit lebih terang.",
+  "toast.spark": "Percikan {n} dari {total}!",
+  "a11y.goal.sparks": "Percikan ditemukan: {n} dari {total}",
 };

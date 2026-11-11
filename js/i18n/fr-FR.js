@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Vers l'Île du Gardien",
   "rotate.title": "Tourne ton appareil à l’horizontale pour jouer",
   "settings.mutedBySite": "Coupé sur ce site",
+  "kubo.sparks": "Regarde, une <b>étincelle</b> de la Lanterne du Gardien ! La tempête en a soufflé trois sur chaque île. Attrapes-en une et elle recharge ton <b>aimant</b>.",
+  "kubo.sparksAll": "Les trois étincelles de cette île ! La Lanterne brille un peu plus fort.",
+  "toast.spark": "Étincelle {n} sur {total} !",
+  "a11y.goal.sparks": "Étincelles trouvées : {n} sur {total}",
 };

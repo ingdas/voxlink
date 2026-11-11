@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Az Őrző szigetére",
   "rotate.title": "Fordítsd fekvő helyzetbe a készüléked a játékhoz",
   "settings.mutedBySite": "Ezen az oldalon némítva",
+  "kubo.sparks": "Nézd, egy <b>szikra</b> az Őrző Lámpásából! A vihar minden szigetre hármat fújt. Kapd el, és feltölti a <b>mágnesedet</b>.",
+  "kubo.sparksAll": "A sziget mindhárom szikrája megvan! A Lámpás egy kicsit fényesebben ragyog.",
+  "toast.spark": "Szikra: {n} / {total}!",
+  "a11y.goal.sparks": "Megtalált szikrák: {n} / {total}",
 };

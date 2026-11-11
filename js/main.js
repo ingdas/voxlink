@@ -4,6 +4,7 @@ import { LK } from './looks.js';
 import { LEVELS, CHAPTERS, ENDING, expandLevel, parTime, partsFor } from './levels.js';
 import { S, buildVoxelGeometry, voxelMaterial, generatePuzzle, mulberry32, getAtlas } from './voxels.js';
 import { Game, PACK_SIZE, TOOLS } from './game.js';
+import { SPARKS } from './sparks.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { FX } from './fx.js';
@@ -76,6 +77,8 @@ function normalizeSave(save) {
   save.unlocked = Math.min(LEVELS.length, Math.max(save.unlocked, ...LEVELS.filter(l => save.stars[l.id]?.done).map(l => l.index + 2)));
   // half-built figures: one saved run per figure (you can walk away from one and come back)
   save.sessions = save.sessions || {};
+  // sparks of the Keeper's Lantern found on each figure's island (a bit per spark)
+  save.sparks = save.sparks || {};
   if (save.session) { save.sessions[save.session.id] = save.session; delete save.session; }
   return save;
 }
@@ -103,6 +106,7 @@ function mergeSaves(a, b) {
     if (other.splits?.[id]) (m.splits ||= {})[id] = other.splits[id];
   }
   for (const [k, v] of Object.entries(other.seen)) if (v && !m.seen[k]) m.seen[k] = v;
+  for (const [id, bits] of Object.entries(other.sparks || {})) m.sparks[id] = (m.sparks[id] || 0) | bits;
   m.unlocked = Math.max(m.unlocked, other.unlocked);
   m.sessions = { ...other.sessions, ...m.sessions };
   if (other.puzzler) m.puzzler = { ...other.puzzler, ...m.puzzler };
@@ -125,6 +129,10 @@ function adoptPlatformSave() {
 const starsOf = id => { const s = save.stars[id]; return s ? (s.done ? 1 : 0) + (s.fast ? 1 : 0) + (s.clean ? 1 : 0) : 0; };
 const isDone = id => !!save.stars[id]?.done;
 const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id), 0);
+// sparks: three on every figure's island but the very first
+const hasSparks = l => !l.kind && l !== LEVELS[0];
+const sparksOf = l => { let b = save.sparks[l.id] || 0, n = 0; for (; b; b >>= 1) n += b & 1; return Math.min(SPARKS, n); };
+const worldSparks = ch => ({ n: ch.levels.reduce((n, l) => n + sparksOf(l), 0), max: ch.levels.filter(hasSparks).length * SPARKS });
 
 const fmt = s => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const hex = c => `#${c.toString(16).padStart(6, '0')}`;
@@ -265,6 +273,8 @@ const game = new Game({
     packFull: () => game.events.tipOnce('drop', coachText('drop')),
     // a while without a link: the hint (once, ever)
     lost: () => game.events.tipOnce('hint', coachText('hint')),
+    sparksFound: l => save.sparks[l.id] || 0,
+    spark: (l, k) => onSpark(l, k),
     // a link on the first figure: Kubo hops, and the very first one ever gets a word from him
     cheer: () => { ctx.companion?.cheer(); game.events.tipOnce('firstLink', t('kubo.firstLink')); },
     // first steps onto a figure's island this visit: its intro line, the first time ever
@@ -529,6 +539,15 @@ function tickHud(g) {
   }
   const radar = g.radarTarget();
   placeEdge($('edge-radar'), radar ?? homePos, !!radar && !fx.beamTarget);
+  // the first spark you come near and can see: Kubo says what it is (once, ever)
+  // (once he's done with the island's own lines)
+  if (g.sparks && !save.seen['tip.sparks'] && !g.tutorial && g.mode === 'play' && g.onIsland && ctx.companion?.quiet() !== false) {
+    for (const it of g.sparks.items) {
+      if (!it.live || it.g.position.distanceTo(g.player.pos) > 13) continue;
+      sparkView.copy(it.g.position).project(camera);
+      if (Math.abs(sparkView.x) < 0.8 && Math.abs(sparkView.y) < 0.8 && sparkView.z < 1) { game.events.tipOnce('sparks', t('kubo.sparks')); break; }
+    }
+  }
 }
 
 // the goals while you build (par time and hints, each with its star: kept from before, still on, or lost);
@@ -548,10 +567,11 @@ function renderGoals(g) {
     const ch = CHAPTERS[lvl.chapter], done = ch.levels.filter(l => isDone(l.id)).length;
     // the world's stars (new ones count up as they fly in from the results card)
     const stars = ch.levels.reduce((n, l) => n + starsOf(l.id), 0) - starsFlying;
-    key = `w${lvl.chapter}:${done}:${stars}`;
+    const sp = worldSparks(ch);
+    key = `w${lvl.chapter}:${done}:${stars}:${sp.n}`;
     if (key !== goalsKey) {
       $('lvl-name').textContent = ch.name;
-      $('count').innerHTML = `<svg class="ic"><use href="#i-cube"/></svg>${done} / ${ch.levels.length}<span class="w-stars"><svg class="ic"><use href="#i-star"/></svg><bdi>${stars}</bdi></span>`;
+      $('count').innerHTML = `<svg class="ic"><use href="#i-cube"/></svg>${done} / ${ch.levels.length}<span class="w-stars"><svg class="ic"><use href="#i-star"/></svg><bdi>${stars}</bdi></span><span class="w-stars w-sparks"><svg class="ic"><use href="#i-spark"/></svg><bdi>${sp.n} / ${sp.max}</bdi></span>`;
       $('stage').textContent = '';
       $('bar-fill').style.width = `${(done / ch.levels.length) * 100}%`;
     }
@@ -562,6 +582,12 @@ function renderGoals(g) {
     key = `${sec}:${g.hintsUsed}:${par}:${prev.fast}:${prev.clean}`;
     html = `<span class="g-time ${cls(prev.fast, sec <= par)}" title="${t('complete.star.fast')}" aria-label="${t('a11y.goal.time', { t: fmt(sec), par: fmt(par) })}"><svg><use href="#i-clock"/></svg><b>${fmt(sec)}</b><small>/ ${fmt(par)}</small><svg class="gs"><use href="#i-star"/></svg></span>`
       + `<span class="g-hint ${cls(prev.clean, !g.hintsUsed)}" title="${t('complete.star.clean')}" aria-label="${t('a11y.goal.hints', { n: g.hintsUsed })}"><svg><use href="#i-bulb"/></svg><b>${g.hintsUsed}</b><svg class="gs"><use href="#i-star"/></svg></span>`;
+    // the island's sparks, found so far
+    if (g.sparks) {
+      const n = sparksOf(lvl), say = t('a11y.goal.sparks', { n, total: SPARKS });
+      key += `:${n}`;
+      html += `<span class="g-spark ${n >= SPARKS ? 'all' : n ? 'some' : ''}" title="${say}" aria-label="${say}"><svg><use href="#i-spark"/></svg><b>${n}</b><small>/ ${SPARKS}</small></span>`;
+    }
   }
   if (key === goalsKey) return;
   goalsKey = key;
@@ -835,7 +861,7 @@ function onComplete(stats) {
   const card = {
     name: lvl.name, img: thumbs[idx], time: stats.time, par, hints: stats.hints,
     stars: [run.done, run.fast, run.clean], prevStars: [!!prev.done, !!prev.fast, !!prev.clean],
-    best: isBest && !firstClear, world,
+    best: isBest && !firstClear, world, sparks: hasSparks(lvl) ? sparksOf(lvl) : undefined,
     say: giftName ? t('workshop.gift.kubo', { name: escapeHtml(giftName) }) : lvl.outro,
     action: giftName ? { label: t('workshop.gift.open'), run: openGift }
       : finale || allStars ? { label: t('complete.epilogue'), run: showEnding }
@@ -861,7 +887,7 @@ function showDoneCard(o) {
   $('done-card').innerHTML = `
     <div class="dc-head"><img src="${o.img || ''}" alt=""><div><small>${t('complete.ribbon')}</small><b>${escapeHtml(o.name)}</b></div></div>
     <div class="dc-stars">${stars}</div>
-    <div class="dc-stats"><span><svg><use href="#i-clock"/></svg>${o.time < 1 ? `<b>${t('complete.warmup')}</b>` : `<b>${fmt(o.time)}</b> <bdi dir="ltr"><em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em></bdi>`}</span><span><svg><use href="#i-bulb"/></svg><b>${o.hints}</b></span>${o.best ? `<span class="dc-best">${t('complete.newBest')}</span>` : ''}</div>
+    <div class="dc-stats"><span><svg><use href="#i-clock"/></svg>${o.time < 1 ? `<b>${t('complete.warmup')}</b>` : `<b>${fmt(o.time)}</b> <bdi dir="ltr"><em class="${dp <= 0 ? 'up' : 'down'}">${dp <= 0 ? '−' : '+'}${fmt(Math.abs(dp))}</em></bdi>`}</span><span><svg><use href="#i-bulb"/></svg><b>${o.hints}</b></span>${o.sparks !== undefined ? `<span class="dc-sparks" title="${t('a11y.goal.sparks', { n: o.sparks, total: SPARKS })}"><svg><use href="#i-spark"/></svg><b>${o.sparks} / ${SPARKS}</b></span>` : ''}${o.best ? `<span class="dc-best">${t('complete.newBest')}</span>` : ''}</div>
     ${w ? `<div class="dc-world"><b>${w.crown ? '<svg class="wd-crown"><use href="#i-star"/></svg> ' : ''}${w.title}</b><span><svg><use href="#i-star"/></svg> <bdi class="n">${w.stars} / ${w.total}</bdi></span></div>` : ''}
     ${o.action ? `<button class="btn mint dc-go" id="dc-go">${key}<span>${escapeHtml(o.action.label)}</span><svg><use href="#i-next"/></svg></button>` : ''}`;
   $('done-card').classList.add('show');
@@ -991,6 +1017,22 @@ function greetBack() {
   // saves from before the 50 figures: new figures washed up on islands they had already passed
   if (save.seen.oldSave && !save.seen.oldSaveTold) { save.seen.oldSaveTold = true; persist(); kuboSays(t('kubo.newFigures')); }
 }
+// a spark caught: it counts towards the island's three for good (a paler one, found on an earlier run, only charges
+// the magnet again); the first one ever, Kubo says what the magnet does
+function onSpark(l, k) {
+  const before = save.sparks[l.id] || 0, was = sparksOf(l);
+  save.sparks[l.id] = before | (1 << k);
+  const n = sparksOf(l);
+  goalsKey = '';
+  save.seen['tip.sparks'] = true; // (caught before Kubo got to say what they are)
+  if (n > was) {
+    persist();
+    toast(t('toast.spark', { n, total: SPARKS }));
+    if (n >= SPARKS) { kuboSays(t('kubo.sparksAll')); fx.confettiBurst(game.player.pos.clone().setY(game.player.pos.y + 1.2), 1.5, 60); }
+  }
+  if (!game.roaming) game.events.tipOnce('magnet', t(mobile ? 'kubo.magnet.touch' : 'kubo.magnet.desk'));
+}
+const sparkView = new THREE.Vector3();
 // what a rebuild would still earn: "beat 2:15", "use no hints" or both
 const missingGoal = l => {
   const st = save.stars[l.id] || {}, par = `<b>${fmt(parTime(l))}</b>`;
@@ -1221,7 +1263,8 @@ $('btn-rebuild').onclick = () => rebuild();
 $('btn-express').onclick = () => input.actions.push({ type: 'express' });
 function renderTool(btn, count, n, gained) {
   const b = $(btn);
-  b.classList.toggle('hidden', !(game.stageCount > 1));
+  // (the magnet also shows on a small figure once a spark has charged it)
+  b.classList.toggle('hidden', !(game.stageCount > 1 || (btn === 'btn-magnet' && (n > 0 || game.sparkMask))));
   document.body.classList.toggle('has-tools', game.stageCount > 1);
   b.classList.toggle('empty', n <= 0);
   $(count).textContent = n;
@@ -1241,11 +1284,12 @@ let toolCheck = 0;
 function renderToolState(g, far) {
   const hk = ctx.coachKeys?.()?.hint ?? '';
   if ($('hint-key').textContent !== hk) $('hint-key').textContent = hk;
-  if (!(g.stageCount > 1)) return;
+  // (small figures have no charges from links, so no ring: their magnet comes from the island's sparks)
+  const big = g.stageCount > 1;
   for (const [id, n, links, tool] of [['btn-magnet', g.magnetCharges, g.magnetLinks, TOOLS.magnet], ['btn-express', g.expressCharges, g.expressLinks, TOOLS.express]]) {
     const b = $(id);
-    b.style.setProperty('--p', `${Math.round((links / tool.every) * 100)}%`);
-    b.classList.toggle('full', n >= tool.max);
+    b.style.setProperty('--p', `${big ? Math.round((links / tool.every) * 100) : 0}%`);
+    b.classList.toggle('full', n >= tool.max || !big);
   }
   const now = performance.now();
   if (now < toolCheck) return;
@@ -1337,7 +1381,7 @@ const ctx = {
   get app() { return app; }, set app(v) { app = v; },
   get base() { return base; }, overlays,
   setBase, pushOverlay, popOverlay, talk, toast, kuboSays, startLevel, openNexus, enterTitle, pause, resume, showComplete, splitsHtml,
-  playPrologue, showEnding, continueGame, enterWorld, chapterUnlocked, hideDoneCard,
+  playPrologue, showEnding, continueGame, enterWorld, chapterUnlocked, hideDoneCard, worldSparks,
   renderThumb, get thumbs() { return thumbs; }, goFullscreen,
   hooks: { tick: [], complete: [], link: [], frame: [] },
   completeHandlers: {}, // kind -> (stats, level) => void, for non-campaign figures

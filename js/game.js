@@ -7,6 +7,7 @@ import { S, DIRS, INK, buildVoxelGeometry, shadeVoxel, voxelMaterial, generatePu
 import { Player } from './player.js';
 import { LAYER_OVERLAY, toon } from './render.js';
 import { setLookTheme, LK } from './looks.js';
+import { Sparks, sparkSpots } from './sparks.js';
 import { t } from './i18n.js';
 
 const LOOSE_RANGE = 5.5, SOCKET_RANGE = 14;
@@ -318,10 +319,11 @@ export class Game {
     this.syncStage();
     this.buildDistrictFlags();
     for (const d of this.districtDone) if (this.flags[d]) this.flags[d].banner.material.color.setScalar(0.55);
-    this.magnetCharges = this.stageCount > 1 ? 1 : 0;
+    // (a run you come back to keeps the charges it had)
+    this.magnetCharges = resume?.magnet ?? (this.stageCount > 1 ? 1 : 0);
     this.magnetLinks = 0;
     this.magnetTold = false;
-    this.expressCharges = 0;
+    this.expressCharges = resume?.express ?? 0;
     this.expressLinks = 0;
     this.expressTold = false;
     this.elapsed = resume?.elapsed ?? 0;
@@ -343,6 +345,13 @@ export class Game {
     this.packTipShown = false;
     this.hintWarnT = -99;
     this.roaming = built;
+    // the island's sparks (not on the very first figure's): the ones caught in this run are gone; on a finished
+    // island you only walk, the ones you've ever found are
+    this.sparkMask = resume?.sparks ?? 0;
+    if (campaign && this.levelIndex > 0) {
+      const found = this.events.sparksFound?.(level) ?? 0;
+      this.sparks = new Sparks(this.scene, sparkSpots(this.world, 77 + hashId(level.id), this.footR), { gone: built ? found : this.sparkMask, pale: found });
+    }
     this.barked = new Set();
     this.chainQueue = [];
     this.chain = 0;
@@ -680,6 +689,23 @@ export class Game {
     this.audio.tone({ f: 300, f2: 1200, type: 'sawtooth', dur: 0.35, vol: 0.06 });
     this.events.toast?.(t(got === 1 ? 'magnet.got.one' : 'magnet.got.other', { n: got }));
     this.events.magnet?.(this.magnetCharges, false);
+    this.events.saveSession?.(this.sessionData());
+  }
+
+  // A spark of the Keeper's Lantern caught: a magnet charge for this run (any figure, small ones too), and it counts
+  // towards the island's three.
+  catchSpark(k) {
+    this.sparkMask |= 1 << k;
+    const s = this.sparks.spots[k], p = this.player.pos;
+    this.fx.burst(new THREE.Vector3(p.x, p.y + 1.1, p.z), 0xffd23f, 26, 5);
+    this.audio.spark?.(this.sparks.items.filter(i => !i.live).length);
+    this.events.vibrate?.(22);
+    if (!this.roaming) {
+      this.magnetCharges = Math.min(9, this.magnetCharges + 1);
+      this.events.magnet?.(this.magnetCharges, true);
+      this.events.saveSession?.(this.sessionData());
+    }
+    this.events.spark?.(this.level, k, s);
   }
 
   // Kubo Express: every carried block that fits flies across the island to its bubble.
@@ -692,6 +718,7 @@ export class Game {
     this.audio.tone({ f: 400, f2: 1600, type: 'triangle', dur: 0.45, vol: 0.1, wet: 0.4 });
     this.events.toast?.(t(fits.length === 1 ? 'express.sent.one' : 'express.sent.other', { n: fits.length }));
     this.events.express?.(this.expressCharges, false);
+    this.events.saveSession?.(this.sessionData());
   }
 
   // Nearest block that fits right now — only offered when the player seems stuck.
@@ -718,6 +745,8 @@ export class Game {
   }
   // the figure's puzzle: its blocks, bubbles and part flags (the island stays)
   unloadPuzzle() {
+    this.sparks?.dispose();
+    this.sparks = null;
     if (!this.voxels?.length) return;
     for (const v of this.voxels) { this.scene.remove(v.mesh); v.mesh.geometry.dispose(); v.mat.dispose(); }
     for (const s of [...this.sockets.values()]) this.removeSocket(s);
@@ -1177,6 +1206,7 @@ export class Game {
     // (world → archipelago coordinates: the sea and the ground's patterns stay put when the active island changes)
     LK.b.z = this.arch ? -this.arch.group.position.x : 0; LK.b.w = this.arch ? -this.arch.group.position.z : 0;
 
+    if (this.mode !== 'play') this.sparks?.update(dt, this.t, null);
     if (this.mode === 'play') this.updatePlay(dt);
     else if (this.mode === 'showcase') this.updateOrbit(dt, 0.08, 1);
     else if (this.mode === 'celebrate') this.updateCelebrate(dt);
@@ -1381,6 +1411,7 @@ export class Game {
     this.player.update(dt, this.input, look, this.colliders, this.world, lift);
     if (this.tutorial) this.updateTutorial(dt, look, Math.hypot(this.player.pos.x - px, this.player.pos.z - pz));
     if (this.liftFx) this.liftFx.update(dt, this.t, !!lift, this.player.floating);
+    this.sparks?.update(dt, this.t, this.player, k => this.catchSpark(k), q => this.fx.sparkle(q));
     this.player.applyCamera(this.camera);
     if (this.kick > 0.001 || this.camera.fov !== this.camera.userData.baseFov) {
       this.kick = this.kick > 0.002 ? this.kick * Math.exp(-dt * 9) : 0;
@@ -1450,6 +1481,7 @@ export class Game {
   // back on the island after the results: the figure stands finished and you can walk on
   walkOn() {
     this.roaming = true;
+    this.sparks?.drop(this.events.sparksFound?.(this.level) ?? 0);
     this.fx.clearBeam();
     for (const v of this.voxels) { v.mesh.position.copy(v.target); v.mesh.rotation.set(0, 0, 0); v.mesh.scale.setScalar(1); }
     this.arch?.refresh();
@@ -1641,7 +1673,7 @@ export class Game {
   }
 
   sessionData() {
-    return { v: 2, id: this.level.id, seed: this.runSeed, placed: this.linkOrder.slice(), elapsed: Math.round(this.elapsed), hints: this.hintsUsed, n: this.voxels.length, done: this.placedCount, splits: this.splits.slice() };
+    return { v: 2, id: this.level.id, seed: this.runSeed, placed: this.linkOrder.slice(), elapsed: Math.round(this.elapsed), hints: this.hintsUsed, n: this.voxels.length, done: this.placedCount, splits: this.splits.slice(), sparks: this.sparkMask, magnet: this.magnetCharges, express: this.expressCharges };
   }
 
   openSocketNumbers() { return [...this.sockets.values()].map(s => s.num).sort((a, b) => a - b); }

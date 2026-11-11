@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Koruyucu'nun Adası'na",
   "rotate.title": "Oynamak için cihazını yan çevir",
   "settings.mutedBySite": "Bu sitede sessize alındı",
+  "kubo.sparks": "Bak, Koruyucu’nun Feneri’nden bir <b>kıvılcım</b>! Fırtına her adaya üç tane savurdu. Birini yakala, <b>mıknatısını</b> şarj etsin.",
+  "kubo.sparksAll": "Bu adanın üç kıvılcımı da tamam! Fener biraz daha parlak yanıyor.",
+  "toast.spark": "Kıvılcım {n} / {total}!",
+  "a11y.goal.sparks": "Bulunan kıvılcımlar: {n} / {total}",
 };

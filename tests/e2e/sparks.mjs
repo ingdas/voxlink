@@ -1,0 +1,149 @@
+// Sparks of the Keeper's Lantern: three on every figure's island (none on the Sprout's), every one of them within
+// reach of the game's own player physics (walking and jumping, no tools); catching one charges the magnet (small
+// figures too), counts towards the island's three for good, and is kept with a half-built run; a fresh run brings
+// them back in a paler light; on a finished island only the ones never found are left.
+import { suite, saveWith, MEADOW } from './lib.mjs';
+
+const ALL_OPEN = { campaign: 2, unlocked: 50, seen: { prologue: true, tutorial: true, meadow: true, farm: true, frost: true, frostwood: true, reef: true, cove: true, starfall: true, moon: true, cliffs: true, storm: true, nexus: true }, stars: {} };
+const speech = p => p.evaluate(() => document.querySelector('#kubo-speech.show .ks-text')?.innerText || '');
+// step into spark k (stand right under it, at its own height)
+const touch = (p, k) => p.evaluate(k => { const g = window.__voxlink.game, s = g.sparks.spots[k]; g.player.pos.set(s.x, s.y - 1, s.z); g.player.vel.set(0, 0, 0); }, k);
+const state = p => p.evaluate(() => {
+  const V = window.__voxlink, g = V.game;
+  return {
+    mask: g.sparkMask, magnet: g.magnetCharges, saved: V.save.sparks[g.level.id] || 0, shown: g.sparks.items.map(i => i.g.visible),
+    button: !document.getElementById('btn-magnet').classList.contains('hidden') && getComputedStyle(document.getElementById('btn-magnet')).display !== 'none',
+    chip: document.querySelector('#goals .g-spark')?.innerText.replace(/\s+/g, ' ').trim() ?? null, pill: document.getElementById('count').innerText.replace(/\s+/g, ' ').trim(),
+    toast: document.getElementById('toast').classList.contains('show') ? document.getElementById('toast').innerText : '',
+  };
+});
+
+await suite('sparks', async t => {
+  // every island: three sparks, each one a stand-in player (the game's Player) can walk and jump to
+  const a = await t.page({ save: ALL_OPEN, query: '?debug' });
+  const all = await a.evaluate(async () => {
+    const V = window.__voxlink, { Player } = await import('./js/player.js'), out = [];
+    for (let i = 0; i < V.LEVELS.length; i++) {
+      V.startLevel(i);
+      const g = V.game, w = g.world, spots = g.sparks?.spots || [], missed = [];
+      for (const s of spots) {
+        let ok = false;
+        for (const d of [3, 4.5, 2]) for (let k = 0; k < 16 && !ok; k++) {
+          const th = (k / 16) * Math.PI * 2, x = s.x + Math.cos(th) * d, z = s.z + Math.sin(th) * d, f = w.floorAt(x, z);
+          if (f === null || w.walkSd(x, z) > -0.4 || w.heightAt(x, z) > f + 0.05) continue;
+          const pl = new Player(), input = { move: { x: 0, y: -1, sprint: true }, jumpHeld: true };
+          pl.spawn(x, z, 0); pl.pos.y = f;
+          for (let n = 0, stuck = 0; n < 420 && !ok; n++) {
+            const dx = s.x - pl.pos.x, dz = s.z - pl.pos.z, h = Math.hypot(dx, dz), px = pl.pos.x, pz = pl.pos.z;
+            pl.yaw = Math.atan2(-dx, -dz);
+            input.move.y = h > 0.15 ? -1 : 0;
+            // a jump when something's in the way, or right under a spark that hangs in the air
+            if (pl.onGround && (stuck > 4 || (h < 0.5 && s.y - pl.pos.y > 2.4))) pl.jumpBuffer = 0.14;
+            pl.update(1 / 60, input, { x: 0, y: 0 }, g.colliders, w, null);
+            stuck = Math.hypot(pl.pos.x - px, pl.pos.z - pz) < 0.01 && h > 0.15 ? stuck + 1 : 0;
+            ok = Math.hypot(dx, dz, s.y - Math.min(Math.max(s.y, pl.pos.y), pl.pos.y + 1.7)) < 0.95;
+          }
+        }
+        if (!ok) missed.push(`${s.kind}@${s.x.toFixed(1)},${s.y.toFixed(1)},${s.z.toFixed(1)}`);
+      }
+      out.push({ id: g.level.id, n: spots.length, kinds: spots.map(s => s.kind), missed });
+    }
+    return out;
+  });
+  t.check('no sparks on the Sprout (the first minute stays as it is)', all[0].n === 0, all[0]);
+  t.check('three sparks on every other island', all.slice(1).every(r => r.n === 3), all.filter((r, i) => i && r.n !== 3));
+  t.check('every spark can be reached on foot', all.every(r => !r.missed.length), all.filter(r => r.missed.length).map(r => `${r.id}: ${r.missed.join(' ')}`).join('; '));
+  const kinds = all.flatMap(r => r.kinds);
+  t.check('most islands have one up high or in the air', kinds.filter(k => k === 'high').length >= 40 && kinds.filter(k => k === 'leap').length >= 10, { high: kinds.filter(k => k === 'high').length, leap: kinds.filter(k => k === 'leap').length });
+  // the same spots every time
+  const again = await a.evaluate(() => { const V = window.__voxlink, at = i => { V.startLevel(i); return JSON.stringify(V.game.sparks.spots); }; const x = at(7); at(12); return x === at(7); });
+  t.check('an island\'s sparks are in the same spots every visit', again);
+  await a.close();
+
+  // the Tulip, the first island with sparks
+  const p = await t.page({ save: saveWith(['sprout']), query: '?debug' });
+  await t.hideDebug(p);
+  await p.evaluate(() => window.__voxlink.startLevel(1));
+  await t.app(p, 'playing');
+  await p.waitForTimeout(600);
+  const s0 = await state(p);
+  t.check('the goals show the island\'s sparks, none found yet', s0.chip === '0 / 3', s0.chip);
+  t.check('a small figure has no magnet button to begin with', !s0.button && s0.magnet === 0, s0);
+  // Kubo points the first one out once it's in view (after his other lines)
+  await p.evaluate(() => { const V = window.__voxlink, g = V.game, s = g.sparks.spots[0]; V.ctx.companion.reset(); g.player.pos.set(s.x * 0.5, 0, s.z * 0.5); g.player.yaw = Math.atan2(-s.x, -s.z); g.player.pitch = 0.1; });
+  await p.waitForFunction(() => /spark/i.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || ''), null, { timeout: 8000 }).catch(() => {});
+  t.check('Kubo says what a spark is the first time one is in view', /spark/i.test(await speech(p)) && /magnet/i.test(await speech(p)), await speech(p));
+  await touch(p, 0);
+  await p.waitForFunction(() => window.__voxlink.game.sparkMask === 1, null, { timeout: 5000 }).catch(() => {});
+  await p.waitForTimeout(300);
+  const s1 = await state(p);
+  t.check('walking into a spark catches it', s1.mask === 1 && !s1.shown[0] && s1.shown[1] && s1.shown[2], s1);
+  t.check('…it charges the magnet, whose button appears', s1.magnet === 1 && s1.button, s1);
+  t.check('…and counts for the island, in the goals and the save', s1.chip === '1 / 3' && s1.saved === 1 && /1/.test(s1.toast), s1);
+  await p.waitForFunction(() => /magnet/i.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || '') && !/spark/i.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || ''), null, { timeout: 12000 }).catch(() => {});
+  t.check('the first one ever: Kubo says how the magnet works', /R/.test(await speech(p)) && /magnet/i.test(await speech(p)), await speech(p));
+  // the magnet works on a small figure: it pulls in the blocks that fit
+  const pulled = await p.evaluate(() => {
+    const g = window.__voxlink.game, v = g.voxels.find(v => v.state === 'loose' && g.sockets.has(v.i));
+    g.player.pos.set(v.mesh.position.x + 1.5, 0, v.mesh.position.z);
+    g.useMagnet();
+    return { pack: g.pack.length, magnet: g.magnetCharges };
+  });
+  t.check('the magnet pulls in blocks that fit on a small figure too', pulled.pack >= 1 && pulled.magnet === 0, pulled);
+  await p.evaluate(() => { const g = window.__voxlink.game; while (g.pack.length) g.drop(); });
+  // a second spark, then away over the bridge and back: the run keeps its sparks and its charges
+  await touch(p, 1);
+  await p.waitForFunction(() => window.__voxlink.game.sparkMask === 3, null, { timeout: 5000 }).catch(() => {});
+  await p.evaluate(() => window.__voxlink.startLevel(1, true, 'keep'));
+  await p.waitForTimeout(400);
+  const s2 = await state(p);
+  t.check('coming back to a half-built figure: the caught sparks stay caught, the charge is kept', s2.mask === 3 && !s2.shown[0] && !s2.shown[1] && s2.shown[2] && s2.magnet === 1, s2);
+  // finish it with one spark left: the card counts them, and the last one is still there to find
+  await t.win(p);
+  await p.waitForTimeout(4200);
+  const card = await p.evaluate(() => document.querySelector('#done-card .dc-sparks')?.innerText.replace(/\s+/g, ' ').trim());
+  t.check('the results card counts the island\'s sparks', card === '2 / 3', card);
+  const s3 = await state(p);
+  t.check('walking the finished island: the spark never found is still there', s3.shown[2] && !s3.shown[0] && !s3.shown[1], s3.shown);
+  t.check('…and the pill counts the world\'s sparks', /2 \/ 12/.test(s3.pill), s3.pill);
+  await p.evaluate(() => window.__voxlink.ctx.companion.reset());
+  await touch(p, 2);
+  await p.waitForFunction(() => window.__voxlink.save.sparks.tulip === 7, null, { timeout: 5000 }).catch(() => {});
+  await p.waitForTimeout(400);
+  const s4 = await state(p);
+  t.check('the third spark: the island has all three', s4.saved === 7 && /3 \/ 12/.test(s4.pill), s4);
+  await p.waitForFunction(() => /three/i.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || ''), null, { timeout: 9000 }).catch(() => {});
+  t.check('…and Kubo says so (after the line he was on)', /three/i.test(await speech(p)), await speech(p));
+  // a fresh run (a rebuild for stars): all three are back, paler, and charge the magnet again without counting twice
+  await p.evaluate(() => window.__voxlink.startLevel(1));
+  await t.app(p, 'playing');
+  await p.waitForTimeout(500);
+  const s5 = await state(p);
+  t.check('a fresh run: the sparks are back, the goals show them all found', s5.shown.every(Boolean) && s5.mask === 0 && s5.chip === '3 / 3', s5);
+  await touch(p, 0);
+  await p.waitForFunction(() => window.__voxlink.game.sparkMask === 1, null, { timeout: 5000 }).catch(() => {});
+  const s6 = await state(p);
+  t.check('…catching one again charges the magnet and changes nothing else', s6.magnet === 1 && s6.saved === 7 && s6.chip === '3 / 3', s6);
+  await p.close();
+
+  // a finished island you walk onto: the sparks you found are gone, the rest wait
+  const q = await t.page({ save: saveWith(MEADOW, { seen: { nexus: true, farm: true }, extra: { sparks: { ladybug: 5 } } }), query: '?debug' });
+  await t.hideDebug(q);
+  await q.evaluate(() => window.__voxlink.startLevel(3, true));
+  await t.app(q, 'playing');
+  const s7 = await state(q);
+  t.check('a finished island shows only the sparks never found', s7.shown.join() === 'false,true,false', s7.shown);
+  await touch(q, 1);
+  await q.waitForFunction(() => window.__voxlink.save.sparks.ladybug === 7, null, { timeout: 5000 }).catch(() => {});
+  const s8 = await state(q);
+  t.check('…catching it there counts, with no magnet to charge', s8.saved === 7 && s8.magnet === 0 && !s8.button, s8);
+  // the Keeper's Isle: a world's card counts its sparks
+  await q.evaluate(() => window.__voxlink.openNexus({ from: 0 }));
+  await q.waitForFunction(() => window.__voxlink.ctx.app === 'nexus', null, { timeout: 15000 });
+  await q.waitForFunction(() => window.__voxlink.ctx.nexus.session?.ready, null, { timeout: 15000 });
+  await q.evaluate(() => { const N = window.__voxlink.ctx.nexus.session, s = N.isle.arrival(0); N.player.pos.set(s.x, 0, s.z); });
+  await q.waitForFunction(() => document.getElementById('nexus-card').classList.contains('show'), null, { timeout: 10000 }).catch(() => {});
+  const nx = await q.evaluate(() => document.getElementById('nexus-card').innerText.replace(/\s+/g, ' '));
+  t.check('the Keeper\'s Isle card counts the world\'s sparks', /3 \/ 12/.test(nx), nx);
+  await q.close();
+});

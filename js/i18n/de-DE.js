@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Zur Insel des Hüters",
   "rotate.title": "Dreh dein Gerät quer, um zu spielen",
   "settings.mutedBySite": "Auf dieser Seite stummgeschaltet",
+  "kubo.sparks": "Schau, ein <b>Funke</b> aus der Laterne des Hüters! Der Sturm hat drei auf jede Insel geweht. Fang einen, dann lädt er deinen <b>Magneten</b> auf.",
+  "kubo.sparksAll": "Alle drei Funken dieser Insel! Die Laterne leuchtet ein bisschen heller.",
+  "toast.spark": "Funke {n} von {total}!",
+  "a11y.goal.sparks": "Funken gefunden: {n} von {total}",
 };

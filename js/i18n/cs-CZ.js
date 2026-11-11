@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Na Ostrov Strážce",
   "rotate.title": "Otoč zařízení na šířku a hraj",
   "settings.mutedBySite": "Ztlumeno na tomto webu",
+  "kubo.sparks": "Hele, <b>jiskra</b> ze Strážcovy Lucerny! Bouře jich na každý ostrov zavála tři. Chyť ji a nabije ti <b>magnet</b>.",
+  "kubo.sparksAll": "Všechny tři jiskry tohoto ostrova! Lucerna svítí o trochu jasněji.",
+  "toast.spark": "Jiskra {n} z {total}!",
+  "a11y.goal.sparks": "Nalezené jiskry: {n} z {total}",
 };

@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Til Vogterens Ø",
   "rotate.title": "Vend enheden på tværs for at spille",
   "settings.mutedBySite": "Slået fra på denne side",
+  "kubo.sparks": "Se, en <b>gnist</b> fra Vogterens Lanterne! Stormen blæste tre ud på hver ø. Fang en, så lader den din <b>magnet</b>.",
+  "kubo.sparksAll": "Alle tre gnister på denne ø! Lanternen lyser lidt stærkere.",
+  "toast.spark": "Gnist {n} af {total}!",
+  "a11y.goal.sparks": "Gnister fundet: {n} af {total}",
 };

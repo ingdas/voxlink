@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Spre Insula Păzitorului",
   "rotate.title": "Rotește dispozitivul pe orizontală ca să joci",
   "settings.mutedBySite": "Sunet oprit pe acest site",
+  "kubo.sparks": "Uite, o <b>scânteie</b> din Felinarul Păzitorului! Furtuna a suflat câte trei pe fiecare insulă. Prinde una și îți încarcă <b>magnetul</b>.",
+  "kubo.sparksAll": "Toate cele trei scântei ale acestei insule! Felinarul strălucește puțin mai tare.",
+  "toast.spark": "Scânteia {n} din {total}!",
+  "a11y.goal.sparks": "Scântei găsite: {n} din {total}",
 };

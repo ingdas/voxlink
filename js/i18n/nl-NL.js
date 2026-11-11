@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Naar het Hoedereiland",
   "rotate.title": "Houd je toestel liggend om te spelen",
   "settings.mutedBySite": "Gedempt op deze site",
+  "kubo.sparks": "Kijk, een <b>vonk</b> van de Lantaarn van de Hoeder! De storm blies er drie naar elk eiland. Vang er een en hij laadt je <b>magneet</b> op.",
+  "kubo.sparksAll": "Alle drie de vonken van dit eiland! De Lantaarn schijnt weer wat feller.",
+  "toast.spark": "Vonk {n} van {total}!",
+  "a11y.goal.sparks": "Vonken gevonden: {n} van {total}",
 };

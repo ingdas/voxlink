@@ -356,11 +356,12 @@ function cardHtml(k, open) {
       <div class="gc-row"><span class="gc-act">${t('nexus.card.gardenIn')}</span></div></div>`;
   }
   const { ch, stars, max, crowned, T } = worldInfo(k);
+  const sparks = ctx.worldSparks(ch);
   const prev = ctx.CHAPTERS[k - 1];
   const figs = ch.levels.map(l => (isDone(l) ? `<img src="${ctx.thumbs[l.index] || ''}" alt="" class="${starsOf(l) === 3 ? 's3' : ''}">` : `<i class="${l.index < ctx.save.unlocked && open ? 'open' : ''}">?</i>`)).join('');
   const act = open ? t('nexus.card.walkIn') : `<svg><use href="#i-lock"/></svg>${t('nexus.card.sleeping', { world: prev?.name ?? '' })}`;
   return `<div class="gc-thumb nx-portal ${open ? '' : 'asleep'}" style="--a:${hex(T.skyTop)};--b:${hex(T.skyHorizon)};--c:${hex(T.grass)}"><span>${k + 1}</span>${crowned ? '<svg class="nx-crown"><use href="#i-star"/></svg>' : ''}</div>
-    <div class="gc-body"><small>${t('map.chapter', { n: k + 1 })} · <svg class="ic"><use href="#i-star"/></svg><bdi class="n">${stars} / ${max}</bdi></small><b>${ch.name}</b>
+    <div class="gc-body"><small>${t('map.chapter', { n: k + 1 })} · <svg class="ic"><use href="#i-star"/></svg><bdi class="n">${stars} / ${max}</bdi> · <svg class="ic"><use href="#i-spark"/></svg><bdi class="n">${sparks.n} / ${sparks.max}</bdi></small><b>${ch.name}</b>
     <div class="nx-figs">${figs}</div>
     <div class="gc-row"><span class="gc-act">${act}</span></div></div>`;
 }

@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Til Vokterens øy",
   "rotate.title": "Snu enheten sidelengs for å spille",
   "settings.mutedBySite": "Dempet på dette nettstedet",
+  "kubo.sparks": "Se, en <b>gnist</b> fra Vokterens lykt! Stormen blåste tre til hver øy. Fang en, så lader den <b>magneten</b> din.",
+  "kubo.sparksAll": "Alle tre gnistene på denne øya! Lykta skinner litt sterkere.",
+  "toast.spark": "Gnist {n} av {total}!",
+  "a11y.goal.sparks": "Gnister funnet: {n} av {total}",
 };

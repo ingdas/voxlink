@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "守り手の島へ",
   "rotate.title": "端末を横向きにしてあそんでね",
   "settings.mutedBySite": "このサイトでミュート中",
+  "kubo.sparks": "みて、守り手のランタンの<b>ひばな</b>だよ！ あらしが どの島にも 3つずつ ふきとばしたんだ。つかまえると <b>マグネット</b>が チャージされるよ。",
+  "kubo.sparksAll": "この島のひばなが 3つ ぜんぶ そろった！ ランタンが すこし 明るくなったよ。",
+  "toast.spark": "ひばな {n}/{total}！",
+  "a11y.goal.sparks": "見つけたひばな：{n}/{total}",
 };

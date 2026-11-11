@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Till Väktarens ö",
   "rotate.title": "Vrid enheten till liggande läge för att spela",
   "settings.mutedBySite": "Ljudet är av på den här webbplatsen",
+  "kubo.sparks": "Titta, en <b>gnista</b> från Väktarens lykta! Stormen blåste tre till varje ö. Fånga en så laddar den din <b>magnet</b>.",
+  "kubo.sparksAll": "Alla tre gnistorna på den här ön! Lyktan lyser lite starkare.",
+  "toast.spark": "Gnista {n} av {total}!",
+  "a11y.goal.sparks": "Hittade gnistor: {n} av {total}",
 };

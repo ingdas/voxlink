@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "지킴이의 섬으로",
   "rotate.title": "기기를 가로로 돌려서 플레이하세요",
   "settings.mutedBySite": "이 사이트에서 음소거됨",
+  "kubo.sparks": "봐요, 지킴이의 랜턴에서 나온 <b>불꽃</b>이에요! 폭풍이 섬마다 세 개씩 날려 보냈어요. 하나 잡으면 <b>자석</b>이 충전돼요.",
+  "kubo.sparksAll": "이 섬의 불꽃 세 개를 다 모았어요! 랜턴이 조금 더 밝게 빛나요.",
+  "toast.spark": "불꽃 {n}/{total}!",
+  "a11y.goal.sparks": "찾은 불꽃: {n}/{total}",
 };

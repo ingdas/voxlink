@@ -656,6 +656,11 @@ body.site-muted :is(#set-sfx, #set-music) { opacity: .45; }
 .goals .kept svg.gs { fill: #ffe8a8; } /* earned before: pale, as on the results panel */
 .goals .off svg.gs { fill: rgba(42, 31, 61, .18); }
 .goals .off b { text-decoration: line-through; opacity: .6; }
+/* the island's sparks found so far (gold once it has all three) */
+.goals .g-spark svg { fill: #fff; stroke-width: 2; }
+.goals .g-spark.some svg { fill: #ffe8a8; }
+.goals .g-spark.all svg, #count .w-sparks .ic, .dc-stats .dc-sparks svg { fill: var(--sun); }
+#count .w-sparks { margin-inline-start: 8px; }
 #count .ic { width: 15px; height: 15px; vertical-align: -2px; margin-inline-end: 3px; stroke: var(--ink); stroke-width: 2.2; fill: none; }
 /* finished island: rebuild for stars */
 .rebuild { position: absolute; left: 50%; bottom: calc(26px + var(--sab, 0px)); translate: -50% 0; display: none; pointer-events: auto; font-size: 17px; }

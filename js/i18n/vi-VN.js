@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Đến Đảo Người Giữ",
   "rotate.title": "Xoay ngang thiết bị để chơi",
   "settings.mutedBySite": "Đã tắt tiếng trên trang này",
+  "kubo.sparks": "Nhìn kìa, một <b>tia lửa</b> từ Đèn lồng của Người Giữ! Cơn bão đã thổi ba tia tới mỗi hòn đảo. Bắt lấy một tia là <b>nam châm</b> của bạn được nạp.",
+  "kubo.sparksAll": "Đủ cả ba tia lửa của đảo này! Đèn lồng sáng thêm một chút.",
+  "toast.spark": "Tia lửa {n} trên {total}!",
+  "a11y.goal.sparks": "Tia lửa đã tìm thấy: {n} trên {total}",
 };

@@ -668,4 +668,8 @@ export default {
   "ending.toIsle": "Vartijan saarelle",
   "rotate.title": "Käännä laite vaakasuuntaan pelataksesi",
   "settings.mutedBySite": "Mykistetty tällä sivustolla",
+  "kubo.sparks": "Katso, <b>kipinä</b> Vartijan Lyhdystä! Myrsky puhalsi niitä kolme joka saarelle. Nappaa yksi, niin se lataa <b>magneettisi</b>.",
+  "kubo.sparksAll": "Tämän saaren kaikki kolme kipinää! Lyhty loistaa vähän kirkkaammin.",
+  "toast.spark": "Kipinä {n}/{total}!",
+  "a11y.goal.sparks": "Kipinöitä löydetty: {n}/{total}",
 };
