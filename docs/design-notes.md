@@ -650,3 +650,12 @@ thing, not more realism. Detail that is added draws from a random source of its 
   in rings of flagstones, its lamps are lanterns, the portal ring's stones are bevelled with an inlaid band.
   **Bridges** have planks of uneven length, pointed posts and proper flower pots; **stones lie in the shallows**
   along every low shore.
+- **Windmill Farm.** The **barn** has board-and-batten walls, two door leaves in a white frame with Z-braces and
+  hinge straps, a hay loft with a hoist beam, and a weathercock; the **silo** has staves between hoops, a ribbed
+  dome and a ladder. The **windmill** is a tapering tower on a course of stones with a gallery half way up,
+  windows, a framed door and sails of slats with the cloth laced on. **Fields** are ridged soil with sheaves of
+  wheat (ears and all), cabbages in their outer leaves or carrot tops. **Hay trampolines** are square bales with
+  twine, stacked crosswise, and a straw-filled wooden frame to bounce from. **Sheep** are woolly lumps with a
+  dark face, ears, eyes and a tail. Landmarks: the **pumpkin patch** has ribbed pumpkins on a trailing vine and a
+  scarecrow with a sack head, straw cuffs and a crow on its arm; the **campfire** has leaning logs, flames in
+  three colours, log seats with their rings showing and a pegged ridge tent with its flap open.

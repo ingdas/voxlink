@@ -376,36 +376,81 @@ const BUILD = {
     L.box(0, 1.75, 0.55, 0.5, 0, 1.0, { sound: 'snow' });
   },
 
-  // a pumpkin patch with a scarecrow
+  // a pumpkin patch with a scarecrow: ribbed pumpkins on a trailing vine with big leaves; the scarecrow has a sack
+  // head with button eyes under a floppy hat, straw at its cuffs, and a crow on its arm
   pumpkins(W, L) {
+    const d = W.drng, vine = 0x5a7a3a;
     for (let k = 0; k < 9; k++) {
-      const a = k * 2.4, d = 0.9 + (k % 3) * 0.6, s = 0.3 + W.rng() * 0.25;
-      const lx = Math.sin(a) * d, lz = Math.cos(a) * d + 0.3;
-      L.p(GEO.blob(), k % 4 ? 0xf28c28 : 0xe8a33b, lx, s * 0.6, lz, { sx: s * 1.2, sy: s * 0.85, sz: s * 1.2 });
-      L.p(GEO.cyl(5), 0x5a7a3a, lx, s * 1.3, lz, { sx: 0.05, sy: 0.25, sz: 0.05 });
-      L.p(GEO.blob(), 0x5fae4f, lx + s, 0.08, lz, { sx: 0.3, sy: 0.08, sz: 0.25 });
+      const a = k * 2.4, dd = 0.9 + (k % 3) * 0.6, s = 0.3 + W.rng() * 0.25;
+      const lx = Math.sin(a) * dd, lz = Math.cos(a) * dd + 0.3, c = k % 4 ? 0xf28c28 : 0xe8a33b, turn = d() * 3;
+      for (let j = 0; j < 4; j++) L.p(GEO.blob(), j % 2 ? c : shade(c, 0.93), lx, s * 0.58, lz, { sx: s * 0.72, sy: s * 0.82, sz: s * 1.2, ry: turn + (j / 4) * Math.PI, tint: footTint(0.86, 1.05) });
+      L.p(GEO.taper(5, 0.6), vine, lx, s * 1.36, lz, { sx: 0.06, sy: 0.22, sz: 0.06, rz: 0.3, ry: turn });
+      // a leaf or two and a length of vine
+      for (let j = 0; j < 2; j++) {
+        const la = turn + j * 2.6, lr = s * 1.25;
+        L.p(GEO.dome(), j ? 0x5fae4f : 0x4f9a44, lx + Math.sin(la) * lr, 0.03, lz + Math.cos(la) * lr, { sx: 0.3, sy: 0.07, sz: 0.24, ry: la });
+      }
+      L.p(GEO.cyl(5), vine, lx * 0.6, 0.04, lz * 0.6, { sx: 0.025, sy: Math.hypot(lx, lz) * 0.8, sz: 0.025, rx: Math.PI / 2, ry: Math.atan2(lx, lz) });
     }
-    L.p(GEO.cyl(6), W.T.trunk, 0, 1.0, -1.8, { sx: 0.08, sy: 2.0, sz: 0.08 });
-    L.p(GEO.cyl(6), W.T.trunk, 0, 1.45, -1.8, { sx: 0.06, sy: 1.6, sz: 0.06, rz: Math.PI / 2 });
-    L.p(GEO.box(), 0x4a7ab8, 0, 1.3, -1.8, { sx: 0.6, sy: 0.6, sz: 0.3 });
-    L.p(GEO.blob(), 0xf2cf6b, 0, 1.95, -1.8, { sx: 0.28, sy: 0.3, sz: 0.28 });
-    L.p(GEO.cone(8), 0x6b4a36, 0, 2.3, -1.8, { sx: 0.3, sy: 0.4, sz: 0.3 });
-    L.p(GEO.cyl(10), 0x6b4a36, 0, 2.12, -1.8, { sx: 0.5, sy: 0.04, sz: 0.5 });
+    // the scarecrow
+    const wood = W.T.trunk, z0 = -1.8;
+    L.p(GEO.cyl(6), wood, 0, 1.0, z0, { sx: 0.08, sy: 2.0, sz: 0.08, tint: footTint(0.8, 1.02) });
+    L.p(GEO.cyl(6), wood, 0, 1.47, z0, { sx: 0.055, sy: 1.7, sz: 0.055, rz: Math.PI / 2 });
+    L.block(0x4a7ab8, 0, 1.28, z0, 0.62, 0.62, 0.32, { b: 0.06, tint: footTint(0.86, 1.03) });
+    for (const s of [-1, 1]) {
+      L.p(GEO.taper(6, 0.8), 0x4a7ab8, s * 0.52, 1.47, z0, { sx: 0.11, sy: 0.5, sz: 0.11, rz: s * Math.PI / 2 });
+      for (let j = 0; j < 3; j++) L.p(GEO.cone(4), 0xf2cf6b, s * 0.84, 1.47 + (j - 1) * 0.05, z0, { sx: 0.035, sy: 0.24, sz: 0.035, rz: -s * (Math.PI / 2 + (j - 1) * 0.35) });
+    }
+    L.p(GEO.box(), 0xd9443b, 0.16, 1.2, z0 + 0.165, { sx: 0.16, sy: 0.16, sz: 0.02, rz: 0.2 });
+    L.p(GEO.box(), 0x8a5a3c, 0, 0.99, z0, { sx: 0.66, sy: 0.07, sz: 0.35 });
+    for (let j = 0; j < 5; j++) L.p(GEO.cone(4), 0xf2cf6b, -0.24 + j * 0.12, 0.86, z0 + 0.1, { sx: 0.04, sy: 0.22, sz: 0.04, rx: Math.PI });
+    L.p(GEO.lump(1), 0xe9d3a0, 0, 1.94, z0, { sx: 0.27, sy: 0.29, sz: 0.27, tint: footTint(0.88, 1.04) });
+    for (const s of [-1, 1]) L.p(GEO.ico(), 0x3a2a24, s * 0.1, 1.98, z0 + 0.255, { sx: 0.04, sy: 0.04, sz: 0.02 });
+    L.p(GEO.box(), 0x3a2a24, 0, 1.86, z0 + 0.262, { sx: 0.16, sy: 0.02, sz: 0.02 });
+    L.p(GEO.cone(4), 0xff8a3d, 0, 1.93, z0 + 0.3, { sx: 0.04, sy: 0.1, sz: 0.04, rx: Math.PI / 2 });
+    L.p(GEO.cyl(10), 0x6b4a36, 0, 2.13, z0, { sx: 0.5, sy: 0.04, sz: 0.5, rz: 0.08 });
+    L.p(GEO.taper(8, 0.35), 0x6b4a36, 0, 2.33, z0, { sx: 0.27, sy: 0.4, sz: 0.27, rz: 0.12 });
+    L.p(GEO.cyl(8), 0xd9443b, 0, 2.18, z0, { sx: 0.275, sy: 0.06, sz: 0.275, rz: 0.08 });
+    // the crow
+    L.p(GEO.lump(2), 0x2a2438, -0.62, 1.6, z0, { sx: 0.11, sy: 0.1, sz: 0.16 });
+    L.p(GEO.ico(), 0x2a2438, -0.62, 1.7, z0 + 0.12, { sx: 0.07, sy: 0.07, sz: 0.07 });
+    L.p(GEO.cone(4), 0xffa94d, -0.62, 1.69, z0 + 0.2, { sx: 0.025, sy: 0.07, sz: 0.025, rx: Math.PI / 2 });
+    L.skirt(0, z0, 0.3);
     L.box(0, -1.8, 0.3, 0.3, 0, 2.4, { sound: 'wood' });
   },
 
-  // a campfire in a ring of stones, log seats and a tent
+  // a campfire: a ring of stones, logs leaning together, flames in three colours, log seats with their rings
+  // showing, and a ridge tent with its flap open, pegged down
   campfire(W, L) {
-    for (let k = 0; k < 9; k++) L.p(GEO.rock(), 0x8f8aa3, Math.sin(k * 0.7) * 0.65, 0.1, Math.cos(k * 0.7) * 0.65, { sx: 0.2, sy: 0.15, sz: 0.18, ry: k });
-    for (let k = 0; k < 3; k++) L.p(GEO.cyl(7), 0x6b4a36, 0, 0.12, 0, { sx: 0.09, sy: 0.9, sz: 0.09, rz: Math.PI / 2, ry: k * 1.05 });
-    L.p(GEO.cone(6), 0xff8a3a, 0, 0.45, 0, { sx: 0.35, sy: 0.7, sz: 0.35, kind: 'glow' });
-    L.p(GEO.cone(6), 0xffe066, 0, 0.38, 0, { sx: 0.2, sy: 0.45, sz: 0.2, kind: 'glow' });
+    const d = W.drng;
+    for (let k = 0; k < 9; k++) L.p(GEO.rock(), k % 2 ? 0x8f8aa3 : 0x7d7892, Math.sin(k * 0.7) * 0.66, 0.1, Math.cos(k * 0.7) * 0.66, { sx: 0.2 + d() * 0.06, sy: 0.15, sz: 0.18, ry: k });
+    L.p(GEO.cyl(10), 0x4a4350, 0, 0.02, 0, { sx: 0.6, sy: 0.03, sz: 0.6, kind: 'fx' });
+    for (let k = 0; k < 4; k++) L.p(GEO.taper(6, 0.7), k % 2 ? 0x6b4a36 : 0x4f3a2e, Math.sin(k * 1.57 + 0.4) * 0.2, 0.26, Math.cos(k * 1.57 + 0.4) * 0.2, { sx: 0.075, sy: 0.72, sz: 0.075, ry: k * 1.57 + 0.4 + Math.PI, rx: 0.6 });
+    L.p(GEO.cone(6), 0xff6a2a, 0, 0.52, 0, { sx: 0.34, sy: 0.82, sz: 0.34, kind: 'glow' });
+    for (const [lx, lz, h] of [[0.16, 0.05, 0.5], [-0.14, 0.1, 0.42], [0.02, -0.17, 0.46]]) L.p(GEO.cone(5), 0xff8a3a, lx, 0.2 + h / 2, lz, { sx: 0.16, sy: h, sz: 0.16, rz: -lx, rx: lz, kind: 'glow' });
+    L.p(GEO.cone(6), 0xffc94a, 0, 0.42, 0, { sx: 0.21, sy: 0.52, sz: 0.21, kind: 'glow' });
+    L.p(GEO.cone(5), 0xfff3c4, 0, 0.34, 0, { sx: 0.1, sy: 0.28, sz: 0.1, kind: 'glow' });
     for (const s of [-1, 1]) {
-      L.p(GEO.cyl(8), 0x8a5a3c, s * 1.5, 0.22, 0.3, { sx: 0.22, sy: 1.3, sz: 0.22, rx: Math.PI / 2 });
+      L.p(GEO.cyl(9), 0x8a5a3c, s * 1.5, 0.22, 0.3, { sx: 0.22, sy: 1.3, sz: 0.22, rx: Math.PI / 2, tint: footTint(0.82, 1.04) });
+      for (const e of [-1, 1]) {
+        L.p(GEO.cyl(9), 0xd9b98a, s * 1.5, 0.22, 0.3 + e * 0.652, { sx: 0.19, sy: 0.012, sz: 0.19, rx: Math.PI / 2 });
+        L.p(GEO.cyl(9), 0xb98e62, s * 1.5, 0.22, 0.3 + e * 0.658, { sx: 0.09, sy: 0.012, sz: 0.09, rx: Math.PI / 2 });
+      }
+      L.p(GEO.cone(5), 0x6b4a36, s * 1.5 + 0.12, 0.42, 0.55, { sx: 0.05, sy: 0.14, sz: 0.05, rz: -0.6 });
       L.box(s * 1.5, 0.3, 0.25, 0.65, 0, 0.44, { top: true, sound: 'wood' });
     }
-    L.p(GEO.cone(4), 0xe0604f, 0, 0.8, -1.9, { sx: 1.2, sy: 1.6, sz: 1.2, ry: Math.PI / 4 });
-    L.p(GEO.box(), 0x6b4a36, 0, 0.4, -1.08, { sx: 0.5, sy: 0.75, sz: 0.04, rx: -0.5 });
+    // the tent: its ridge runs away from the fire
+    const red = 0xe0604f, zt = -1.9;
+    L.p(GEO.cyl(3), red, 0, 0.6, zt, { sx: 1.25, sy: 1.9, sz: 0.82, rx: -Math.PI / 2, tint: footTint(0.84, 1.05) });
+    L.p(GEO.cyl(3), 0xfff1dc, 0, 0.6, zt, { sx: 1.27, sy: 0.3, sz: 0.83, rx: -Math.PI / 2 });
+    L.p(GEO.cyl(3), 0x3a2a30, 0, 0.5, zt + 0.955, { sx: 0.62, sy: 0.02, sz: 0.62, rx: -Math.PI / 2 });
+    L.p(GEO.box(), shade(red, 0.82), 0.33, 0.52, zt + 0.97, { sx: 0.5, sy: 1.0, sz: 0.03, rz: 0.53 });
+    L.p(GEO.cyl(5), 0x8a5a3c, 0, 0.92, zt + 0.98, { sx: 0.035, sy: 1.9, sz: 0.035 });
+    for (const s of [-1, 1]) for (const e of [-0.7, 0.7]) {
+      L.p(GEO.cone(4), 0x8a5a3c, s * 1.3, 0.08, zt + e, { sx: 0.04, sy: 0.2, sz: 0.04, rz: s * 0.5 });
+      L.p(GEO.cyl(4), 0xf4efe6, s * 1.19, 0.11, zt + e, { sx: 0.012, sy: 0.26, sz: 0.012, rz: s * 1.1 });
+    }
+    L.skirt(0, zt, 1.2);
     L.box(0, -1.9, 0.85, 0.85, 0, 1.4, { sound: 'wood' });
   },
 

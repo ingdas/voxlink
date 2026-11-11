@@ -7,7 +7,7 @@ import { GEO, contours, topGeometry, sdBlob, sdBox, sdEllipse, sdCapsule, sdUnio
 import { GRAVITY } from './player.js';
 import { glows } from './looks.js';
 import { makePortal, paintView } from './portal.js';
-import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost } from './world-props.js';
+import { put, putQ, putL, own, block, shade, mix, footTint, capTint, leafTint, tree, rock, tower, house, fence, column, lintel, picketFence, bale, bush, plaza, lampPost, sheep } from './world-props.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = t => t * t * (3 - 2 * t);
@@ -859,15 +859,29 @@ function farm(W) {
     && !fields.some(f => Math.hypot(f.x - x, f.z - z) < 10) && !W.crowded(x, z, 4), (x, z) => {
     const hx = 2.4 + rng() * 0.8, hz = 1.8 + rng() * 0.5, alongX = hx > hz, crop = Math.floor(rng() * 3);
     fields.push({ x, z, hx, hz });
-    put(W, GEO.box(), 0x9a6a46, x, 0.02, z, { sx: hx * 2, sy: 0.05, sz: hz * 2, kind: 'fx' });
+    // tilled soil with a darker edge, ridges along the rows, and the crop: sheaves of wheat with ears, cabbages
+    // in their outer leaves, or carrot tops with the carrot's shoulder showing
+    const d = W.drng;
+    put(W, GEO.box(), 0x8a5a3c, x, 0.015, z, { sx: hx * 2 + 0.2, sy: 0.04, sz: hz * 2 + 0.2, kind: 'fx' });
+    put(W, GEO.box(), 0x9a6a46, x, 0.022, z, { sx: hx * 2 - 0.1, sy: 0.05, sz: hz * 2 - 0.1, kind: 'fx' });
     const across = alongX ? hz : hx, along = alongX ? hx : hz;
     for (let r = -across + 0.45; r < across - 0.2; r += 0.9) {
-      put(W, GEO.box(), 0x7d5236, alongX ? x : x + r, 0.05, alongX ? z + r : z, { sx: alongX ? hx * 2 - 0.3 : 0.25, sy: 0.04, sz: alongX ? 0.25 : hz * 2 - 0.3, kind: 'fx' });
+      putL(W, GEO.cyl(6), 0x7d5236, alongX ? x : x + r, 0.035, alongX ? z + r : z, { sx: 0.17, sy: (alongX ? hx : hz) * 2 - 0.3, sz: 0.07, ry: alongX ? 0 : Math.PI / 2, rz: Math.PI / 2, kind: 'fx' });
       for (let t = -along + 0.4; t < along - 0.3; t += 0.55) {
-        const px = alongX ? x + t : x + r, pz = alongX ? z + r : z + t;
-        if (crop === 0) put(W, GEO.cone(5), 0xf0c75a, px, 0.3, pz, { sx: 0.12, sy: 0.55, sz: 0.12, kind: 'fx' });
-        else if (crop === 1) put(W, GEO.blob(), 0x7fcf5a, px, 0.14, pz, { sx: 0.2, sy: 0.16, sz: 0.2, kind: 'fx' });
-        else { put(W, GEO.cone(4), 0x5fae4a, px, 0.2, pz, { sx: 0.1, sy: 0.32, sz: 0.1, kind: 'fx' }); put(W, GEO.cone(5), 0xff8a3d, px, 0.05, pz, { sx: 0.08, sy: 0.08, sz: 0.08, kind: 'fx' }); }
+        const px = (alongX ? x + t : x + r) + (d() - 0.5) * 0.06, pz = (alongX ? z + r : z + t) + (d() - 0.5) * 0.06;
+        if (crop === 0) {
+          for (let k = 0; k < 3; k++) {
+            const a = k * 2.1 + d(), h = 0.5 + d() * 0.16, ox = Math.cos(a) * 0.05, oz = Math.sin(a) * 0.05;
+            putL(W, GEO.cone(4), k ? 0xf0c75a : 0xe4b548, px + ox, 0.06 + h / 2, pz + oz, { sx: 0.035, sy: h, sz: 0.035, ry: -a, rz: -0.14, kind: 'fx' });
+            putL(W, GEO.octa(), 0xf7d978, px + ox * 2.4, 0.06 + h, pz + oz * 2.4, { sx: 0.045, sy: 0.12, sz: 0.045, ry: -a, rz: -0.3, kind: 'fx' });
+          }
+        } else if (crop === 1) {
+          put(W, GEO.lump(Math.floor(d() * 4)), 0x8fd96a, px, 0.15, pz, { sx: 0.17, sy: 0.14, sz: 0.17, ry: d() * 6, kind: 'fx' });
+          for (let k = 0; k < 4; k++) { const a = k * 1.57 + d(); putL(W, GEO.dome(), k % 2 ? 0x6cc357 : 0x5cb04c, px + Math.cos(a) * 0.13, 0.07, pz + Math.sin(a) * 0.13, { sx: 0.14, sy: 0.1, sz: 0.1, ry: -a, rz: 0.9, kind: 'fx' }); }
+        } else {
+          for (let k = 0; k < 3; k++) { const a = k * 2.1 + d(); putL(W, GEO.cone(4), k ? 0x5fae4a : 0x4f9a40, px, 0.2, pz, { sx: 0.045, sy: 0.34, sz: 0.045, ry: -a, rz: -0.35, kind: 'fx' }); }
+          put(W, GEO.cone(6), 0xff8a3d, px, 0.07, pz, { sx: 0.075, sy: 0.1, sz: 0.075, rx: Math.PI, kind: 'fx' });
+        }
       }
     }
     // fence round it, open on the side that faces the pedestal
@@ -893,19 +907,47 @@ function farm(W) {
   if (barn) {
     const { x, z } = barn, ry = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
     const fwd = [Math.sin(ry), Math.cos(ry)], side = [Math.cos(ry), -Math.sin(ry)];
-    house(W, x, z, ry, { w: 4.4, d: 3.6, h: 2.6, roofH: 1.6, wall: 0xd8524a, roof: 0x8a4a3a, door: 0xfff1dc, glass: 0xf2cf6b, trim: 0xfff1dc });
-    // big barn doors with a white X
-    const fx = x + fwd[0] * 1.83, fz = z + fwd[1] * 1.83;
-    put(W, GEO.box(), 0xb8433d, fx, 0.95, fz, { sx: 1.7, sy: 1.9, sz: 0.06, ry });
-    for (const r of [0.84, -0.84]) put(W, GEO.box(), 0xfff1dc, fx + fwd[0] * 0.03, 0.95, fz + fwd[1] * 0.03, { sx: 0.12, sy: 2.4, sz: 0.04, ry, rz: r });
-    put(W, GEO.box(), 0xf2cf6b, fx + fwd[0] * 0.02, 2.9, fz + fwd[1] * 0.02, { sx: 0.8, sy: 0.6, sz: 0.06, ry }); // hay in the loft window
+    const Hs = house(W, x, z, ry, { w: 4.4, d: 3.6, h: 2.6, roofH: 1.6, wall: 0xd8524a, roof: 0x8a4a3a, door: null, glass: 0xf2cf6b, trim: 0xfff1dc, footing: 0xcfc8b8 });
+    // board walls: a batten every half metre on the front and back
+    for (const so of [-1, 1]) for (let t = -1.9; t <= 1.91; t += 0.475) put(W, GEO.box(), 0xc4453f, ...Hs.at(t, 1.35, so * 1.81), { sx: 0.05, sy: 2.3, sz: 0.03, ry });
+    // big barn doors: two leaves in a white frame, each with a white Z-brace and a hinge strap, a lantern above
+    put(W, GEO.box(), 0xfff1dc, ...Hs.at(0, 1.02, 1.82), { sx: 2.0, sy: 2.04, sz: 0.06, ry });
+    for (const e of [-1, 1]) {
+      put(W, GEO.box(), 0xb8433d, ...Hs.at(e * 0.45, 0.98, 1.85), { sx: 0.84, sy: 1.88, sz: 0.05, ry });
+      for (const up of [0.2, 0.98, 1.76]) put(W, GEO.box(), 0xfff1dc, ...Hs.at(e * 0.45, up, 1.88), { sx: 0.84, sy: 0.1, sz: 0.02, ry });
+      for (const [up, r] of [[0.59, 0.74], [1.37, -0.74]]) putL(W, GEO.box(), 0xfff1dc, ...Hs.at(e * 0.45, up, 1.88), { sx: 0.1, sy: 1.06, sz: 0.02, ry, rz: e * r });
+      put(W, GEO.box(), 0x3a3352, ...Hs.at(e * 0.82, 1.5, 1.895), { sx: 0.2, sy: 0.05, sz: 0.02, ry });
+      put(W, GEO.box(), 0x3a3352, ...Hs.at(e * 0.82, 0.45, 1.895), { sx: 0.2, sy: 0.05, sz: 0.02, ry });
+    }
+    // the hay loft: an open hatch full of hay under the gable, a hoist beam with its hook
+    put(W, GEO.box(), 0xfff1dc, ...Hs.at(0, 3.3, 1.82), { sx: 1.0, sy: 0.9, sz: 0.06, ry });
+    put(W, GEO.box(), 0x6b3a30, ...Hs.at(0, 3.3, 1.84), { sx: 0.82, sy: 0.72, sz: 0.05, ry });
+    put(W, GEO.lump(1), 0xf2cf6b, ...Hs.at(0, 3.12, 1.86), { sx: 0.4, sy: 0.22, sz: 0.12, ry });
+    put(W, GEO.box(), 0x8a5a3c, ...Hs.at(0, 3.9, 2.05), { sx: 0.12, sy: 0.12, sz: 0.6, ry });
+    put(W, GEO.cyl(5), 0xd9c49a, ...Hs.at(0, 3.62, 2.28), { sx: 0.015, sy: 0.5, sz: 0.015 });
+    put(W, GEO.ico(), 0x5c5c6a, ...Hs.at(0, 3.36, 2.28), { sx: 0.05, sy: 0.06, sz: 0.05 });
+    // a weathercock on the ridge
+    put(W, GEO.cyl(5), 0x3a3352, ...Hs.at(1.4, 5.25, 0), { sx: 0.025, sy: 0.6, sz: 0.025 });
+    put(W, GEO.box(), 0x3a3352, ...Hs.at(1.4, 5.38, 0), { sx: 0.5, sy: 0.03, sz: 0.03, ry });
+    putL(W, GEO.cone(4), 0xffd23f, ...Hs.at(1.69, 5.38, 0), { sx: 0.07, sy: 0.16, sz: 0.03, ry, rz: -Math.PI / 2 });
+    put(W, GEO.lump(2), 0xffd23f, ...Hs.at(1.36, 5.56, 0), { sx: 0.13, sy: 0.1, sz: 0.04, ry });
     const sx = x + side[0] * 3.3, sz = z + side[1] * 3.3;
     if (!W.blocked(sx, sz, 1.1, 0, 3)) {
-      put(W, GEO.cyl(12), 0xd9d4e6, sx, 2.2, sz, { sx: 1.0, sy: 4.4, sz: 1.0 });
-      for (const h of [1.1, 2.2, 3.3]) put(W, GEO.cyl(12), 0xb9b4c6, sx, h, sz, { sx: 1.03, sy: 0.12, sz: 1.03 });
-      put(W, GEO.dome(), 0x8fa0c0, sx, 4.4, sz, { sx: 1.05, sy: 0.8, sz: 1.05 });
+      // the silo: staves between hoops, a ribbed dome with a finial, a ladder up its side, a hatch at the foot
+      put(W, GEO.cyl(14), 0xd9d4e6, sx, 2.2, sz, { sx: 1.0, sy: 4.4, sz: 1.0, tint: footTint(0.86, 1.03) });
+      for (let k = 0; k < 14; k++) { const a = (k / 14) * Math.PI * 2; put(W, GEO.box(), 0xc6c1d4, sx + Math.cos(a) * 1.0, 2.2, sz + Math.sin(a) * 1.0, { sx: 0.03, sy: 4.38, sz: 0.05, ry: -a }); }
+      for (const h of [0.5, 1.5, 2.5, 3.5, 4.3]) put(W, GEO.cyl(14), 0x9a95aa, sx, h, sz, { sx: 1.035, sy: 0.1, sz: 1.035 });
+      put(W, GEO.dome(), 0x8fa0c0, sx, 4.4, sz, { sx: 1.07, sy: 0.82, sz: 1.07, tint: footTint(0.9, 1.08) });
+      put(W, GEO.cyl(8), 0x6f80a0, sx, 5.24, sz, { sx: 0.13, sy: 0.1, sz: 0.13 });
+      put(W, GEO.ico(), 0xffd23f, sx, 5.36, sz, { sx: 0.08, sy: 0.08, sz: 0.08 });
+      // (the ladder and hatch face the same way as the barn's doors)
+      const lx = sx + fwd[0] * 1.07, lz = sz + fwd[1] * 1.07;
+      for (const e of [-1, 1]) put(W, GEO.box(), 0x5c5c6a, lx + side[0] * e * 0.2, 2.5, lz + side[1] * e * 0.2, { sx: 0.04, sy: 3.8, sz: 0.04, ry });
+      for (let h = 0.8; h < 4.4; h += 0.4) put(W, GEO.box(), 0x5c5c6a, lx, h, lz, { sx: 0.4, sy: 0.035, sz: 0.035, ry });
+      put(W, GEO.box(), 0x8a85a0, sx + fwd[0] * 1.0 + side[0] * 0.55, 0.45, sz + fwd[1] * 1.0 + side[1] * 0.55, { sx: 0.5, sy: 0.6, sz: 0.08, ry });
       W.box(sx - 1, 0, sz - 1, sx + 1, 5.1, sz + 1, { sound: 'stone' });
       W.obstacles.push({ x: sx, z: sz, r: 1.6 });
+      W.skirts.push({ x: sx, z: sz, y: 0, r: 1.1 });
     }
   }
 
@@ -914,26 +956,53 @@ function farm(W) {
     && W.flatAt(x, z, 1.6, 0.01) !== null && !W.blocked(x, z, 1.8, 0, 3) && !W.crowded(x, z, 2.4), 150);
   if (mill) {
     const { x, z } = mill, a = Math.atan2(-x, -z);
-    put(W, GEO.cyl(8), 0xf3e6cf, x, 2.1, z, { sx: 1.15, sy: 4.2, sz: 1.15 });
-    put(W, GEO.cone(8), 0xb8433d, x, 4.8, z, { sx: 1.4, sy: 1.3, sz: 1.4 });
-    put(W, GEO.box(), 0x7a4e3a, x + Math.sin(a) * 1.15, 0.65, z + Math.cos(a) * 1.15, { sx: 0.7, sy: 1.3, sz: 0.08, ry: a });
+    const fx = Math.sin(a), fz = Math.cos(a), wall = 0xf3e6cf, timber = 0x8a5a3c;
+    // a tower that narrows upwards on a course of stones, a gallery half way up, a shingled cap; door and windows
+    // face the pedestal
+    for (let k = 0; k < 8; k++) { const sa = (k / 8) * Math.PI * 2 + 0.39; putL(W, GEO.bevel(0.1), k % 2 ? 0xcfc8b8 : 0xbdb5a4, x + Math.sin(sa) * 1.12, 0.2, z + Math.cos(sa) * 1.12, { sx: 0.9, sy: 0.4, sz: 0.34, ry: sa }); }
+    put(W, GEO.taper(8, 0.74), wall, x, 2.1, z, { sx: 1.15, sy: 4.2, sz: 1.15, tint: footTint(0.9, 1.03) });
+    put(W, GEO.cyl(8), timber, x, 2.25, z, { sx: 1.32, sy: 0.08, sz: 1.32 });
+    for (let k = 0; k < 8; k++) {
+      const sa = (k / 8) * Math.PI * 2 + 0.39, px = x + Math.sin(sa) * 1.27, pz = z + Math.cos(sa) * 1.27, sb = ((k + 1) / 8) * Math.PI * 2 + 0.39;
+      put(W, GEO.box(), timber, px, 2.52, pz, { sx: 0.06, sy: 0.5, sz: 0.06 });
+      putL(W, GEO.box(), shade(timber, 1.15), x + (Math.sin(sa) + Math.sin(sb)) * 0.635, 2.76, z + (Math.cos(sa) + Math.cos(sb)) * 0.635, { sx: 0.99, sy: 0.05, sz: 0.05, ry: (sa + sb) / 2 });
+    }
+    put(W, GEO.cyl(8), shade(0xb8433d, 0.8), x, 4.22, z, { sx: 0.95, sy: 0.12, sz: 0.95 });
+    put(W, GEO.cone(8), 0xb8433d, x, 4.86, z, { sx: 1.3, sy: 1.3, sz: 1.3, tint: footTint(0.88, 1.06) });
+    put(W, GEO.ico(), 0xffd23f, x, 5.56, z, { sx: 0.09, sy: 0.09, sz: 0.09 });
+    put(W, GEO.box(), 0xfff8ec, x + fx * 1.12, 0.72, z + fz * 1.12, { sx: 0.86, sy: 1.44, sz: 0.1, ry: a });
+    put(W, GEO.box(), 0x7a4e3a, x + fx * 1.16, 0.68, z + fz * 1.16, { sx: 0.66, sy: 1.3, sz: 0.06, ry: a });
+    put(W, GEO.ico(), 0xffd23f, x + fx * 1.2 + fz * 0.22, 0.68, z + fz * 1.2 - fx * 0.22, { sx: 0.04, sy: 0.04, sz: 0.04 });
+    for (const [sa, up] of [[a + 1.6, 1.5], [a - 1.6, 1.5], [a + 0.9, 3.2]]) {
+      const rr = 1.15 * (1 - 0.26 * (up / 4.2)) + 0.01;
+      put(W, GEO.box(), 0xfff8ec, x + Math.sin(sa) * rr, up, z + Math.cos(sa) * rr, { sx: 0.5, sy: 0.6, sz: 0.08, ry: sa });
+      put(W, GEO.box(), 0x7ec8f0, x + Math.sin(sa) * (rr + 0.03), up, z + Math.cos(sa) * (rr + 0.03), { sx: 0.36, sy: 0.46, sz: 0.06, ry: sa });
+    }
     W.box(x - 1.15, 0, z - 1.15, x + 1.15, 4.8, z + 1.15, { sound: 'wood' });
     W.obstacles.push({ x, z, r: 2 });
+    W.skirts.push({ x, z, y: 0, r: 1.35 });
     W.extras.push(() => {
       const hub = new THREE.Group(), spin = new THREE.Group();
-      hub.position.set(x + Math.sin(a) * 1.35, 4.1, z + Math.cos(a) * 1.35);
+      hub.position.set(x + Math.sin(a) * 1.2, 4.1, z + Math.cos(a) * 1.2);
       hub.rotation.y = a;
       hub.add(spin);
-      const wood = toon(0x8a5a3c), cloth = toon(0xfff8ec);
-      spin.add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.3, 8).rotateX(Math.PI / 2), wood));
+      const wood = toon(0x8a5a3c), cloth = toon(0xfff8ec), dark = toon(0x6b4a36);
+      const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.6, 8).rotateX(Math.PI / 2), dark);
+      axle.position.z = -0.12;
+      spin.add(axle, new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.16, 8).rotateX(Math.PI / 2), wood));
+      // each sail: a whip, a frame of slats, the cloth laced onto it
+      const slat = new THREE.BoxGeometry(0.72, 0.05, 0.05), whip = new THREE.BoxGeometry(0.13, 2.8, 0.09), sheet = new THREE.BoxGeometry(0.6, 2.0, 0.03), edge = new THREE.BoxGeometry(0.05, 2.05, 0.05);
       for (let k = 0; k < 4; k++) {
         const arm = new THREE.Group();
         arm.rotation.z = (k * Math.PI) / 2;
-        const beam = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.7, 0.08), wood); beam.position.y = 1.35;
-        const sail = new THREE.Mesh(new THREE.BoxGeometry(0.62, 2.0, 0.04), cloth); sail.position.set(0.36, 1.6, 0.02);
-        arm.add(beam, sail);
+        const beam = new THREE.Mesh(whip, wood); beam.position.y = 1.4;
+        const sail = new THREE.Mesh(sheet, cloth); sail.position.set(0.39, 1.68, 0.03);
+        const rim = new THREE.Mesh(edge, wood); rim.position.set(0.71, 1.68, 0.02);
+        arm.add(beam, sail, rim);
+        for (let j = 0; j < 5; j++) { const sl = new THREE.Mesh(slat, wood); sl.position.set(0.37, 0.7 + j * 0.49, 0.0); arm.add(sl); }
         spin.add(arm);
       }
+      hub.traverse(o => { if (o.isMesh) o.castShadow = true; });
       W.group.add(hub);
       W.updaters.push(dt => { spin.rotation.z -= dt * 0.7; });
     });
@@ -948,41 +1017,53 @@ function farm(W) {
     return !W.spawnPath(px, pz, 1) && W.flatAt(px, pz, 1.1, 0.01) !== null && !W.blocked(px, pz, 1.2, 0, 2) && !inField(px, pz, 1.4);
   }, (x, z) => {
     const h = 3.2, w = 2.2, d = Math.hypot(x, z);
+    // four layers of square bales, each layer two bales side by side turned across the one below, twine round each
+    const dr = W.drng;
     for (let k = 0; k < 4; k++) {
-      put(W, GEO.box(), 0xf2cf6b, x, k * 0.8 + 0.4, z, { sx: w - k * 0.06, sy: 0.76, sz: w - k * 0.06, ry: (k % 2) * 0.08 });
-      put(W, GEO.box(), 0xd9aa48, x, k * 0.8 + 0.4, z, { sx: w - k * 0.06 + 0.02, sy: 0.08, sz: w - k * 0.06 + 0.02, ry: (k % 2) * 0.08 });
+      const ww = w - k * 0.06, turn = (k % 2) * Math.PI / 2 + (dr() - 0.5) * 0.06;
+      for (const e of [-1, 1]) {
+        const ox = Math.cos(turn) * e * ww / 4, oz = -Math.sin(turn) * e * ww / 4;
+        block(W, e > 0 ? 0xf2cf6b : 0xedc55e, x + ox, k * 0.8 + 0.4, z + oz, ww / 2 - 0.02, 0.77, ww, { b: 0.06, ry: turn, tint: footTint(0.9, 1.04) });
+        for (const t of [-0.3, 0.3]) putL(W, GEO.box(), 0xb07a3c, x + ox - Math.sin(turn) * t * ww, k * 0.8 + 0.4, z + oz - Math.cos(turn) * t * ww, { sx: ww / 2 + 0.005, sy: 0.785, sz: 0.035, ry: turn });
+      }
+    }
+    // wisps of straw sticking out, and lying about its foot
+    for (let k = 0; k < 9; k++) {
+      const sa = dr() * 6.283, up = k < 4 ? 0.02 : 0.8 * (1 + Math.floor(dr() * 3)), rr = k < 4 ? w * 0.6 + dr() * 0.5 : w * 0.52;
+      put(W, GEO.box(), k % 2 ? 0xf2cf6b : 0xd9aa48, x + Math.cos(sa) * rr, up, z + Math.sin(sa) * rr, { sx: 0.34 + dr() * 0.2, sy: 0.025, sz: 0.035, ry: dr() * 3, kind: 'fx' });
     }
     W.box(x - w / 2, 0, z - w / 2, x + w / 2, h, z + w / 2, { top: true, sound: 'grass' });
     stacks.push({ x, z });
     W.obstacles.push({ x, z, r: 1.8 });
     bouncePad(W, x - (x / d) * 3.3, 0, z - (z / d) * 3.3, { x, y: h, z }, 1, (bx, by, bz) => {
-      put(W, GEO.box(), 0x8a5a3c, bx, 0.1, bz, { sx: 1.9, sy: 0.2, sz: 1.9 });
-      put(W, GEO.box(), 0xf7dc84, bx, 0.21, bz, { sx: 1.6, sy: 0.05, sz: 1.6 });
-      for (const [ox, oz] of [[-0.6, -0.4], [0.4, 0.5], [0.1, -0.2]]) put(W, GEO.box(), 0xe0b752, bx + ox, 0.24, bz + oz, { sx: 0.5, sy: 0.02, sz: 0.06, ry: ox * 3 });
+      // a low wooden frame, a heap of springy straw in it
+      for (const e of [-1, 1]) {
+        block(W, 0x8a5a3c, bx, 0.11, bz + e * 0.88, 1.9, 0.22, 0.14, { b: 0.03 });
+        block(W, 0x7a4e32, bx + e * 0.88, 0.11, bz, 0.14, 0.22, 1.62, { b: 0.03 });
+      }
+      put(W, GEO.box(), 0xe9c75a, bx, 0.1, bz, { sx: 1.64, sy: 0.18, sz: 1.64 });
+      put(W, GEO.lump(1), 0xf7dc84, bx, 0.17, bz, { sx: 0.8, sy: 0.09, sz: 0.8 });
+      for (const [ox, oz] of [[-0.6, -0.4], [0.4, 0.5], [0.1, -0.2], [-0.3, 0.55], [0.55, -0.5]]) put(W, GEO.box(), 0xe0b752, bx + ox, 0.215 - Math.hypot(ox, oz) * 0.03, bz + oz, { sx: 0.5, sy: 0.02, sz: 0.06, ry: ox * 3 });
     });
   }, 40);
 
   // grazing sheep and round hay bales to hop on
   scatterProps(W, Math.round(2 + R * 0.12), (x, z) => okTree(W, x, z, 2) && !inField(x, z, 1.5), (x, z) => {
     const ry = rng() * Math.PI * 2, fx = Math.sin(ry), fz = Math.cos(ry);
-    put(W, GEO.blob(), 0xfff8ec, x, 0.55, z, { sx: 0.55, sy: 0.42, sz: 0.7, ry });
-    put(W, GEO.box(), 0x3a3352, x + fx * 0.65, 0.62, z + fz * 0.65, { sx: 0.28, sy: 0.32, sz: 0.3, ry });
-    for (const [a, b] of [[0.25, 0.35], [-0.25, 0.35], [0.25, -0.35], [-0.25, -0.35]]) put(W, GEO.box(), 0x3a3352, x + Math.cos(ry) * a + fx * b, 0.15, z - Math.sin(ry) * a + fz * b, { sx: 0.09, sy: 0.3, sz: 0.09 });
+    sheep(W, x, z, ry);
     W.box(x - 0.5, 0, z - 0.5, x + 0.5, 0.8, z + 0.5, { sound: 'grass' });
     W.obstacles.push({ x, z, r: 0.9 });
   });
   scatterProps(W, Math.round(1 + R * 0.08), (x, z) => okTree(W, x, z, 2.5) && !inField(x, z, 2) && W.flatAt(x, z, 1.4, 0.01) !== null, (x, z) => {
     const r = 0.6, L = 1.2, alongX = rng() < 0.5;
-    put(W, GEO.cyl(10), 0xf2cf6b, x, r, z, { sx: r, sy: L, sz: r, rz: alongX ? Math.PI / 2 : 0, rx: alongX ? 0 : Math.PI / 2 });
-    put(W, GEO.cyl(10), 0xe0b752, x, r, z, { sx: r * 0.75, sy: L + 0.02, sz: r * 0.75, rz: alongX ? Math.PI / 2 : 0, rx: alongX ? 0 : Math.PI / 2 });
-    W.box(x - (alongX ? L / 2 : r), 0, z - (alongX ? r : L / 2), x + (alongX ? L / 2 : r), r * 2, z + (alongX ? r : L / 2), { top: true, sound: 'grass' });
+    bale(W, x, 0, z, r, L, alongX);
     W.obstacles.push({ x, z, r: 1.2 });
   });
   W.landmark(); // before the trees and rocks, which grow around it
   scatterProps(W, W.more('trees', Math.round(R * 0.35)), (x, z) => okTree(W, x, z) && !inField(x, z, 2), (x, z) => tree(W, 'round', x, z, 0.75 + rng() * 0.45, 0));
   scatterProps(W, Math.round(R * 0.4), (x, z) => okTree(W, x, z, 1) && !inField(x, z, 1), (x, z) => {
     const s = 0.45 + rng() * 0.3;
-    put(W, GEO.blob(), T.leaves[Math.floor(rng() * T.leaves.length)], x, s * 0.55, z, { sx: s * 1.2, sy: s, sz: s, ry: rng() * 3 });
+    bush(W, x, 0, z, s, T.leaves[Math.floor(rng() * T.leaves.length)], rng() * 3);
     W.obstacles.push({ x, z, r: s + 0.4 });
   });
   Object.assign(W, SKIES.farm);

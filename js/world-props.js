@@ -341,7 +341,7 @@ export function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wal
   const fwd = [Math.sin(ry), Math.cos(ry)], side = [Math.cos(ry), -Math.sin(ry)];
   // local (across, up, out) → the world
   const at = (a, up, o) => [x + side[0] * a + fwd[0] * o, y + up, z + side[1] * a + fwd[1] * o];
-  const frame = trim ?? shade(wall, 0.72), woodwork = shade(door, 0.8);
+  const frame = trim ?? shade(wall, 0.72), woodwork = shade(door ?? wall, 0.8);
   block(W, footing, x, y + 0.11, z, w + 0.14, 0.22, d + 0.14, { b: 0.04, ry });
   put(W, GEO.box(), wall, x, y + h / 2, z, { sx: w, sy: h, sz: d, ry, tint: footTint(0.9, 1.03) });
   // corner posts
@@ -358,13 +358,15 @@ export function house(W, x, z, ry, { w = 2.8, d = 2.4, h = 2.0, roofH = 1.0, wal
     for (const sa of [-1, 1]) putL(W, GEO.box(), frame, ...at(sa * (w / 2 + 0.25), eave + rise * 0.5 + 0.01, so * hw * 0.5), { sx: 0.07, sy: 0.12, sz: run, ry, rx: so * slope });
   }
   put(W, GEO.box(), dark, ...at(0, eave + rise - 0.02, 0), { sx: w + 0.56, sy: 0.1, sz: 0.16, ry });
-  // door: frame, leaf, knob, a stone step
+  // door (door: null leaves the wall plain, for a caller's own): frame, leaf, knob, a stone step
   const out = d / 2 + 0.01;
-  put(W, GEO.box(), frame, ...at(0, 0.68, out), { sx: 0.9, sy: 1.36, sz: 0.07, ry });
-  put(W, GEO.box(), door, ...at(0, 0.64, out + 0.03), { sx: 0.7, sy: 1.24, sz: 0.06, ry });
-  for (const t of [-0.17, 0.17]) put(W, GEO.box(), woodwork, ...at(t, 0.64, out + 0.065), { sx: 0.025, sy: 1.2, sz: 0.01, ry });
-  put(W, GEO.ico(), 0xffd23f, ...at(0.24, 0.64, out + 0.09), { sx: 0.045, sy: 0.045, sz: 0.045 });
-  block(W, footing, ...at(0, 0.06, out + 0.28), 1.0, 0.12, 0.46, { b: 0.03, ry });
+  if (door !== null) {
+    put(W, GEO.box(), frame, ...at(0, 0.68, out), { sx: 0.9, sy: 1.36, sz: 0.07, ry });
+    put(W, GEO.box(), door, ...at(0, 0.64, out + 0.03), { sx: 0.7, sy: 1.24, sz: 0.06, ry });
+    for (const t of [-0.17, 0.17]) put(W, GEO.box(), woodwork, ...at(t, 0.64, out + 0.065), { sx: 0.025, sy: 1.2, sz: 0.01, ry });
+    put(W, GEO.ico(), 0xffd23f, ...at(0.24, 0.64, out + 0.09), { sx: 0.045, sy: 0.045, sz: 0.045 });
+    block(W, footing, ...at(0, 0.06, out + 0.28), 1.0, 0.12, 0.46, { b: 0.03, ry });
+  }
   // windows: frame, pane with a cross, sill, shutters (front), and one in each side wall
   const win = (a, up, o, turn) => {
     const r2 = ry + turn, f = turn ? [side[0] * Math.sign(a), side[1] * Math.sign(a)] : fwd;
@@ -576,4 +578,21 @@ export function lampPost(W, x, z, h, light, { metal = 0x5c5c6a, y = 0 } = {}) {
   for (const [ax, az] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) put(W, GEO.box(), shade(metal, 0.8), x + ax * 0.125, y + h + 0.22, z + az * 0.125, { sx: 0.03, sy: 0.36, sz: 0.03 });
   put(W, GEO.cone(4), shade(metal, 0.8), x, y + h + 0.5, z, { sx: 0.27, sy: 0.22, sz: 0.27, ry: Math.PI / 4 });
   put(W, GEO.ico(), metal, x, y + h + 0.64, z, { sx: 0.04, sy: 0.04, sz: 0.04 });
+}
+
+// a sheep: a woolly body of lumps, a dark face with ears and a tuft of wool, four legs, a stub of a tail
+export function sheep(W, x, z, ry, y = 0) {
+  const d = W.drng, wool = 0xfff8ec, face = 0x3a3352, fx = Math.sin(ry), fz = Math.cos(ry), sx = Math.cos(ry), sz = -Math.sin(ry);
+  const at = (a, up, f) => [x + sx * a + fx * f, y + up, z + sz * a + fz * f];
+  put(W, GEO.lump(0), wool, ...at(0, 0.56, 0), { sx: 0.56, sy: 0.43, sz: 0.7, ry, tint: footTint(0.86, 1.03) });
+  for (const [a, up, f, r] of [[0.22, 0.72, 0.3, 0.27], [-0.24, 0.7, -0.28, 0.28], [0.2, 0.66, -0.36, 0.25], [-0.2, 0.7, 0.34, 0.26], [0, 0.82, 0, 0.3]]) put(W, GEO.lump(1 + Math.floor(d() * 3)), wool, ...at(a, up, f), { sx: r, sy: r * 0.85, sz: r, ry: d() * 6 });
+  put(W, GEO.bevel(0.12), face, ...at(0, 0.64, 0.7), { sx: 0.27, sy: 0.3, sz: 0.3, ry });
+  put(W, GEO.lump(2), wool, ...at(0, 0.83, 0.62), { sx: 0.17, sy: 0.12, sz: 0.15, ry });
+  for (const e of [-1, 1]) {
+    putL(W, GEO.box(), face, ...at(e * 0.2, 0.7, 0.62), { sx: 0.16, sy: 0.05, sz: 0.09, ry, rz: -e * 0.5 });
+    put(W, GEO.ico(), 0xffffff, ...at(e * 0.09, 0.69, 0.855), { sx: 0.035, sy: 0.035, sz: 0.02 });
+  }
+  for (const [a, b] of [[0.25, 0.35], [-0.25, 0.35], [0.25, -0.35], [-0.25, -0.35]]) put(W, GEO.box(), face, ...at(a, 0.15, b), { sx: 0.09, sy: 0.3, sz: 0.09, ry });
+  put(W, GEO.lump(3), wool, ...at(0, 0.6, -0.72), { sx: 0.1, sy: 0.1, sz: 0.1 });
+  W.skirts.push({ x, z, y, r: 0.5 });
 }
