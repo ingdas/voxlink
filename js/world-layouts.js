@@ -1695,14 +1695,14 @@ function keeper(W) {
   const nearSpoke = (x, z, w) => spokes.some(u => x * u.x + z * u.z > 0 && Math.abs(x * u.z - z * u.x) < w);
   const stone = () => (rng() < 0.5 ? 0xe6dccb : 0xd6cab4);
   // a ring of flagstones round the Keeper's Lantern, and a path of them out to each bridge
-  for (let i = 0; i < 80; i++) {
-    const a = rng() * Math.PI * 2, r = 2.5 + rng() * 2.2;
-    put(W, GEO.box(), stone(), Math.cos(a) * r, 0.015, Math.sin(a) * r, { sx: 0.5 + rng() * 0.4, sy: 0.04, sz: 0.45 + rng() * 0.3, ry: rng(), kind: 'fx' });
-  }
+  for (let i = 0; i < 480; i++) rng(); // (the draws the old scattered flagstones made: what follows stays as it was)
+  plaza(W, 0, 0, 4.85, [0xe6dccb, 0xd6cab4], { inner: 2.72 });
+  W.noTuft = (x, z) => Math.hypot(x, z) < 4.85;
   for (const u of spokes) {
     for (let r = 4.9; r < R + 0.5; r += 0.62) {
       const s = (rng() - 0.5) * 0.9, x = u.x * r + u.z * s, z = u.z * r - u.x * s;
-      if (isl(x, z) < -0.3) put(W, GEO.box(), stone(), x, 0.015, z, { sx: 0.55 + rng() * 0.3, sy: 0.04, sz: 0.5 + rng() * 0.3, ry: rng(), kind: 'fx' });
+      // stepping stones of uneven shape out to each bridge
+      if (isl(x, z) < -0.3) put(W, GEO.cyl(Math.round(r * 3) % 2 ? 6 : 5), stone(), x, 0.015, z, { sx: (0.55 + rng() * 0.3) * 0.62, sy: 0.04, sz: (0.5 + rng() * 0.3) * 0.62, ry: rng() * 3, kind: 'fx' });
     }
   }
   // in the middle, under the Keeper's Lantern (its crystal and the worlds' orbs are added by nexus.js): the flowery

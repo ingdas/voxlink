@@ -229,6 +229,9 @@ fly / no-clip, unlock everything, replay the prologue / finale cutscenes, and se
 - `js/world-layouts.js`: one generator per chapter world (meadow terraces and pond, frost archipelago,
   reef lagoon and piers, starfall floating islets and jump pads, storm ruins and wind gusts)
 - `js/world-moods.js`: each world's five island moods (colour shifts, tree / rock counts) and their landmarks
+- `js/world-props.js`: the models every world shares (pedestal, trees, rocks, towers, houses, fences, masonry,
+  boats, bales, igloos, crates and barrels, the creatures that stand about)
+- `js/world-cover.js`: ground cover (grass clumps, flowers, the Moon's pebbles), instanced and swaying
 - `js/world-kit.js`, `js/world-sky.js`: merged static geometry, shape contours, skies (aurora, sunset,
   moon and ringed planet, storm vortex, cloud sea)
 - `js/game.js`: level session (sockets, backpack, interaction, animations, celebration)

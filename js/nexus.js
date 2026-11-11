@@ -115,13 +115,17 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
   };
 
   // ---- the bridges, each in its world's style ----
-  const B = new Batch();
+  const B = new Batch(), plankRng = mulberry32(4711);
   for (const k of islets) {
     const { u, ry, style: St } = k;
     const at = (a, s, y) => [u.x * a + u.z * s, y, u.z * a - u.x * s];
     const L = a1 - a0;
     B.put(GEO.box(), St.base, ...at(mid, 0, DECK - 0.12), { sx: HW * 2, sy: 0.16, sz: L, ry });
-    for (let t = 0.25; t < L; t += 0.5) B.put(GEO.box(), St.planks[Math.round(t * 2) % 2], ...at(a0 + t, 0, DECK - 0.02), { sx: HW * 2 + 0.1, sy: 0.06, sz: 0.44, ry, kind: 'ground' });
+    // planks of uneven length, each a touch askew (like the worlds' own bridges)
+    for (let t = 0.25; t < L; t += 0.5) {
+      const pr = plankRng();
+      B.put(GEO.box(), pr < 0.18 ? new THREE.Color(St.planks[Math.round(t * 2) % 2]).multiplyScalar(0.92).getHex() : St.planks[Math.round(t * 2) % 2], ...at(a0 + t, 0, DECK - 0.02), { sx: HW * 2 + 0.04 + pr * 0.16, sy: 0.06, sz: 0.44, ry: ry + (plankRng() - 0.5) * 0.035, kind: 'ground' });
+    }
     // rails over the open air, posts hanging a little below the deck
     const r0 = PLAZA_R + 0.3, r1 = RING - ISLET_R - 0.3, rm = (r0 + r1) / 2, rl = r1 - r0;
     const rails = St.rails || [[0.42, 0.08, 0.09], [0.86, 0.08, 0.09]];
@@ -135,6 +139,7 @@ export function buildNexus({ quality, slots, figureMat, sign }) {
         const a = r0 + (rl * j) / posts, w = St.postW || 0.14, h = 1.6 + 0.95;
         B.put(St.round ? GEO.cyl(8) : GEO.box(), St.post, ...at(a, c, DECK + 0.95 - h / 2), St.round ? { sx: w * 0.6, sy: h, sz: w * 0.6 } : { sx: w, sy: h, sz: w, ry });
         if (St.cap) B.put(GEO.box(), St.cap, ...at(a, c, DECK + 0.98), { sx: w + 0.06, sy: 0.07, sz: w + 0.06, ry });
+        else if (!St.round) B.put(GEO.cone(4), St.post, ...at(a, c, DECK + 1.0), { sx: w * 0.78, sy: 0.1, sz: w * 0.78, ry: ry + Math.PI / 4 });
       }
     }
   }

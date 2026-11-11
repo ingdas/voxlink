@@ -710,3 +710,6 @@ thing, not more realism. Detail that is added draws from a random source of its 
   flagstones are worn slabs of uneven shape; the sea's fangs have a shorter one beside them and rocks awash.
 - **High cliffs** (both worlds): fallen blocks of the cliff's own rock lie in the sea at its foot, and grassy
   ledges jut out of its face a little way down (`cliffFoot`).
+- **The Keeper's Isle.** The Lantern stands in a paved ring of flagstones with stepping stones of uneven shape
+  out to each bridge; its bridges have uneven planks and pointed posts like the worlds' own. Its lamps, portal
+  rings, trees, rocks, grass and clouds (and Kubo's Garden's) are the shared models above.
