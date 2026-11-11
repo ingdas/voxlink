@@ -84,8 +84,8 @@ const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a
 
 // how each kind of ground wears its cover: how thick, how tall, how many flowers
 const STYLE = {
-  grass: { density: 7, h: 1, flowers: 0.42, thin: 0.25 },
-  stone: { density: 6, h: 1.05, flowers: 0.18, thin: 0.25 },
+  grass: { density: 5.6, h: 1, flowers: 0.42, thin: 0.25 },
+  stone: { density: 5, h: 1.05, flowers: 0.18, thin: 0.25 },
   // dry stalks through the snow, in sparse tufts
   snow: { density: 1.3, h: 1.05, flowers: 0.08, thin: 0.04, w: 0.7, blades: 5, blend: 0.15, rim: 0.25 },
   // dune grass: thin bunches, wide apart
@@ -154,8 +154,9 @@ export function addGroundCover(W, { group, updaters, walkSd, floorAt, quality, s
   // Open ground wears a short carpet (loose blocks lie there: their numbers must stay easy to read); along the shore
   // and round the foot of trees and rocks, where no block ever lies, it stands tall.
   const area = Math.PI * W.bound * W.bound;
-  const want = Math.round(area * St.density * (low ? 0.34 : 1) * scale);
-  const geo = pebbles ? pebbleGeo() : clumpGeo(seeded(seed + 5), { blades: low ? 5 : St.blades ?? 6, h: 0.3, w: 0.034 * (St.w ?? 1), spread: 0.08, lean: St.lean ?? 0.6 });
+  // (a big island gets no more than a small one's worth and a half: its grass is thinner, not costlier)
+  const want = Math.min(low ? 1800 : 5600, Math.round(area * St.density * (low ? 0.32 : 1) * scale));
+  const geo = pebbles ? pebbleGeo() : clumpGeo(seeded(seed + 5), { blades: low ? 4 : St.blades ?? 5, h: 0.3, w: 0.034 * (St.w ?? 1), spread: 0.08, lean: St.lean ?? 0.6 });
   const grass = new THREE.InstancedMesh(geo, pebbles ? toon(0xffffff, { vertexColors: true }) : swayMat(), Math.max(1, want));
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const col = new THREE.Color();
@@ -265,11 +266,11 @@ export function addGroundCover(W, { group, updaters, walkSd, floorAt, quality, s
   };
   // an island you're not on draws less of its cover the farther it is (the clumps are in no order, so any share
   // of them is spread evenly)
-  const near = W.bound + 14, far = W.bound + 60;
+  const near = W.bound + 8, far = W.bound + 45;
   updaters.push((dt, t, cam) => {
     if (!cam) return;
     const d = Math.hypot(cam.x, cam.z);
-    const share = d < near ? 1 : Math.max(0.3, 1 - 0.7 * (d - near) / (far - near));
+    const share = d < near ? 1 : Math.max(0.2, 1 - 0.8 * (d - near) / (far - near));
     for (const im of meshes) im.count = Math.ceil(im.userData.full * share);
   });
 }

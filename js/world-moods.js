@@ -252,7 +252,7 @@ const BUILD = {
       for (let k = 0; k < 2; k++) {
         const a = d() * 6.283, rr = cr * 0.5 + 0.15, bh = 0.12 + d() * 0.14, bx = lx + Math.cos(a) * rr, bz = lz + Math.sin(a) * rr;
         L.p(GEO.cyl(6), stem, bx, bh / 2, bz, { sx: 0.035, sy: bh, sz: 0.035 });
-        L.p(GEO.dome(), c, bx, bh - 0.01, bz, { sx: 0.1, sy: 0.075, sz: 0.1, kind });
+        L.p(GEO.mound(), c, bx, bh - 0.01, bz, { sx: 0.1, sy: 0.075, sz: 0.1, kind });
       }
       L.skirt(lx, lz, cr * 0.45);
       L.box(lx, lz, cr * 0.3, cr * 0.3, 0, h);
@@ -282,8 +282,8 @@ const BUILD = {
         const a = k * 1.57 + 0.4;
         // twigs off each bough, and snow lying along it
         for (let j = 0; j < 2; j++) L.p(GEO.taper(5, 0.4), shade(T.trunk, 0.94), Math.sin(a) * (1.3 + j * 0.5) * s, (4.3 + j * 0.35) * s, Math.cos(a) * (1.3 + j * 0.5) * s, { sx: 0.07 * s, sy: 1.1 * s, sz: 0.07 * s, ry: a + (j ? 0.9 : -0.9), rx: 0.5 });
-        L.p(GEO.dome(), 0xffffff, Math.sin(a) * 1.5 * s, 4.52 * s, Math.cos(a) * 1.5 * s, { sx: 0.34 * s, sy: 0.13, sz: 0.24 * s, ry: a });
-        L.p(GEO.dome(), 0xffffff, Math.sin(a) * 0.95 * s, 3.98 * s, Math.cos(a) * 0.95 * s, { sx: 0.26 * s, sy: 0.1, sz: 0.2 * s, ry: a });
+        L.p(GEO.mound(), 0xffffff, Math.sin(a) * 1.5 * s, 4.52 * s, Math.cos(a) * 1.5 * s, { sx: 0.34 * s, sy: 0.13, sz: 0.24 * s, ry: a });
+        L.p(GEO.mound(), 0xffffff, Math.sin(a) * 0.95 * s, 3.98 * s, Math.cos(a) * 0.95 * s, { sx: 0.26 * s, sy: 0.1, sz: 0.2 * s, ry: a });
       }
       L.p(GEO.dome(), 0xffffff, 0, 3.88 * s, 0, { sx: 0.42 * s, sy: 0.14, sz: 0.42 * s });
     } else {
@@ -397,7 +397,7 @@ const BUILD = {
       // a leaf or two and a length of vine
       for (let j = 0; j < 2; j++) {
         const la = turn + j * 2.6, lr = s * 1.25;
-        L.p(GEO.dome(), j ? 0x5fae4f : 0x4f9a44, lx + Math.sin(la) * lr, 0.03, lz + Math.cos(la) * lr, { sx: 0.3, sy: 0.07, sz: 0.24, ry: la });
+        L.p(GEO.mound(), j ? 0x5fae4f : 0x4f9a44, lx + Math.sin(la) * lr, 0.03, lz + Math.cos(la) * lr, { sx: 0.3, sy: 0.07, sz: 0.24, ry: la });
       }
       L.p(GEO.cyl(5), vine, lx * 0.6, 0.04, lz * 0.6, { sx: 0.025, sy: Math.hypot(lx, lz) * 0.8, sz: 0.025, rx: Math.PI / 2, ry: Math.atan2(lx, lz) });
     }
@@ -471,7 +471,7 @@ const BUILD = {
     // (it lies with its open side towards the pedestal: you look into it)
     shipwreck(W, M0, { L: 5.2 });
     // sand banked up along the low side, and what fell out
-    for (let i = 0; i < 5; i++) L.p(GEO.dome(), W.T.grass, Math.cos(head) * (i - 2) * 0.9 + Math.sin(head) * 0.75, -0.03, -Math.sin(head) * (i - 2) * 0.9 + Math.cos(head) * 0.75, { sx: 0.7, sy: 0.22, sz: 0.5, ry: head, kind: 'ground' });
+    for (let i = 0; i < 5; i++) L.p(GEO.mound(), W.T.grass, Math.cos(head) * (i - 2) * 0.9 + Math.sin(head) * 0.75, -0.03, -Math.sin(head) * (i - 2) * 0.9 + Math.cos(head) * 0.75, { sx: 0.7, sy: 0.22, sz: 0.5, ry: head, kind: 'ground' });
     for (let i = 0; i < 4; i++) { const a = d() * 6.283, r = 2.4 + d() * 0.8; L.p(GEO.box(), i % 2 ? 0x9a6b4f : 0xb07a50, Math.sin(a) * r, 0.03, Math.cos(a) * r, { sx: 0.2, sy: 0.05, sz: 0.9 + d() * 0.6, ry: d() * 3, kind: 'fx' }); }
     L.p(GEO.cyl(6), 0xd9c49a, -1.9, 0.05, 2.0, { sx: 0.035, sy: 1.9, sz: 0.035, rx: Math.PI / 2, ry: -0.6 });
     L.p(GEO.box(), 0xb07a50, -2.42, 0.05, 2.75, { sx: 0.2, sy: 0.03, sz: 0.5, ry: -0.6 });

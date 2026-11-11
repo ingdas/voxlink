@@ -324,6 +324,8 @@ export const GEO = {
   cone: (n = 7) => geo('cone' + n, () => new THREE.ConeGeometry(1, 1, n)),
   octa: () => geo('octa', () => new THREE.OctahedronGeometry(1, 0)),
   dome: () => geo('dome', () => new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2)),
+  // a low-poly dome for small things (heaps of snow, leaves, dollops): a fraction of dome's triangles
+  mound: () => geo('mound', () => new THREE.SphereGeometry(1, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2)),
   // a cylinder that narrows to `top` of its radius (trunks, posts, chimneys); unit height, centred
   taper: (n = 8, top = 0.6) => geo(`taper${n}:${top}`, () => new THREE.CylinderGeometry(top, 1, 1, n)),
   // a unit box with its edges cut off by b (stone blocks, beams): the cut catches the light and the ink line

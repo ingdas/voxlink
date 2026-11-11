@@ -220,7 +220,7 @@ export function tree(W, kind, x, z, s, y = W.floorAt(x, z) ?? 0) {
       // a few dollops of snow out on the boughs
       for (let k = 0; k < 2; k++) {
         const sa = ry + (Math.floor(d() * 5) * 2 * Math.PI) / 5, rr = r * 0.8 * s;
-        put(W, GEO.dome(), 0xffffff, x + Math.cos(sa) * rr, y + (cy - h * 0.34) * s, z - Math.sin(sa) * rr, { sx: 0.24 * s, sy: 0.12 * s, sz: 0.2 * s, ry: sa });
+        put(W, GEO.mound(), 0xffffff, x + Math.cos(sa) * rr, y + (cy - h * 0.34) * s, z - Math.sin(sa) * rr, { sx: 0.24 * s, sy: 0.12 * s, sz: 0.2 * s, ry: sa });
       }
     });
   } else if (kind === 'palm') {
@@ -273,7 +273,7 @@ export function rock(W, x, z, s, y = W.floorAt(x, z) ?? 0, shape = W.T.rockShape
       const h = (1 + rng() * 1.2) * s * 1.6;
       put(W, GEO.shard(), T.rock, x + (rng() - 0.5) * s, y - 0.04, z + (rng() - 0.5) * s, { sx: s * 0.36, sy: h * 0.72, sz: s * 0.36, rx: (rng() - 0.5) * 0.4, ry: rng() * 3, rz: (rng() - 0.5) * 0.4, tint: footTint(0.82, 1.14) });
     }
-    put(W, GEO.dome(), 0xffffff, x, y - 0.02, z, { sx: s * 0.95, sy: s * 0.22, sz: s * 0.85, ry: d() * 3 });
+    put(W, GEO.mound(), 0xffffff, x, y - 0.02, z, { sx: s * 0.95, sy: s * 0.22, sz: s * 0.85, ry: d() * 3 });
   } else if (shape === 'coral') {
     const cc = [0xff9eb8, 0xff7a6b, 0xffb86b, 0xc98bff][Math.floor(rng() * 4)];
     // branching coral: stems that fork, each ending in a knob
@@ -650,7 +650,7 @@ export function igloo(W, x, z, ry, { R = 2, H = 1.6, y = 0, k = 1, tunnel = 2.4,
   // snow banked up round its foot
   for (let i = 0; i < 7; i++) {
     const a = ry + 0.7 + (i / 7) * (Math.PI * 2 - 1.4) + (d() - 0.5) * 0.3, ss = (0.5 + d() * 0.4) * k;
-    put(W, GEO.dome(), snow, x + Math.sin(a) * (R + 0.1), y - 0.02, z + Math.cos(a) * (R + 0.1), { sx: ss, sy: ss * 0.42, sz: ss * 0.8, ry: a });
+    put(W, GEO.mound(), snow, x + Math.sin(a) * (R + 0.1), y - 0.02, z + Math.cos(a) * (R + 0.1), { sx: ss, sy: ss * 0.42, sz: ss * 0.8, ry: a });
   }
 }
 
@@ -716,7 +716,7 @@ export function stump(W, x, z, y = 0, { r = 0.35, h = 0.5, bark = 0x8a5a3c } = {
   put(W, GEO.cyl(9), 0xe2c08c, x, y + h + 0.005, z, { sx: r * 0.88, sy: 0.02, sz: r * 0.88 });
   put(W, GEO.cyl(9), 0xc9a06a, x, y + h + 0.012, z, { sx: r * 0.55, sy: 0.02, sz: r * 0.55 });
   put(W, GEO.cyl(8), 0xe2c08c, x, y + h + 0.018, z, { sx: r * 0.26, sy: 0.02, sz: r * 0.26 });
-  if (snowy) put(W, GEO.dome(), 0xfafcff, x + r * 0.15, y + h + 0.01, z - r * 0.1, { sx: r * 0.78, sy: 0.13, sz: r * 0.7, ry: d() * 3 });
+  if (snowy) put(W, GEO.mound(), 0xfafcff, x + r * 0.15, y + h + 0.01, z - r * 0.1, { sx: r * 0.78, sy: 0.13, sz: r * 0.7, ry: d() * 3 });
   W.skirts.push({ x, z, y, r: r + 0.1 });
 }
 
@@ -871,7 +871,7 @@ export function starfish(W, x, y, z, color, turn = 0, s = 1, kind = 'fx') {
     const a = turn + k * 1.2566;
     putL(W, GEO.cone(4), k % 2 ? color : shade(color, 0.92), x + Math.cos(a) * 0.1 * s, y + 0.012, z - Math.sin(a) * 0.1 * s, { sx: 0.022 * s, sy: 0.2 * s, sz: 0.06 * s, ry: a, rz: -Math.PI / 2, kind });
   }
-  put(W, GEO.dome(), shade(color, 1.08), x, y, z, { sx: 0.06 * s, sy: 0.035 * s, sz: 0.06 * s, kind });
+  put(W, GEO.mound(), shade(color, 1.08), x, y, z, { sx: 0.06 * s, sy: 0.035 * s, sz: 0.06 * s, kind });
 }
 // a wooden crate: plank faces in a frame, a brace across each side
 export function crate(W, x, y, z, s, ry, wood = 0xb07a50) {
@@ -979,7 +979,7 @@ export function rover(W, x, z, ry, y = 0, s = 1) {
   put(W, GEO.cyl(5), 0xa9a5ba, ...at(0.15, 0.72, 0.3), { sx: 0.022 * s, sy: 0.5 * s, sz: 0.022 * s });
   putL(W, GEO.bevel(0.15), 0xf2f4fa, ...at(0.15, 1.0, 0.3), { sx: 0.2 * s, sy: 0.11 * s, sz: 0.13 * s, ry });
   for (const e of [-1, 1]) put(W, GEO.ico(), 0x2a2438, ...at(0.15 + e * 0.05, 1.0, 0.37), { sx: 0.03 * s, sy: 0.03 * s, sz: 0.02 * s });
-  putL(W, GEO.dome(), 0xcfcbe0, ...at(-0.16, 0.66, -0.3), { sx: 0.17 * s, sy: 0.07 * s, sz: 0.17 * s, ry, rx: Math.PI - 0.5 });
+  putL(W, GEO.mound(), 0xcfcbe0, ...at(-0.16, 0.66, -0.3), { sx: 0.17 * s, sy: 0.07 * s, sz: 0.17 * s, ry, rx: Math.PI - 0.5 });
   put(W, GEO.cyl(5), 0xa9a5ba, ...at(-0.16, 0.56, -0.3), { sx: 0.018 * s, sy: 0.18 * s, sz: 0.018 * s });
 }
 
@@ -1008,7 +1008,7 @@ export function cliffFoot(W, coast, { rock = W.T.cliff, grass = W.T.grass } = {}
     k++;
     const y = -1.2 - d() * Math.min(6, -W.seaY * 0.5), w = 0.9 + d() * 1.1;
     put(W, GEO.rock(), shade(rock, 0.94), x, y - 0.25, z, { sx: w, sy: 0.5, sz: w * 0.8, ry: d() * 6 });
-    put(W, GEO.dome(), grass, x, y - 0.02, z, { sx: w * 0.8, sy: 0.16, sz: w * 0.62, ry: d() * 6 });
+    put(W, GEO.mound(), grass, x, y - 0.02, z, { sx: w * 0.8, sy: 0.16, sz: w * 0.62, ry: d() * 6 });
     if (d() < 0.5) put(W, GEO.lump(1), shade(grass, 0.86), x + (d() - 0.5) * 0.4, y + 0.14, z + (d() - 0.5) * 0.4, { sx: 0.26, sy: 0.2, sz: 0.24 });
   }
 }

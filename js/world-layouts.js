@@ -395,7 +395,7 @@ function frost(W) {
     const a = W.drng() * 6.283, r = Math.sqrt(W.drng()) * W.bound, x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (ice(x, z) > -0.1 || islands(x, z) < 0.05 || islands(x, z) > 0.4) continue;
     const ss = 0.3 + W.drng() * 0.35;
-    put(W, GEO.dome(), 0xffffff, x, -0.06, z, { sx: ss * 1.3, sy: ss * 0.4, sz: ss, ry: W.drng() * 3, kind: 'fx' });
+    put(W, GEO.mound(), 0xffffff, x, -0.06, z, { sx: ss * 1.3, sy: ss * 0.4, sz: ss, ry: W.drng() * 3, kind: 'fx' });
     k++;
   }
 
@@ -427,7 +427,7 @@ function frost(W) {
     put(W, GEO.dome(), 0xfafcff, x, -0.05, z, { sx: s * 1.4, sy: hh, sz: s, ry, kind: 'solid' });
     for (let k = 0; k < 2; k++) {
       const a = d() * 6.283, ss = s * (0.4 + d() * 0.25);
-      put(W, GEO.dome(), k ? 0xffffff : 0xf0f6ff, x + Math.cos(a) * s * 0.6, -0.04, z + Math.sin(a) * s * 0.5, { sx: ss * 1.3, sy: hh * (0.7 + d() * 0.5), sz: ss, ry: d() * 3 });
+      put(W, GEO.mound(), k ? 0xffffff : 0xf0f6ff, x + Math.cos(a) * s * 0.6, -0.04, z + Math.sin(a) * s * 0.5, { sx: ss * 1.3, sy: hh * (0.7 + d() * 0.5), sz: ss, ry: d() * 3 });
     }
     W.obstacles.push({ x, z, r: s + 0.3 });
   });
@@ -569,7 +569,7 @@ function reef(W) {
     if (rng() < 0.5) {
       // a scallop shell: a low fan with ribs
       const c = [0xffd6e0, 0xfff1e0, 0xffc9a8][Math.floor(rng() * 3)], ry = rng() * 3;
-      put(W, GEO.dome(), c, x, 0, z, { sx: 0.16, sy: 0.08, sz: 0.13, ry, kind: 'fx' });
+      put(W, GEO.mound(), c, x, 0, z, { sx: 0.16, sy: 0.08, sz: 0.13, ry, kind: 'fx' });
       for (let k = -1; k <= 1; k++) putL(W, GEO.box(), shade(c, 0.86), x, 0.05, z, { sx: 0.012, sy: 0.05, sz: 0.24, ry: ry + k * 0.5, kind: 'fx' });
     } else {
       const c = [0xff7a6b, 0xffa94d, 0xff8fc7][Math.floor(rng() * 3)], ry = rng() * 3;
@@ -958,7 +958,7 @@ function farm(W) {
           }
         } else if (crop === 1) {
           put(W, GEO.lump(Math.floor(d() * 4)), 0x8fd96a, px, 0.15, pz, { sx: 0.17, sy: 0.14, sz: 0.17, ry: d() * 6, kind: 'fx' });
-          for (let k = 0; k < 4; k++) { const a = k * 1.57 + d(); putL(W, GEO.dome(), k % 2 ? 0x6cc357 : 0x5cb04c, px + Math.cos(a) * 0.13, 0.07, pz + Math.sin(a) * 0.13, { sx: 0.14, sy: 0.1, sz: 0.1, ry: -a, rz: 0.9, kind: 'fx' }); }
+          for (let k = 0; k < 4; k++) { const a = k * 1.57 + d(); putL(W, GEO.mound(), k % 2 ? 0x6cc357 : 0x5cb04c, px + Math.cos(a) * 0.13, 0.07, pz + Math.sin(a) * 0.13, { sx: 0.14, sy: 0.1, sz: 0.1, ry: -a, rz: 0.9, kind: 'fx' }); }
         } else {
           for (let k = 0; k < 3; k++) { const a = k * 2.1 + d(); putL(W, GEO.cone(4), k ? 0x5fae4a : 0x4f9a40, px, 0.2, pz, { sx: 0.045, sy: 0.34, sz: 0.045, ry: -a, rz: -0.35, kind: 'fx' }); }
           put(W, GEO.cone(6), 0xff8a3d, px, 0.07, pz, { sx: 0.075, sy: 0.1, sz: 0.075, rx: Math.PI, kind: 'fx' });
@@ -1229,17 +1229,17 @@ function frostwood(W) {
       for (const e of [-1, 1]) putL(W, GEO.cyl(7), 0xe2c08c, px + fwd[0] * e * 0.503, py, pz + fwd[1] * e * 0.503, { sx: 0.12, sy: 0.01, sz: 0.12, ry, rx: Math.PI / 2 });
     }
     for (const e of [-1, 1]) put(W, GEO.box(), 0x6b4a36, wx + side[0] * e * 0.55, 0.5, wz + side[1] * e * 0.55, { sx: 0.07, sy: 1.0, sz: 0.07, ry });
-    put(W, GEO.dome(), 0xfafcff, wx, 0.98, wz, { sx: 0.5, sy: 0.12, sz: 0.5 });
+    put(W, GEO.mound(), 0xfafcff, wx, 0.98, wz, { sx: 0.5, sy: 0.12, sz: 0.5 });
     W.box(wx - 0.6, 0, wz - 0.6, wx + 0.6, 0.6, wz + 0.6, { sound: 'wood' });
     late.push(() => {
       // (close by the cabin, where no block lies: added last, so they move nothing)
-      const [bx, , bz] = Hs.at(-2.35, 0, 0.9), [mx, , mz] = Hs.at(1.25, 0, 2.2);
+      const [bx, , bz] = Hs.at(-2.15, 0, 0.5), [mx, , mz] = Hs.at(0.85, 0, 1.95);
       stump(W, bx, bz, 0, { r: 0.3, h: 0.42 });
       putL(W, GEO.box(), 0x8a5a3c, bx + 0.12, 0.72, bz, { sx: 0.045, sy: 0.6, sz: 0.045, rz: -0.5 });
       putL(W, GEO.box(), 0x8f8aa8, bx - 0.04, 0.5, bz, { sx: 0.2, sy: 0.12, sz: 0.04, rz: -0.5 });
       W.box(bx - 0.3, 0, bz - 0.3, bx + 0.3, 0.45, bz + 0.3, { sound: 'wood' });
       snowman(W, mx, mz, ry + 0.4);
-      W.box(mx - 0.35, 0, mz - 0.35, mx + 0.35, 1.5, mz + 0.35, { sound: 'snow' });
+      W.box(mx - 0.3, 0, mz - 0.3, mx + 0.3, 1.5, mz + 0.3, { sound: 'snow' });
     });
   }
 
@@ -1262,7 +1262,7 @@ function frostwood(W) {
     const a = W.drng() * 6.283, r = Math.sqrt(W.drng()) * R, x = Math.cos(a) * r, z = Math.sin(a) * r, sd = stream(x, z);
     if (sd < 0.05 || sd > 0.45 || isl(x, z) > -0.8) continue;
     const ss = 0.3 + W.drng() * 0.35;
-    put(W, GEO.dome(), 0xffffff, x, -0.03, z, { sx: ss * 1.3, sy: ss * 0.45, sz: ss, ry: W.drng() * 3, kind: 'fx' });
+    put(W, GEO.mound(), 0xffffff, x, -0.03, z, { sx: ss * 1.3, sy: ss * 0.45, sz: ss, ry: W.drng() * 3, kind: 'fx' });
     k++;
   }
   late.forEach(f => f());
@@ -1462,7 +1462,7 @@ function moon(W) {
     for (let k = 0; k < 8; k++) {
       const a0 = (k / 8) * 6.283 + Math.PI / 8;
       put(W, GEO.cyl(6), 0x3a3850, x + Math.sin(a0) * 2.05, 0.06, z + Math.cos(a0) * 2.05, { sx: 0.1, sy: 0.12, sz: 0.1 });
-      put(W, GEO.dome(), k % 2 ? 0x4cc9f0 : 0xff6b6b, x + Math.sin(a0) * 2.05, 0.12, z + Math.cos(a0) * 2.05, { sx: 0.075, sy: 0.085, sz: 0.075, kind: 'glow' });
+      put(W, GEO.mound(), k % 2 ? 0x4cc9f0 : 0xff6b6b, x + Math.sin(a0) * 2.05, 0.12, z + Math.cos(a0) * 2.05, { sx: 0.075, sy: 0.085, sz: 0.075, kind: 'glow' });
       const am = a0 + Math.PI / 8;
       for (let j = -2; j <= 2; j++) putL(W, GEO.box(), j % 2 ? 0x2a2438 : 0xffd23f, x + Math.sin(am) * 1.86 + Math.cos(am) * j * 0.29, 0.067, z + Math.cos(am) * 1.86 - Math.sin(am) * j * 0.29, { sx: 0.29, sy: 0.02, sz: 0.1, ry: am, kind: 'fx' });
     }

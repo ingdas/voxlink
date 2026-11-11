@@ -713,3 +713,11 @@ thing, not more realism. Detail that is added draws from a random source of its 
 - **The Keeper's Isle.** The Lantern stands in a paved ring of flagstones with stepping stones of uneven shape
   out to each bridge; its bridges have uneven planks and pointed posts like the worlds' own. Its lamps, portal
   rings, trees, rocks, grass and clouds (and Kubo's Garden's) are the shared models above.
+- **What it costs, and what was checked.** A frame now draws about 165,000 to 300,000 triangles over all passes
+  where it drew 55,000 to 82,000 (measured standing where you arrive on six islands across the worlds), with 3 % to
+  26 % more draw calls; a world takes about 0.1 s longer to build. The grass was the biggest part and was trimmed
+  to fit: five blades a clump, at most 5,600 clumps an island (1,800 on phones), a fifth of them on far islands;
+  small heaps and leaves use a low-poly mound. This was measured in software rendering only: frame rate on real
+  phones is untested. Every one of the 50 islands was compared with the old build on a half-metre grid: where
+  loose blocks may lie, the surfaces to stand on and the landmark's spot are identical, and the whole browser
+  suite (21 suites) passes.
