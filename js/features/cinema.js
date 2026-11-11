@@ -266,6 +266,8 @@ void main(){
   vec3 q = vec3(p.x * cos(tw) - p.z * sin(tw), p.y, p.x * sin(tw) + p.z * cos(tw));
   float cl = fbm3(q * 2.4 + vec3(0.0, time * 0.35, 0.0));
   float k = smoothstep(0.3, 0.75, cl);
+  // the cloud bands in a few flat tones, like everything else here
+  float kq = k * 3.0; k = (floor(kq) + smoothstep(0.3, 0.7, fract(kq))) / 3.0;
   float face = max(dot(vN, vV), 0.0), rim = pow(1.0 - face, 2.0);
   float vein = 1.0 - smoothstep(0.0, 0.035, abs(fbm3(p * 3.2 + floor(time * 7.0) * 3.7) - 0.5));
   float flick = step(0.55, h3(vec3(floor(time * 9.0))));
@@ -318,13 +320,25 @@ function makeBolt(from, to) {
   };
   const main = path(from, to, 14, 2.6, 0.3);
   const fork = main[6];
-  path(fork, fork.clone().add(V(4 + Math.random() * 3, -9, (Math.random() - 0.5) * 6)), 6, 1.8, 0.14);
-  prop(group, () => { box.dispose(); core.dispose(); glow.dispose(); });
+  const sub = path(fork, fork.clone().add(V(4 + Math.random() * 3, -9, (Math.random() - 0.5) * 6)), 6, 1.8, 0.14);
+  // thinner forks off the other side, lower down, and a twig off the first fork
+  for (const [i, len, w] of [[9, 6, 0.1], [11, 3.5, 0.07]]) {
+    const f = main[i];
+    path(f, f.clone().add(V(-(2.5 + Math.random() * 3), -len, (Math.random() - 0.5) * 5)), 5, 1.4, w);
+  }
+  path(sub[3], sub[3].clone().add(V(-(1 + Math.random() * 2), -4, (Math.random() - 0.5) * 3)), 4, 1, 0.07);
+  // a flare where it lands
+  const flare = new THREE.Sprite(glowMat(0xdcebff));
+  flare.position.copy(to);
+  flare.scale.setScalar(8);
+  flare.layers.set(LAYER_FX);
+  group.add(flare);
+  prop(group, () => { box.dispose(); core.dispose(); glow.dispose(); flare.material.dispose(); });
   return {
     group,
     set(k) { // 1 → 0 as it fades, flickering
       const f = k > 0.6 ? 1 : k * (0.5 + 0.5 * Math.sin(k * 60));
-      core.opacity = f; glow.opacity = 0.35 * f;
+      core.opacity = f; glow.opacity = 0.35 * f; flare.material.opacity = 0.75 * f;
     },
   };
 }
@@ -340,11 +354,36 @@ function makeRain(n = 700, wind = 0.18) {
   lines.layers.set(LAYER_OVERLAY);
   lines.frustumCulled = false;
   prop(lines, () => { geo.dispose(); mat.dispose(); });
+  // where the drops land: little rings that open and fade on the ground in front of the camera
+  const N = 70, ringGeo = new THREE.RingGeometry(0.72, 1, 14).rotateX(-Math.PI / 2);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xdfe8ff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+  const rings = new THREE.InstancedMesh(ringGeo, ringMat, N);
+  rings.layers.set(LAYER_OVERLAY);
+  rings.frustumCulled = false;
+  const drops = Array.from({ length: N }, () => ({ x: 0, y: -99, z: 0, k: Math.random() }));
+  const rm = new THREE.Matrix4(), rq = new THREE.Quaternion(), rp = V(0, 0, 0), rs = V(1, 1, 1), fwd = V(0, 0, 0);
+  prop(rings, () => { ringGeo.dispose(); ringMat.dispose(); rings.dispose(); });
   return {
     update(dt, cam, amount) {
       mat.opacity = 0.55 * amount;
-      lines.visible = amount > 0.01;
+      lines.visible = rings.visible = amount > 0.01;
       if (!lines.visible) return;
+      ringMat.opacity = 0.4 * amount;
+      ctx.camera.getWorldDirection(fwd);
+      const w = ctx.game.world;
+      for (let i = 0; i < N; i++) {
+        const d = drops[i];
+        d.k += dt * 2.6;
+        if (d.k >= 1) {
+          d.k -= 1;
+          const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 11;
+          d.x = cam.x + fwd.x * 8 + Math.cos(a) * r; d.z = cam.z + fwd.z * 8 + Math.sin(a) * r;
+          d.y = w.floorAt(d.x, d.z) ?? -99;
+        }
+        const sz = 0.04 + d.k * 0.17;
+        rings.setMatrixAt(i, rm.compose(rp.set(d.x, d.y + 0.04, d.z), rq, rs.set(sz, 1, sz * (1 - d.k * 0.3))));
+      }
+      rings.instanceMatrix.needsUpdate = true;
       for (let i = 0; i < n; i++) {
         let y = seeds[i * 3 + 1] - dt * 17;
         if (y < -2) y += 16;

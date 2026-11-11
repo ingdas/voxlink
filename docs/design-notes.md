@@ -633,3 +633,7 @@ thing, not more realism. Detail that is added draws from a random source of its 
   keystone; moss lies on top and creeps up from the foot in strands; fallen columns are drums lying apart.
 - **Cliffs** show layers: an island's flank is cut into bands of earth and rock, each a shade of the cliff's
   colour, the lines between them rising and falling as they run round the island (`wallGeometry`'s `strata`).
+- **The opening's own effects** (`js/features/cinema.js`): lightning forks three times and has a flare where it
+  lands, the rain lands in little rings that open and fade on the ground, and the storm ball's cloud bands come in
+  a few flat tones like everything else. **Clouds** (every world) are fuller: a flat shaded base, a row of big
+  puffs on it, smaller ones riding on top and at the ends.

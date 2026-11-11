@@ -267,22 +267,28 @@ export function buildWorld({ rng, radius: R, seed, quality, theme: themeId = 'me
   if (nClouds) {
     const cloudRing = new THREE.Group();
     const blobs = [];
+    const lit = new THREE.Color(T.clouds ?? 0xffffff), under = lit.clone().multiplyScalar(0.86).offsetHSL(0.02, 0.04, 0);
     for (let i = 0; i < nClouds; i++) {
       const n = 3 + Math.floor(rng() * 3);
       const th = rng() * Math.PI * 2, r = (W.cloudR ?? 70) + rng() * 70;
       const cy = (W.cloudY ?? 16) + rng() * 22;
       const big = W.cloudScale ?? 1;
+      // the puffs lie along the ring (so a cloud faces the island broadside)
+      const tx = -Math.sin(th), tz = Math.cos(th), ox = Math.cos(th), oz = Math.sin(th);
+      const at = (off, up, out) => ({ x: Math.cos(th) * r + tx * off + ox * out, y: cy + up, z: Math.sin(th) * r + tz * off + oz * out });
+      // a flat base, a row of big puffs on it and smaller ones riding on top and at the ends
+      blobs.push({ ...at(0, -0.9 * big, 0), sx: (n * 1.45 + 1.2) * big, sy: 0.75 * big, sz: 2.3 * big, c: under });
       for (let k = 0; k < n; k++) {
         const s = (2.2 + rng() * 2.2) * big;
-        // lay the puffs out tangentially
-        const off = (k - n / 2) * 2.6 * big + rng();
-        const tx = -Math.sin(th), tz = Math.cos(th);
-        blobs.push({ x: Math.cos(th) * r + tx * off, y: cy + rng() * 1.2 * big, z: Math.sin(th) * r + tz * off, sx: s * 1.2, sy: s * 0.8, sz: s });
+        const off = (k - (n - 1) / 2) * 2.6 * big + rng();
+        blobs.push({ ...at(off, rng() * 1.2 * big, 0), sx: s * 1.2, sy: s * 0.8, sz: s, c: lit });
+        if (rng() < 0.75) { const t = s * (0.5 + rng() * 0.25); blobs.push({ ...at(off + (rng() - 0.5) * s, s * 0.55 + rng() * 0.4 * big, (rng() - 0.5) * s * 0.7), sx: t * 1.15, sy: t * 0.85, sz: t, c: lit }); }
       }
+      for (const e of [-1, 1]) { const t = (1.2 + rng() * 0.8) * big; blobs.push({ ...at(e * (n / 2 * 2.6 + 0.9) * big, -0.25 * big, 0), sx: t * 1.3, sy: t * 0.7, sz: t, c: under }); }
     }
-    const cm = new THREE.InstancedMesh(GEO.blob(), toon(T.clouds ?? 0xffffff, { fog: false }), blobs.length);
+    const cm = new THREE.InstancedMesh(GEO.blob(), toon(0xffffff, { fog: false }), blobs.length);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion();
-    blobs.forEach((b, i) => cm.setMatrixAt(i, m.compose(new THREE.Vector3(b.x, b.y, b.z), q, new THREE.Vector3(b.sx, b.sy, b.sz))));
+    blobs.forEach((b, i) => { cm.setMatrixAt(i, m.compose(new THREE.Vector3(b.x, b.y, b.z), q, new THREE.Vector3(b.sx, b.sy, b.sz))); cm.setColorAt(i, b.c); });
     cm.frustumCulled = false;
     cloudRing.add(cm);
     group.add(cloudRing);
