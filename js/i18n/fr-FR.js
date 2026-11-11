@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Étincelles trouvées : {n} sur {total}",
   "kubo.hopSoon": "{n} étincelles ! Encore {left} et je serai assez fort pour te donner un <b>coup de pouce en plein saut</b>.",
   "kubo.hop": "{n} étincelles ! Je peux maintenant te donner un coup de pouce : <b>saute encore une fois en l’air</b> et je te rattrape.",
+  "kubo.glideSoon": "{n} étincelles ! Encore {left} et je pourrai te <b>porter dans les airs</b>.",
+  "kubo.glide": "{n} étincelles ! Je peux maintenant te porter : après mon coup de pouce, <b>garde le saut enfoncé</b> et on plane.",
 };

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 const RADIUS = 0.3, HEIGHT = 1.7, EYE = 1.55, STEP = 0.55;
 export const GRAVITY = 24, JUMP_V = 8.6;
 const HOP_V = 6.6; // Kubo's lift: a second, smaller jump in mid-air
+const GLIDE_V = 1.7; // …and how fast you sink while he carries you after it
 const WALK = 5.0, RUN = 7.6;
 
 export class Player {
@@ -18,6 +19,7 @@ export class Player {
     this.bobScale = 1; this.landScale = 1; // comfort settings (head bob / reduced motion)
     this.onStep = null; this.onLand = null; this.onJump = null; this.onPad = null; this.onRescue = null; this.onHop = null;
     this.canHop = false; this.hops = 0; // Kubo's lift (earned with sparks): one hop in mid-air per jump
+    this.canGlide = false; this.gliding = false; this.onGlide = null; // …and, with more of them, he carries you after it while jump stays held
     this._box = new THREE.Box3();
     this.surface = null; // what the player stands on: { friction, slow, sound, splash } from world.surfaceAt
     this.launchT = 0; // flying off a jump pad: no air steering until landing
@@ -123,6 +125,11 @@ export class Player {
       this.onGround = false;
     } else if (lift && !this.onGround) {
       this.vel.y = Math.max(this.vel.y - G * dt * 0.25, -1.6);
+    } else if (this.canGlide && this.hops > 0 && input.jumpHeld && !this.onGround && this.vel.y <= 0) {
+      // Kubo carries you: past the top of his lift with jump still held, you sink slowly instead of falling
+      this.hoverT = 0;
+      if (!this.gliding) { this.gliding = true; this.onGlide?.(); }
+      this.vel.y += (-GLIDE_V - this.vel.y) * Math.min(1, dt * 7);
     } else {
       this.hoverT = 0;
       // variable jump height: release early to cut the jump (not while flying off a pad)
@@ -130,6 +137,7 @@ export class Player {
       this.vel.y -= G * dt;
       if (this.vel.y < -30) this.vel.y = -30;
     }
+    if (this.gliding && (this.onGround || this.hops < 1 || !input.jumpHeld || lift)) this.gliding = false;
 
     // wind pushes you along on the ground (not while standing up high, so a gust never shoves you off)
     const w = world.wind;

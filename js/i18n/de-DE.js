@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Funken gefunden: {n} von {total}",
   "kubo.hopSoon": "{n} Funken! Noch {left}, dann bin ich stark genug, dir <b>mitten in der Luft Schwung</b> zu geben.",
   "kubo.hop": "{n} Funken! Jetzt kann ich dir Schwung geben: <b>Spring in der Luft noch einmal</b>, und ich fange dich auf.",
+  "kubo.glideSoon": "{n} Funken! Noch {left}, dann kann ich dich <b>durch die Luft tragen</b>.",
+  "kubo.glide": "{n} Funken! Jetzt kann ich dich tragen: <b>Halte Springen gedrückt</b>, nachdem ich dir Schwung gegeben habe, und wir gleiten.",
 };

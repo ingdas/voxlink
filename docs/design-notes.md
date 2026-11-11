@@ -543,3 +543,17 @@ Loading: 61 requests, 0.72 MB gzipped (1.05 MB in Japanese, which adds its font 
   The figure ends exactly where it was built. Nothing collides differently: the jump is 0.3–0.4 m and over in
   0.6 s. None of it with reduced motion.
 
+## 2026-11-11 · Thirty sparks: Kubo carries you
+
+- After the lift at ten, the other 137 sparks earned nothing but magnet charges and a count. **Thirty sparks,
+  found anywhere, and Kubo carries you**: after his lift, keep jump held and past the top you sink at 1.7 m/s
+  instead of falling (he stays under your feet the whole way; a breath of wind, and the wind lines of the
+  bridges). From the lift's 2.4 m that is about a second and a half in the air, some 10 m at a run; much more in
+  the low gravity of Starfall Peak and Moon Isle. It only follows a lift (a plain jump with the button held
+  falls as it always did), and never in the updraft, where a held jump already floats you up.
+- **What it's for.** The worlds' own ground is the reason: the reef's lagoon (wading), Frostwood's drifts and the
+  Frost Isles' ice are things you can now cross over instead of through. Kubo says ten more will do it at twenty
+  sparks, and how it works at thirty (two worlds' worth for a player who looks for them).
+- The Keeper's Isle's pill now counts every spark next to every star (`30 / 147`), and the world pill you see
+  while walking is wider on phones (with the sparks added, "Windmühlenhof" no longer fitted beside the counts).
+

@@ -54,6 +54,8 @@ export default {
   "toast.spark": "Spark {n} of {total}!",
   "kubo.hopSoon": "{n} sparks! {left} more and I'll be strong enough to give you a <b>lift in mid-air</b>.",
   "kubo.hop": "{n} sparks! Now I can give you a lift: <b>jump again in mid-air</b> and I'll catch you.",
+  "kubo.glideSoon": "{n} sparks! {left} more and I can <b>carry you through the air</b>.",
+  "kubo.glide": "{n} sparks! Now I can carry you: after my lift, <b>keep jump held</b> and we glide.",
   "a11y.goal.sparks": "Sparks found: {n} of {total}",
   "aria.drop": "Drop",
   "aria.jump": "Jump",

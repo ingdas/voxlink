@@ -3,6 +3,7 @@
 // Closed worlds have a gate on their bridge until the world before them is rebuilt; a newly opened one wakes as
 // you arrive. A flowery arch leads to Kubo's Garden. Going between places runs through a short flash of light.
 import { buildNexus } from '../nexus.js';
+import { SPARKS } from '../sparks.js';
 import { THEMES } from '../world.js';
 import { setLookTheme, LK } from '../looks.js';
 import { Player } from '../player.js';
@@ -125,7 +126,8 @@ function enter({ from = null, unlock = null, before = null, ad = false } = {}) {
     for (const id of ['tooltip', 'coach', 'toast']) $(id).classList.remove('show');
     const n = totalStars(), max = ctx.LEVELS.length * 3;
     $('lvl-name').textContent = t('nexus.name');
-    $('count').textContent = `★ ${n} / ${max}`;
+    // (every star and every spark, all worlds together)
+    $('count').innerHTML = `★ ${n} / ${max}<span class="w-stars w-sparks"><svg class="ic"><use href="#i-spark"/></svg><bdi>${ctx.totalSparks()} / ${(ctx.LEVELS.length - 1) * SPARKS}</bdi></span>`;
     $('stage').textContent = '';
     $('bar-fill').style.width = `${(n / max) * 100}%`;
     $('nexus-keys').classList.remove('fade');
@@ -217,6 +219,7 @@ class Isle {
     this.player.onLand = v => ctx.audio.land(v);
     this.player.onJump = () => ctx.audio.jump();
     this.player.canHop = ctx.canHop();
+    this.player.canGlide = ctx.canGlide();
     this.player.onHop = () => ctx.audio.hop();
     this.player.onRescue = () => ctx.audio.whoosh(1);
     // where you arrive: out of the portal you came through, or on the plaza facing the world that's next

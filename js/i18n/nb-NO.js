@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Gnister funnet: {n} av {total}",
   "kubo.hopSoon": "{n} gnister! {left} til, så er jeg sterk nok til å gi deg et <b>løft i lufta</b>.",
   "kubo.hop": "{n} gnister! Nå kan jeg gi deg et løft: <b>hopp en gang til i lufta</b>, så tar jeg imot deg.",
+  "kubo.glideSoon": "{n} gnister! {left} til, så kan jeg <b>bære deg gjennom lufta</b>.",
+  "kubo.glide": "{n} gnister! Nå kan jeg bære deg: <b>hold hopp inne</b> etter løftet mitt, så svever vi.",
 };

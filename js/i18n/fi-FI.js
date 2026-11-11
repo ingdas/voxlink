@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Kipinöitä löydetty: {n}/{total}",
   "kubo.hopSoon": "{n} kipinää! Vielä {left}, niin jaksan antaa sinulle <b>vauhtia ilmassa</b>.",
   "kubo.hop": "{n} kipinää! Nyt voin antaa sinulle vauhtia: <b>hyppää ilmassa uudestaan</b>, niin otan sinut kiinni.",
+  "kubo.glideSoon": "{n} kipinää! Vielä {left}, niin voin <b>kantaa sinua ilmassa</b>.",
+  "kubo.glide": "{n} kipinää! Nyt voin kantaa sinua: <b>pidä hyppy pohjassa</b> nostoni jälkeen, niin liidämme.",
 };

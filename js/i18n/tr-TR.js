@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Bulunan kıvılcımlar: {n} / {total}",
   "kubo.hopSoon": "{n} kıvılcım! {left} tane daha, sonra seni <b>havada itecek</b> kadar güçlü olacağım.",
   "kubo.hop": "{n} kıvılcım! Artık seni itebilirim: <b>havadayken bir kez daha zıpla</b>, ben seni yakalarım.",
+  "kubo.glideSoon": "{n} kıvılcım! {left} tane daha, sonra seni <b>havada taşıyabilirim</b>.",
+  "kubo.glide": "{n} kıvılcım! Artık seni taşıyabilirim: itişimden sonra <b>zıplamayı basılı tut</b>, birlikte süzülelim.",
 };

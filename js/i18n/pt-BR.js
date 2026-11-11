@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Faíscas encontradas: {n} de {total}",
   "kubo.hopSoon": "{n} faíscas! Mais {left} e vou ter força para te dar um <b>empurrãozinho no ar</b>.",
   "kubo.hop": "{n} faíscas! Agora posso te dar um empurrãozinho: <b>pule de novo no ar</b> e eu te seguro.",
+  "kubo.glideSoon": "{n} faíscas! Mais {left} e vou poder <b>te carregar pelo ar</b>.",
+  "kubo.glide": "{n} faíscas! Agora posso te carregar: depois do meu empurrãozinho, <b>segure o pulo</b> e a gente plana.",
 };

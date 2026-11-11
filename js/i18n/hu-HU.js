@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Megtalált szikrák: {n} / {total}",
   "kubo.hopSoon": "{n} szikra! Még {left}, és elég erős leszek, hogy <b>a levegőben is meglökjelek</b>.",
   "kubo.hop": "{n} szikra! Most már meg tudlak lökni: <b>ugorj még egyet a levegőben</b>, és elkaplak.",
+  "kubo.glideSoon": "{n} szikra! Még {left}, és <b>vinni tudlak a levegőben</b>.",
+  "kubo.glide": "{n} szikra! Most már vinni tudlak: a lökésem után <b>tartsd lenyomva az ugrást</b>, és siklunk.",
 };

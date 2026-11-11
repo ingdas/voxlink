@@ -31,7 +31,7 @@ waits (a figure in progress pauses and its clock stops).
 | Move | WASD / arrows, Shift to run | Left thumb (floating stick, push fully to run) |
 | Look | Mouse (pointer lock), or J / L to turn and I / K to look up and down | Drag with right thumb |
 | Grab / link | Click (or E) | Tap a block / bubble |
-| Jump / float | Space (hold inside the glowing ring to float up tall figures; again in mid-air for Kubo's lift, once you've found ten sparks) | Jump button |
+| Jump / float | Space (hold inside the glowing ring to float up tall figures; again in mid-air for Kubo's lift, once you've found ten sparks; keep it held after that to glide, with thirty) | Jump button |
 | Backpack slot | 1–4, mouse wheel, Tab | Tap a slot |
 | Drop | Right-click / Q | Drop button |
 | Hint | H | Bulb button |
@@ -77,6 +77,7 @@ Workshop editor:
   mesa, out on the far side, or hanging in the air a jump up. Walk into one to catch it: it charges the
   **Magnet** for this run (on small figures too) and counts towards the island's three for good (`js/sparks.js`).
   Ten sparks, found anywhere, earn **Kubo's lift**: jump again in mid-air and he springs you about a metre higher.
+  Thirty, and he **carries you**: keep jump held after his lift and you glide down slowly.
 - Each figure has 3 stars: finish it, beat the par time, and use no hints. The goals sit under the
   progress bar while you build (time against par, hints used, each with its star); the first hint of a
   run asks for a second press, since it costs the no-hint star.

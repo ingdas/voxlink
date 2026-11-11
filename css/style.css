@@ -698,6 +698,8 @@ body.ui-scaled #hud { --z: var(--ui-hud, 1); }
 .needs { top: calc(var(--hud-bottom, 76px) / var(--z) + 8px); }
 .toast { top: calc(var(--needs-bottom, 124px) / var(--z) + 8px); }
 @media (max-height: 500px) { .needs { top: calc(var(--hud-bottom, 52px) / var(--z) + 5px); } .toast { top: calc(var(--needs-bottom, 90px) / var(--z) + 6px); } }
+/* walking (the pill shows the world, its figures, stars and sparks; the tools are put away): room for all of it */
+@media (min-width: 521px) { body:is(.roaming, .offisland) .progress { width: min(400px, 56vw); } }
 /* narrow screens: the tools stack down the right edge, so the progress pill and every tool fit */
 @media (max-width: 520px) {
   .hud-tools { flex-direction: column; gap: 14px; }

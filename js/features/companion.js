@@ -165,9 +165,10 @@ function update(g, dt) {
   const ax = kubo.pos.x - pl.pos.x, az = kubo.pos.z - pl.pos.z, ad = Math.hypot(ax, az);
   if (ad < 1.8) { const s = 1.8 / Math.max(ad, 0.01); kubo.pos.x = pl.pos.x + ax * s; kubo.pos.z = pl.pos.z + az * s; }
   // giving you a lift: right under your feet for a moment, squashed by the push
+  // (and carrying you: he stays there for the whole glide)
   liftT = Math.max(0, liftT - dt);
-  if (liftT > 0) kubo.pos.set(pl.pos.x, pl.pos.y - 0.42, pl.pos.z);
-  const squash = liftT > 0 ? Math.sin((liftT / LIFT) * Math.PI) : 0;
+  if (liftT > 0 || pl.gliding) kubo.pos.set(pl.pos.x, pl.pos.y - 0.42, pl.pos.z);
+  const squash = liftT > 0 ? Math.sin((liftT / LIFT) * Math.PI) : pl.gliding ? 0.25 : 0;
   kubo.body.scale.set(1 + squash * 0.3, 1 - squash * 0.4, 1 + squash * 0.3);
   const speed = before.distanceTo(kubo.pos) / Math.max(dt, 1e-3);
 

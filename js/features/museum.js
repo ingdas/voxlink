@@ -314,6 +314,7 @@ class Garden {
     this.player.onLand = v => ctx.audio.land(v);
     this.player.onJump = () => ctx.audio.jump();
     this.player.canHop = ctx.canHop();
+    this.player.canGlide = ctx.canGlide();
     this.player.onHop = () => ctx.audio.hop();
     this.player.spawn(0, 8.5, 0);
     this.player.pitch = -0.08;

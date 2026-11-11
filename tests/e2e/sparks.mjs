@@ -163,6 +163,45 @@ await suite('sparks', async t => {
   t.check('…and a second jump in mid-air now lifts you well higher', a1 > a0 + 0.6 && a1 < a0 + 1.4, { before: a0, after: a1 });
   const a2 = await apex(h);
   t.check('…one hop per jump, back again after landing', Math.abs(a2 - a1) < 0.3, { a1, a2 });
+  // thirty sparks: he carries you after his lift (a glide while jump stays held)
+  // jump, jump again and keep it held: how long until you land, how fast you sink, and whether he carried you
+  const hang = async page => {
+    await page.evaluate(() => { const g = window.__voxlink.game, s = g.arch.spawnOf(g.level, 9); g.player.pos.set(s.x, 0, s.z); g.player.vel.set(0, 0, 0); g.player.yaw = s.yaw + Math.PI; });
+    await page.waitForTimeout(300);
+    const air = page.evaluate(() => new Promise(res => {
+      const g = window.__voxlink.game, t0 = performance.now(); let left = 0, sink = 0, carried = false;
+      const tick = () => {
+        const now = performance.now() - t0;
+        if (!g.player.onGround && !left) left = now;
+        if (now > 900) sink = Math.min(sink, g.player.vel.y);
+        carried = carried || g.player.gliding;
+        if ((left && g.player.onGround && now > left + 200) || now > 6000) res({ air: (now - left) / 1000, sink, carried });
+        else requestAnimationFrame(tick);
+      };
+      tick();
+    }));
+    await page.keyboard.down('Space'); await page.waitForTimeout(330); await page.keyboard.up('Space');
+    await page.keyboard.down('Space');
+    const r = await air;
+    await page.keyboard.up('Space');
+    return r;
+  };
+  await h.evaluate(() => { const V = window.__voxlink; Object.assign(V.save.sparks, { snail: 7, duck: 7, bunny: 7, sheep: 1, apple: 0 }); V.startLevel(4); });
+  await t.app(h, 'playing');
+  await h.waitForTimeout(400);
+  const g0 = await hang(h);
+  t.check('nineteen sparks: holding jump after the lift just falls', !g0.carried && g0.air < 1.5 && g0.sink < -4, g0);
+  await h.evaluate(() => window.__voxlink.ctx.companion.reset());
+  await touch(h, 0);
+  await h.waitForFunction(() => /20/.test(document.querySelector('#kubo-speech.show .ks-text')?.innerText || ''), null, { timeout: 12000 }).catch(() => {});
+  t.check('the twentieth: Kubo says ten more and he can carry you', /10 more/.test(await speech(h)) && /carry/i.test(await speech(h)), await speech(h));
+  await h.evaluate(() => { const V = window.__voxlink; Object.assign(V.save.sparks, { sheep: 7, windmill: 7, mitten: 7 }); V.save.sparks.apple |= 2; V.ctx.companion.reset(); });
+  await touch(h, 2);
+  await h.waitForFunction(() => window.__voxlink.game.player.canGlide, null, { timeout: 5000 }).catch(() => {});
+  await h.waitForTimeout(300);
+  t.check('the thirtieth: Kubo says how he carries you', /30/.test(await speech(h)) && /held/i.test(await speech(h)), await speech(h));
+  const g1 = await hang(h);
+  t.check('…and with jump held after his lift you sink slowly, carried', g1.carried && g1.air > g0.air + 0.6 && g1.sink > -2.2, { before: g0, after: g1 });
   await h.close();
 
   // a finished island you walk onto: the sparks you found are gone, the rest wait

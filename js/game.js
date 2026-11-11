@@ -142,6 +142,7 @@ export class Game {
       this.fx.burst(new THREE.Vector3(p.x, p.y + 0.15, p.z), 0xff9eef, 14, 3);
     };
     this.player.onRescue = () => this.audio.whoosh(1);
+    this.player.onGlide = () => this.audio.glide?.();
     this.player.onHop = () => {
       this.audio.hop?.();
       const p = this.player.pos;
@@ -326,6 +327,7 @@ export class Game {
     else if (this.arch) { const s = this.arch.spawnOf(level, Math.min(R - 3, 9)); this.player.spawn(s.x, s.z, s.yaw); }
     else this.player.spawn(0, Math.min(R - 3, 9), 0);
     this.player.canHop = !!this.events.canHop?.();
+    this.player.canGlide = !!this.events.canGlide?.();
     this.onIsland = false; this.islandT = 0; this.arrived = false;
     this.switching = false; this.inPortal = this.arch ? this.arch.atPortal(this.player.pos.x, this.player.pos.z) : false;
     this.linkOrder = [];
@@ -731,6 +733,7 @@ export class Game {
     }
     this.events.spark?.(this.level, k, s);
     this.player.canHop = !!this.events.canHop?.();
+    this.player.canGlide = !!this.events.canGlide?.();
   }
 
   // Kubo Express: every carried block that fits flies across the island to its bubble.
@@ -1478,7 +1481,8 @@ export class Game {
     this.player.applyCamera(this.camera);
     // carried along a breeze lane (well over a run): the view widens a touch and wind lines streak past (neither
     // with reduced motion)
-    const rush = THREE.MathUtils.clamp((Math.hypot(this.player.vel.x, this.player.vel.z) - 9.5) / 6, 0, 1) * this.comfort.kick;
+    // (the lines also show while Kubo carries you)
+    const rush = Math.max(THREE.MathUtils.clamp((Math.hypot(this.player.vel.x, this.player.vel.z) - 9.5) / 6, 0, 1), this.player.gliding ? 0.5 : 0) * this.comfort.kick;
     this.rush = (this.rush || 0) + (rush - (this.rush || 0)) * Math.min(1, dt * (rush > this.rush ? 3 : 6));
     if (this.rush < 0.003) this.rush = 0;
     this.fx.wind.update(this.camera, this.player.vel, this.rush);

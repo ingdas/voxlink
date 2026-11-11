@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Percikan ditemukan: {n} dari {total}",
   "kubo.hopSoon": "{n} percikan! {left} lagi dan aku cukup kuat untuk memberimu <b>dorongan di udara</b>.",
   "kubo.hop": "{n} percikan! Sekarang aku bisa memberimu dorongan: <b>lompat sekali lagi di udara</b> dan aku akan menangkapmu.",
+  "kubo.glideSoon": "{n} percikan! {left} lagi dan aku bisa <b>membawamu melayang</b>.",
+  "kubo.glide": "{n} percikan! Sekarang aku bisa membawamu: setelah doronganku, <b>tahan tombol lompat</b> dan kita melayang.",
 };

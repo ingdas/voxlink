@@ -12,6 +12,7 @@ import { mulberry32 } from './voxels.js';
 
 export const SPARKS = 3;
 export const HOP_SPARKS = 10; // sparks (anywhere) that earn Kubo's lift, the hop in mid-air
+export const GLIDE_SPARKS = 30; // …and that he carries you after it (a glide while jump stays held)
 const HOVER = 1.05; // metres a spark floats over the ground or the top it's on
 const CATCH = 0.95; // caught within this far of you (anywhere from your feet to your head)
 const BODY = 1.7;

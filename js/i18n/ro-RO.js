@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Scântei găsite: {n} din {total}",
   "kubo.hopSoon": "{n} scântei! Încă {left} și voi fi destul de puternic să-ți dau un <b>avânt în aer</b>.",
   "kubo.hop": "{n} scântei! Acum îți pot da un avânt: <b>sari încă o dată în aer</b> și te prind eu.",
+  "kubo.glideSoon": "{n} scântei! Încă {left} și te voi putea <b>purta prin aer</b>.",
+  "kubo.glide": "{n} scântei! Acum te pot purta: după avântul meu, <b>ține apăsat saltul</b> și planăm.",
 };

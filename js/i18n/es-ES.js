@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Chispas encontradas: {n} de {total}",
   "kubo.hopSoon": "¡{n} chispas! {left} más y tendré fuerza para darte un <b>empujón en pleno salto</b>.",
   "kubo.hop": "¡{n} chispas! Ahora puedo darte un empujón: <b>salta otra vez en el aire</b> y yo te recojo.",
+  "kubo.glideSoon": "¡{n} chispas! {left} más y podré <b>llevarte por el aire</b>.",
+  "kubo.glide": "¡{n} chispas! Ahora puedo llevarte: tras mi empujón, <b>mantén pulsado el salto</b> y planeamos.",
 };

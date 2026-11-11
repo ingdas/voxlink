@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Nalezené jiskry: {n} z {total}",
   "kubo.hopSoon": "{n} jisker! Ještě {left} a budu mít dost síly, abych tě <b>nadhodil ve vzduchu</b>.",
   "kubo.hop": "{n} jisker! Teď tě můžu nadhodit: <b>skoč ve vzduchu ještě jednou</b> a já tě chytím.",
+  "kubo.glideSoon": "{n} jisker! Ještě {left} a budu tě moct <b>nést vzduchem</b>.",
+  "kubo.glide": "{n} jisker! Teď tě unesu: po mém nadhození <b>drž skok</b> a poplachtíme.",
 };

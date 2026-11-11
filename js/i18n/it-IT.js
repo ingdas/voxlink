@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Scintille trovate: {n} di {total}",
   "kubo.hopSoon": "{n} scintille! Ancora {left} e sarò abbastanza forte da darti una <b>spinta a mezz’aria</b>.",
   "kubo.hop": "{n} scintille! Ora posso darti una spinta: <b>salta di nuovo a mezz’aria</b> e ti prendo io.",
+  "kubo.glideSoon": "{n} scintille! Ancora {left} e potrò <b>portarti in volo</b>.",
+  "kubo.glide": "{n} scintille! Ora posso portarti: dopo la mia spinta, <b>tieni premuto il salto</b> e planiamo.",
 };

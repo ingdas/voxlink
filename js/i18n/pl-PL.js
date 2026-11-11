@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Znalezione iskry: {n} z {total}",
   "kubo.hopSoon": "{n} iskier! Jeszcze {left} i będę mieć dość siły, by <b>podbić cię w powietrzu</b>.",
   "kubo.hop": "{n} iskier! Teraz mogę cię podbić: <b>skocz jeszcze raz w powietrzu</b>, a ja cię złapię.",
+  "kubo.glideSoon": "{n} iskier! Jeszcze {left} i będę mógł <b>nieść cię w powietrzu</b>.",
+  "kubo.glide": "{n} iskier! Teraz mogę cię nieść: po moim podbiciu <b>trzymaj skok</b>, a poszybujemy.",
 };

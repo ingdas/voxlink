@@ -674,4 +674,6 @@ export default {
   "a11y.goal.sparks": "Tia lửa đã tìm thấy: {n} trên {total}",
   "kubo.hopSoon": "{n} tia lửa! Thêm {left} tia nữa là mình đủ sức <b>đẩy bạn lên giữa không trung</b>.",
   "kubo.hop": "{n} tia lửa! Giờ mình có thể đẩy bạn lên: <b>nhảy thêm lần nữa khi đang ở trên không</b> và mình sẽ đỡ bạn.",
+  "kubo.glideSoon": "{n} tia lửa! Thêm {left} tia nữa là mình có thể <b>mang bạn bay trên không</b>.",
+  "kubo.glide": "{n} tia lửa! Giờ mình có thể mang bạn: sau khi mình đẩy, <b>giữ nút nhảy</b> là chúng ta lượn.",
 };

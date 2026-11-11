@@ -201,6 +201,11 @@ export class Audio {
     this.tone({ f: 420, f2: 840, type: 'triangle', dur: 0.14, vol: 0.14 });
     this.tone({ f: 1260, type: 'sine', t: 0.04, dur: 0.12, vol: 0.05, wet: 0.4 });
   }
+  // Kubo carries you: a breath of wind as the glide begins
+  glide() {
+    this.noise({ dur: 0.5, vol: 0.05, freq: 500, f2: 1400, q: 0.6, attack: 0.12 });
+    this.tone({ f: 660, f2: 990, type: 'sine', dur: 0.25, vol: 0.04, wet: 0.5 });
+  }
   // a spark caught: a quick run of bells, a step higher for each one you hold
   spark(n = 1) {
     const base = 79 + Math.min(3, n) * 2;
